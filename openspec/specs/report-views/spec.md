@@ -59,6 +59,33 @@ visible in the views they affect — the UI's polish must never exceed the data'
 - **WHEN** an entity's latest import reported a footing break
 - **THEN** views over that entity carry the warning until the underlying condition clears
 
+### Requirement: An empty view says which kind of empty it is
+
+There are three, they are not interchangeable, and each SHALL be distinguishable with its own recovery:
+
+1. **Nothing here yet** — the store holds no data for this view. The recovery is to import.
+2. **Nothing matches** — data exists; the active filter, search or date excludes it. The recovery is to
+   clear the filter, and the view SHALL say how many rows exist unfiltered.
+3. **Cannot be shown** — the store is unreachable, busy, or lens could not answer. The recovery is to fix
+   that cause, which the view SHALL name.
+
+Rendering any of these as another is a defect. The third is the dangerous one: an unreachable store drawn
+as an empty table is indistinguishable from genuinely owning nothing, and a household reading "no holdings"
+when their store was merely locked has been told something false about their money.
+
+#### Scenario: A filter excludes everything
+- **WHEN** a user filters a populated holdings view down to nothing
+- **THEN** the view says the filter matched no rows and how many exist without it — never "you have no
+  holdings"
+
+#### Scenario: A store is locked while its view is open
+- **WHEN** a verb holds the store and a view over it is requested
+- **THEN** the view states that it is busy and why, and shows no zero-value figures
+
+#### Scenario: A genuinely new workspace
+- **WHEN** a workspace has been created but nothing imported
+- **THEN** the view says so and offers the import flow
+
 ### Requirement: Import-from-the-UI shows WLC's verdict verbatim
 
 The import trigger SHALL render WLC's structured per-file outcomes (imported / needs-attention, with

@@ -24,7 +24,7 @@ already exists.
 | P2 | WLC missing / version-skewed | **Specified** — preflight at every launch (cold-start) |
 | P3 | Store-key custody | **Decided** — never crosses the bridge (ADR-0015) |
 | P4 | Retraction teaches a missing verb | **Fixed** — teaches quarantine→rebuild→promote (collateral-and-sources) |
-| P5 | Empty states | First run specified; the rest is a Phase 4 item |
+| P5 | Empty states | **Specified** — the three kinds of empty and their recoveries (report-views); per-screen copy is Phase 4 implementation |
 | P6 | Statement acquisition | **Specified** — a help page covering per-institution collection and `document-collector` as an optional companion (setup-and-config) |
 | P7 | Password naming on entry | **Specified** — prove it opens, then ring-or-once, with the reproducibility consequence stated (setup-and-config) |
 | P8 | Mixed-scope provenance header | **Resolved** — aggregate views are point-in-time at one chosen date, so there is one date (ADR-0016) |
