@@ -40,6 +40,47 @@ files; error messages SHALL NOT embed them; logs SHALL NOT record them.
 - **THEN** the API reports the failure class and workspace label only — never key material or the
   attempted SQL
 
+### Requirement: A framework-free read layer, reusable by other consumers
+
+The bridge SHALL separate a `core/` read layer (workspace resolution, lens access, family aggregation,
+freshness, the per-workspace job queue) from its HTTP layer. `core/` SHALL NOT depend on the web
+framework, so a second consumer (an MCP server per ADR-0008, a test harness) reuses it without inheriting
+a server.
+
+#### Scenario: The read layer is exercised without HTTP
+- **WHEN** family aggregation is tested
+- **THEN** it is callable directly, with no server running and no request object involved
+
+### Requirement: Data is requested at a stated granularity
+
+Read APIs SHALL take an explicit granularity — `aggregate` (class/total level), `positions`
+(instrument level), or `transactions` (ledger level) — rather than returning the widest data and letting
+callers narrow it. This is what makes scoped exposure (ADR-0008) enforceable at the source.
+
+#### Scenario: An aggregate request cannot leak positions
+- **WHEN** a caller requests family net worth at `aggregate` granularity
+- **THEN** the response contains no instrument-level rows, regardless of the caller's identity
+
+### Requirement: Long-running verbs stream their progress
+
+Verb execution SHALL expose progress as a stream (server-sent events), and its final outcome SHALL remain
+retrievable after the stream closes, so a user who navigates away or reconnects still learns what
+happened.
+
+#### Scenario: A rebuild outlives its viewer
+- **WHEN** a rebuild is started and the browser tab is closed, then reopened
+- **THEN** the job's status and, once finished, its full result are still available in Activity
+
+### Requirement: The API schema is generated, not hand-maintained
+
+The bridge SHALL publish a machine-readable schema of its endpoints and response models, and the
+frontend's types SHALL be derived from it — so a contract change that the UI has not adopted fails at
+build time rather than in a household's dashboard.
+
+#### Scenario: A response model gains a field the UI ignores
+- **WHEN** the bridge's models change and types are regenerated
+- **THEN** the mismatch surfaces in the frontend build, not at runtime
+
 ### Requirement: Responses carry the contract's honesty fields
 
 Entity-scoped responses SHALL include the lens-provided `basis`/as-of/warning fields; family-scoped
