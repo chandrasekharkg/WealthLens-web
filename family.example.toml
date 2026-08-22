@@ -4,6 +4,9 @@
 
 [family]
 label = "Example family"
+# The reporting currency for any view spanning more than one store (ADR-0016). Every cross-store total is
+# expressed in this, and named as such. v1 supports an INR pivot — see ADR-0016 for why.
+reporting_currency = "INR"
 
 [[entity]]
 id = "self"                                     # stable id used by the API and views
@@ -14,6 +17,8 @@ workspace = "~/WealthLens/me-WealthLens-data"   # a WLC workspace (its store + s
 id = "spouse"
 label = "Spouse"
 workspace = "~/WealthLens/spouse-WealthLens-data"
+# currency = "GBP"    # this entity's default, for figures spanning THEIR accounts. Individual accounts
+                      # still display in their own currency — this is only the store-level default.
 
 # An entity may span several workspaces (e.g. a legacy one beside the current) — use `workspaces`:
 # [[entity]]
@@ -24,3 +29,5 @@ workspace = "~/WealthLens/spouse-WealthLens-data"
 # [view] presentation preferences only — currency display, default date ranges, section order…
 [view]
 default = "family"                              # or an entity id
+# Key-backup state (which workspaces have a confirmed store.key backup, when, and its fingerprint) is
+# recorded per entity by the app — ADR-0015. A fingerprint and a date are not secrets.

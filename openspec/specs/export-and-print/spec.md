@@ -47,6 +47,12 @@ incomplete units).
 - **THEN** a reader who has never seen the app can tell whose money it is, as of when, in what currency,
   and under what filters
 
+#### Scenario: A family artifact spans several stores
+- **WHEN** a family view is exported or printed
+- **THEN** the header carries the **single** point-in-time date the view was computed at (ADR-0016), the
+  reporting currency, which entities were unreachable, and which were answering from older evidence — never
+  a list of competing as-of dates and never one date standing in for many
+
 ### Requirement: Money keeps its currency on the way out
 
 Monetary values SHALL export with their currency, never as bare numbers (data-conventions). A total SHALL

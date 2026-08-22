@@ -67,7 +67,8 @@ follows from one sentence:
   [0012 evolution](openspec/decisions/0012-evolution.md) ·
   [0013 egress: export & print](openspec/decisions/0013-egress.md) ·
   [0014 installation & launch](openspec/decisions/0014-installation-and-launch.md) ·
-  [0015 store-key custody](openspec/decisions/0015-store-key-custody.md)
+  [0015 store-key custody](openspec/decisions/0015-store-key-custody.md) ·
+  [0016 currency & point-in-time](openspec/decisions/0016-currency-and-point-in-time.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
@@ -90,6 +91,13 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
 - [ ] WLC (**not v1-blocking**): a retraction verb (`wealthlens forget <source_id>`).
       `capture_io.delete_source()` exists as a function with no CLI surface — until then WLW *teaches* the
       command rather than building the button (ADR-0012). Graduates on demand.
+- [ ] WLC: **a configured store default currency**. `currency` exists on accounts/instruments/facts but
+      only as a column default of `'INR'` — an entity's default should be configuration, not a schema
+      constant (ADR-0016).
+- [ ] WLC: **a reporting-currency-relative FX pivot**. `fx_rates` stores `inr_rate`, and `value_inr` /
+      `fx_to_inr` appear across ~20 modules, so INR is baked into the vocabulary rather than chosen. Until
+      this lands, WLW supports an INR pivot and refuses other reporting currencies rather than
+      approximating (ADR-0016).
 - [ ] WLC (roadmap): foreign-held accounts. WLW's standing free-landing test — if displaying one needs
       more than a locale string, WLW's data conventions are wrong (ADR-0012 part 2).
 - [ ] Seed the bridge from the reviewed prototype (WLC PR #1's report server) — with ADR-0004's

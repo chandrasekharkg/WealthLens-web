@@ -27,6 +27,29 @@ SHALL be provided per entity where lens exposes them.
 - **THEN** every figure shown is the lens answer for that date, per entity, with each entity's as-of
   honesty preserved (see family-aggregation)
 
+### Requirement: Aggregate views are computed point-in-time at one chosen date
+
+The date in the context bar SHALL be the basis of computation, not a label: an aggregate view asks each
+**reachable** store for its position as of that date and combines those answers (ADR-0016). A view or
+artifact therefore carries **one** as-of date.
+
+This SHALL NOT be used to conceal two facts that remain true:
+
+- a store that could not be opened is named as excluded, and the total is labelled partial
+  (family-aggregation);
+- a store whose newest evidence predates the chosen date is answering from what it has, which is not the
+  same as being complete to that date.
+
+#### Scenario: A family view at a chosen date
+- **WHEN** a user picks a date and views family net worth
+- **THEN** every constituent figure is that store's position at that date, and the view states the single
+  date it was computed at
+
+#### Scenario: A lagging store inside a point-in-time view
+- **WHEN** one entity's newest evidence is older than the chosen date
+- **THEN** the view states that its answer covers evidence only up to that entity's own latest — the shared
+  date does not make a lagging store current
+
 ### Requirement: Uncertainty is rendered, not hidden
 
 `basis` labels, `units_incomplete`/footing warnings, and "needs attention" import outcomes SHALL be

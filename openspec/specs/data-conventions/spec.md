@@ -23,12 +23,60 @@ a money value that arrived without one. A bare number in a money position is a d
 ### Requirement: Sums are only ever taken within one currency
 
 The system SHALL NOT add amounts of differing currencies. Aggregation happens on the reporting-currency
-figure WLC provides; a mixed-currency set with no reporting figure is reported as unsummable, never
-silently added.
+figure; a mixed-currency set with no reporting figure is reported as unsummable, never silently added.
 
 #### Scenario: Mixed currencies in one view
 - **WHEN** a view aggregates holdings across currencies
 - **THEN** it sums the reporting-currency values and states the reporting currency, or declines to total
+
+### Requirement: Currency resolves at three levels
+
+Currency SHALL resolve as account → store → aggregator (ADR-0016). An **account** is displayed in its own
+currency and never converted away for its own view. A **store** has a default currency for figures spanning
+one entity's accounts. An **aggregator** (a family or multi-store view) has a reporting currency declared in
+the manifest. Display resolves inward; aggregation resolves outward.
+
+#### Scenario: Looking at one foreign account
+- **WHEN** a user opens a USD account held alongside INR accounts
+- **THEN** its balances and transactions are shown in USD — its own currency is the point of that view
+
+#### Scenario: Looking at net worth across those accounts
+- **WHEN** the same user views net worth
+- **THEN** one figure appears, in the declared reporting currency, named as such
+
+### Requirement: Mixed currencies may be shown; they may not be silently summed
+
+A table MAY display rows of differing currencies side by side, each with its own. Any total over such a
+table SHALL be the reporting-currency figure and SHALL name that currency — or SHALL be omitted.
+
+#### Scenario: A family holdings table spans currencies
+- **WHEN** rows in several currencies are listed
+- **THEN** each row shows its own currency, and the footer total is stated in the reporting currency
+
+### Requirement: Conversion uses a rate at the view's date, or the figure is refused
+
+Where conversion is required, the rate SHALL be the one for the view's point-in-time date. If no rate
+exists for that date, the view SHALL say so and offer to fetch rates — it SHALL NOT substitute today's
+rate, the nearest rate, or any unstated approximation.
+
+#### Scenario: A rate is missing for the chosen date
+- **WHEN** a converted total is requested and no FX rate exists for that date
+- **THEN** the total is withheld with the reason and the fetch is offered, rather than an approximate
+  number being shown as exact
+
+### Requirement: A reporting currency WLC cannot compute is refused, not approximated
+
+Where the installed WLC cannot express figures in the declared reporting currency, the system SHALL refuse
+with a clear reason naming what it can do.
+
+> WLC's FX table stores an INR-relative rate (`fx_rates.inr_rate`) and its value columns are INR-named, so
+> v1 supports an INR pivot. Generalizing it is a tracked WLC change (ADR-0016), not something WLW may
+> approximate around.
+
+#### Scenario: A household declares a non-INR reporting currency
+- **WHEN** the manifest declares a reporting currency the engine cannot pivot to
+- **THEN** setup reports it plainly, names what is supported, and does not silently report INR figures
+  under another currency's label
 
 ### Requirement: Market instruments carry an identifier; the rest say they have none
 

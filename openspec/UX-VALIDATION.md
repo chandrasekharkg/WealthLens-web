@@ -25,10 +25,12 @@ already exists.
 | P3 | Store-key custody | **Decided** — never crosses the bridge (ADR-0015) |
 | P4 | Retraction teaches a missing verb | **Fixed** — teaches quarantine→rebuild→promote (collateral-and-sources) |
 | P5 | Empty states | First run specified; the rest is a Phase 4 item |
-| P6 | Statement acquisition | Open — inbox empty state must teach it |
-| P7 | Password naming on entry | Open — Phase 5 |
-| P8 | Mixed-scope provenance header | Open — Phase 3, where the header is built |
-| P9–P11 | Foreign currency, Activity durability, key set | Noted; P11 resolved by ADR-0015's manifest tracking |
+| P6 | Statement acquisition | **Specified** — a help page covering per-institution collection and `document-collector` as an optional companion (setup-and-config) |
+| P7 | Password naming on entry | **Specified** — prove it opens, then ring-or-once, with the reproducibility consequence stated (setup-and-config) |
+| P8 | Mixed-scope provenance header | **Resolved** — aggregate views are point-in-time at one chosen date, so there is one date (ADR-0016) |
+| P9 | Foreign currency | **Decided** — three-level currency resolution, one reporting figure (ADR-0016); two WLC tasks raised |
+| P10 | Activity durability across restart | Open — Phase 5 |
+| P11 | The set of keys a family holds | **Resolved** — backup state per workspace in the manifest (ADR-0015) |
 
 The findings below are the original write-up, kept as the record of what the gate caught.
 
