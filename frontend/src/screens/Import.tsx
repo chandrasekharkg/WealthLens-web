@@ -105,6 +105,7 @@ export function Import({ entities, format, onImported }: ImportProps) {
   };
 
   const files = (job?.result?.files as FileVerdict[] | undefined) ?? [];
+  const locked = files.filter((file) => file.status === "locked");
 
   return (
     <main>
@@ -152,7 +153,77 @@ export function Import({ entities, format, onImported }: ImportProps) {
       </button>
 
       {job?.state === "finished" && <Verdict job={job} files={files} format={format} />}
+
+      {/* The locked-file loop. The password is added to the ring and the import re-run — WealthLens-core
+          proves it worked by opening the file, because nothing here reads a statement (ADR-0019). */}
+      {locked.length > 0 && (
+        <Unlock entity={entity} files={locked} format={format} onSaved={() => void runImport()} />
+      )}
     </main>
+  );
+}
+
+function Unlock({
+  entity,
+  files,
+  format,
+  onSaved,
+}: {
+  entity: string;
+  files: FileVerdict[];
+  format: Formatter;
+  onSaved: () => void;
+}) {
+  const { t } = format;
+  const [name, setName] = useState("");
+  const [value, setValue] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await api.changeSettings(entity, { secret: { name, value } });
+      setValue("");
+      onSaved();          // proof is the RETRY: the engine's verdict says whether the file opened
+    } catch (error: unknown) {
+      const detail = error instanceof ApiError ? error.detail : null;
+      setProblem((detail as { detail?: { reason?: string } } | null)?.detail?.reason ?? t("error.load"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section aria-label={t("locked.title")}>
+      <h2>{t("locked.title")}</h2>
+      <ul>
+        {files.map((file) => (
+          <li key={file.file}>{file.file}</li>
+        ))}
+      </ul>
+      <p>{t("locked.explain")}</p>
+      <p>
+        <label htmlFor="pw-name">{t("locked.name")}</label>{" "}
+        <input id="pw-name" value={name} onChange={(event) => setName(event.target.value)} />{" "}
+        <label htmlFor="pw-value">{t("locked.value")}</label>{" "}
+        <input
+          id="pw-value"
+          type="password"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        />{" "}
+        <button type="button" onClick={() => void save()} disabled={busy || !name || !value}>
+          {busy ? t("locked.retrying") : t("locked.save")}
+        </button>
+      </p>
+      {problem && (
+        <p role="alert" data-tone="warning">
+          {problem}
+        </p>
+      )}
+    </section>
   );
 }
 

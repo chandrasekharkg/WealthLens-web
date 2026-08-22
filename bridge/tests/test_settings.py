@@ -155,3 +155,42 @@ def test_a_workspace_with_no_config_yet_still_reads(tmp_path):
     ws.mkdir()
     got = settings.read(ws)
     assert got.holder_names == () and got.pan_set is False and got.organize is True
+
+
+# ── revealing a re-obtainable secret (ADR-0019) ──────────────────────────────────────────────────────
+
+def test_a_named_password_can_be_revealed_by_name(workspace):
+    settings.add_secret(workspace, "sbi", "a-statement-password")
+    assert settings.reveal(workspace, "sbi") == "a-statement-password"
+
+
+def test_a_pan_can_be_revealed(workspace):
+    settings.set_pan(workspace, "abcde1234f")             # pii-ok — a shaped placeholder
+    assert settings.reveal(workspace, "pan") == "ABCDE1234F"   # pii-ok — same placeholder
+
+
+def test_only_a_name_this_workspace_declares_can_be_revealed(workspace):
+    """Resolved through the CONFIGURED ring, never by joining a caller's string to the workspace."""
+    (workspace / "sneaky.pass").write_text("not in the ring")
+    with pytest.raises(settings.SettingsError) as e:
+        settings.reveal(workspace, "sneaky")
+    assert e.value.field == "name"
+
+
+@pytest.mark.parametrize("what", ["../store.key", "store.key", "PAN.pass", "..", "/etc/passwd"])
+def test_a_path_cannot_be_smuggled_through_the_name(workspace, what):
+    with pytest.raises(settings.SettingsError):
+        settings.reveal(workspace, what)
+
+
+def test_the_store_key_has_no_path_to_reveal_at_all(workspace):
+    """The line ADR-0019 draws: a key cannot be re-obtained, so revealing it risks the whole store."""
+    (workspace / "store.key").write_text("the-actual-store-key")
+    for attempt in ("store.key", "store", "key", "storekey"):
+        with pytest.raises(settings.SettingsError):
+            settings.reveal(workspace, attempt)
+
+
+def test_an_unset_secret_says_so_rather_than_returning_nothing(workspace):
+    with pytest.raises(settings.SettingsError, match="nothing is stored"):
+        settings.reveal(workspace, "pan")

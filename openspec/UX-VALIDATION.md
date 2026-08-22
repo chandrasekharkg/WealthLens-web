@@ -28,6 +28,7 @@ already exists.
 | P6 | Statement acquisition | **Specified** — a help page covering per-institution collection and `document-collector` as an optional companion (setup-and-config) |
 | P7 | Password naming on entry | **Specified** — prove it opens, then ring-or-once, with the reproducibility consequence stated (setup-and-config) |
 | P8 | Mixed-scope provenance header | **Resolved** — aggregate views are point-in-time at one chosen date, so there is one date (ADR-0016) |
+| — | Reveal vs. no-secrets-over-the-API | **Resolved** — reveal what can be re-obtained, never what cannot (ADR-0019) |
 | P9 | Foreign currency | **Decided** — three-level currency resolution, one reporting figure (ADR-0016); two WLC tasks raised |
 | P10 | Activity durability across restart | **Resolved** — forget state, surface the lock, classify the holder, verify with `rebuild --check` (bridge-api) |
 | P12 | Promotion has no WLC verb | **Resolved upstream** — WLC now ships `wealthlens promote`, gated and atomic (WLC `c9fdb41`) |

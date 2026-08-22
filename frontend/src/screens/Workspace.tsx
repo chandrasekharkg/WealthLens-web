@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError, type WorkspaceDetail } from "../api/client";
+import { CopySecret } from "../components/CopySecret";
 import type { Formatter } from "../i18n";
 
 /**
@@ -18,6 +19,7 @@ export type WorkspaceProps = {
 
 export function Workspace({ entities, format }: WorkspaceProps) {
   const { t, number } = format;
+  // `format` itself is passed down: a component that renders words takes the catalog, never its own strings.
   const [entity, setEntity] = useState(entities[0]?.id ?? "");
   const [detail, setDetail] = useState<WorkspaceDetail | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -130,7 +132,10 @@ export function Workspace({ entities, format }: WorkspaceProps) {
                      onBlur={(event) => event.target.value && void save({ pan: event.target.value })} />{" "}
               <span data-pan={detail.settings.pan_set ? "set" : "unset"}>
                 {detail.settings.pan_set ? t("ws.panSet") : t("ws.panUnset")}
-              </span>
+              </span>{" "}
+              {detail.settings.pan_set && (
+                <CopySecret entity={entity} what="pan" label={t("ws.pan")} format={format} />
+              )}
             </p>
 
             <p>
@@ -144,12 +149,17 @@ export function Workspace({ entities, format }: WorkspaceProps) {
             </p>
 
             <h3>{t("ws.ring")}</h3>
+            {/* Said once, where somebody would look for it: the key is the one secret with no reveal. */}
+            <p>{t("secret.keyNever")}</p>
             {detail.settings.secret_names.length === 0 ? (
               <p role="status">{t("ws.ringEmpty")}</p>
             ) : (
               <ul>
                 {detail.settings.secret_names.map((name) => (
-                  <li key={name}>{name}</li>
+                  <li key={name}>
+                    {name}{" "}
+                    <CopySecret entity={entity} what={name} label={name} format={format} />
+                  </li>
                 ))}
               </ul>
             )}

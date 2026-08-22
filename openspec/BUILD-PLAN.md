@@ -135,15 +135,17 @@ configured, corrected and imported without a terminal.
 *Status: built — Operations (rebuild → review the tally → guarded promote, E2E #1 green), Workspace detail
 with collateral and the password ring, identity & settings with comment-preserving edits, and Activity.*
 
-**Two capabilities deliberately NOT built, each blocked on something real rather than on effort:**
+Revealing a re-obtainable secret is built (ADR-0019): a PAN or a named statement password is released one
+at a time, on its own endpoint, to the clipboard — never rendered, never in a listing. The store key has no
+such path and never will.
 
-- **Revealing a password value.** `collateral-and-sources` says deliver it to the clipboard; `bridge-api`
-  says no endpoint returns the contents of a workspace's secret files. Both are current, and they give
-  opposite instructions — the design review flagged it and it is still unresolved. The ring shows
-  *references* today, which is the legible half; the reveal needs a decision, not an implementation.
-- **The "use it once" password.** `import` takes no password argument and gives up on a closed stdin, so a
-  one-time password cannot reach the engine at all: it can only be conveyed by writing it somewhere. The
-  ring half is buildable; the once half needs a WLC change (`--password-file`, deleted after the run).*
+The locked-file loop is built as **prove-by-retry**: the password joins the ring, the import re-runs, and
+WLC's own verdict says whether the file opened. Nothing here reads a statement.
+
+**One capability deliberately NOT built**, blocked on the engine rather than on effort: the *"use it once"*
+password. `import` takes no password argument and gives up on a closed stdin, so a one-time password cannot
+reach the engine at all — it can only be conveyed by writing it somewhere, which is precisely what "once"
+means not to do. Needs a WLC change (`--password-file`, deleted after the run).*
 
 ## Phase 6 — Extensions and manual facts
 

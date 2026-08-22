@@ -166,3 +166,93 @@ describe("choosing a member", () => {
     expect(screen.getByLabelText("For").getAttribute("value") ?? screen.getByLabelText<HTMLSelectElement>("For").value).toBe("me");
   });
 });
+
+describe("the locked-file loop", () => {
+  it("offers to name a password when a file could not be opened", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/jobs": job({
+          result: {
+            imported: 0,
+            attention: 1,
+            files: [{ file: "sbi.pdf", status: "locked", warnings: [] }],
+          },
+        }),
+      }),
+    );
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
+
+    expect(await screen.findByText("This file needs a password")).toBeTruthy();
+    // It appears in the verdict table too, correctly — scope to the unlock section.
+    const unlock = screen.getByRole("region", { name: "This file needs a password" });
+    expect(within(unlock).getByText("sbi.pdf")).toBeTruthy();
+  });
+
+  it("explains that the engine proves it worked, not this app", async () => {
+    // WLW never reads a statement, so the demonstration is the retry: WLC's own verdict says whether the
+    // file opened.
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/jobs": job({
+          result: { imported: 0, attention: 1, files: [{ file: "sbi.pdf", status: "locked" }] },
+        }),
+      }),
+    );
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
+    expect(await screen.findByText(/nothing here reads your statement/)).toBeTruthy();
+  });
+
+  it("keeps the save disabled until both a name and a password are given", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/jobs": job({
+          result: { imported: 0, attention: 1, files: [{ file: "sbi.pdf", status: "locked" }] },
+        }),
+      }),
+    );
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
+
+    const save = await screen.findByRole("button", { name: "Save and try again" });
+    expect(save.hasAttribute("disabled")).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Call it"), { target: { value: "sbi" } });
+    expect(save.hasAttribute("disabled")).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "s3cret" } });
+    expect(save.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("surfaces a name collision rather than silently replacing a password", async () => {
+    vi.stubGlobal("fetch", (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes("/settings")) {
+        return Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({ detail: { reason: "'sbi' already names a password here." } }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve(
+            job({ result: { imported: 0, attention: 1, files: [{ file: "sbi.pdf", status: "locked" }] } }),
+          ),
+      } as Response);
+    });
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
+    fireEvent.change(await screen.findByLabelText("Call it"), { target: { value: "sbi" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and try again" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/already names a password here/)).toBeTruthy(),
+    );
+  });
+});

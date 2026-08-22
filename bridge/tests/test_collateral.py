@@ -140,3 +140,37 @@ def test_a_refused_setting_names_the_field_so_a_form_can_point_at_it(client):
 
 def test_changing_settings_needs_the_session_token(client):
     assert client.post("/api/workspace/alpha/settings", json={"organize": False}).status_code == 403
+
+
+# ── the reveal endpoint (ADR-0019) ───────────────────────────────────────────────────────────────────
+
+def test_revealing_needs_the_session_token(client):
+    assert client.post("/api/workspace/alpha/reveal", json={"what": "pan"}).status_code == 403
+
+
+def test_a_listing_never_carries_a_value(client, ws):
+    """The shape that keeps the exception from widening: values come one at a time, by asking."""
+    from wealthlens_web.core import settings
+
+    settings.add_secret(ws, "hdfc2", "a-statement-password")
+    body = client.get("/api/workspace/alpha").json()
+    assert "hdfc2" in body["settings"]["secret_names"]
+    assert "a-statement-password" not in json.dumps(body)
+
+
+def test_one_explicit_request_returns_one_value(client, ws):
+    from wealthlens_web.core import settings
+
+    settings.add_secret(ws, "hdfc2", "a-statement-password")
+    response = client.post("/api/workspace/alpha/reveal", json={"what": "hdfc2"},
+                           headers={TOKEN_HEADER: "t"})
+    assert response.status_code == 200
+    assert response.json() == {"what": "hdfc2", "value": "a-statement-password"}
+
+
+def test_the_store_key_is_not_revealable_through_the_api(client, ws):
+    (ws / "store.key").write_text("the-actual-store-key")
+    response = client.post("/api/workspace/alpha/reveal", json={"what": "store.key"},
+                           headers={TOKEN_HEADER: "t"})
+    assert response.status_code == 404
+    assert "the-actual-store-key" not in response.text

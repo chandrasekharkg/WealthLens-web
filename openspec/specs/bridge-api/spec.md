@@ -41,10 +41,24 @@ phase 1 (ADR-0004 phase 2 is the only path there).
 - **WHEN** a request arrives with a Host header naming an external domain resolved to 127.0.0.1
 - **THEN** it is rejected before any store is opened
 
-### Requirement: Secrets and keys never cross the API
+### Requirement: Secrets do not cross the API, except one named case
 
-No endpoint SHALL return store keys, statement passwords, or file contents from a workspace's secret
-files; error messages SHALL NOT embed them; logs SHALL NOT record them.
+No endpoint SHALL return store keys or the contents of a workspace's secret files; error messages SHALL
+NOT embed them; logs SHALL NOT record them.
+
+The single exception (ADR-0019) is a **re-obtainable** secret — a PAN or a statement password — released
+on a dedicated endpoint: one value, one field or document, per explicit user action, never present in any
+listing response, never logged. **The store key has no such exception** and never will: it cannot be
+re-obtained, so revealing it risks the whole store where revealing a statement password risks an
+inconvenience.
+
+#### Scenario: A listing never carries a value
+- **WHEN** any endpoint returns more than one item's metadata
+- **THEN** it contains references only — asking for a value is always a separate, single request
+
+#### Scenario: The key is asked for
+- **WHEN** any request would return key material
+- **THEN** it is refused; there is no endpoint that can
 
 #### Scenario: A store fails to open
 - **WHEN** a store cannot be decrypted

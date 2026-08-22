@@ -123,6 +123,42 @@ def set_organize(workspace: pathlib.Path, enabled: bool) -> Settings:
     return read(workspace)
 
 
+def reveal(workspace: pathlib.Path, what: str) -> str:
+    """The value behind one reference — a PAN, or one named statement password.
+
+    Only re-obtainable secrets pass through here (ADR-0019). The store key has no path to this function
+    and never will: it cannot be re-obtained, so revealing it risks the whole store where revealing a
+    statement password risks an inconvenience.
+
+    One value per call, by name, so this can never become a listing.
+    """
+    if what == "pan":
+        path = pathlib.Path(workspace) / PAN_FILE
+    elif re.fullmatch(r"[a-z0-9][a-z0-9_-]*", what):
+        # Resolved through the CONFIGURED ring, not by joining a caller's string to the workspace — the
+        # name must be one this workspace actually declares, or there is nothing to reveal.
+        doc = _document(workspace)
+        ref = doc.get("secrets", {}).get(what)
+        if not isinstance(ref, str) or not ref.startswith("@file:"):
+            raise SettingsError(f"{what!r} is not a password configured here.", field="name")
+        path = pathlib.Path(workspace) / ref.removeprefix("@file:")
+    else:
+        raise SettingsError(f"{what!r} is not something this workspace holds.", field="name")
+
+    # Belt and braces: a resolved path that escapes the workspace is refused rather than read.
+    root = pathlib.Path(workspace).resolve()
+    if root not in path.resolve().parents:
+        raise SettingsError("that is not a secret belonging to this workspace.", field="name")
+
+    try:
+        value = path.read_text().strip()
+    except OSError:
+        raise SettingsError("nothing is stored under that name yet.", field="name") from None
+    if not value:
+        raise SettingsError("nothing is stored under that name yet.", field="name")
+    return value
+
+
 def add_secret(workspace: pathlib.Path, name: str, value: str) -> Settings:
     """Add a named statement password: its own file, referenced from config — WLC's convention.
 

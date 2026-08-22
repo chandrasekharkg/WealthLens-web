@@ -849,6 +849,25 @@
         "title": "Provenance",
         "type": "object"
       },
+      "Revealed": {
+        "description": "One re-obtainable secret, released on an explicit request (ADR-0019).\n\nThis model exists on exactly one endpoint. Nothing that returns a list may carry it.",
+        "properties": {
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "what": {
+            "title": "What",
+            "type": "string"
+          }
+        },
+        "required": [
+          "what",
+          "value"
+        ],
+        "title": "Revealed",
+        "type": "object"
+      },
       "SettingsInfo": {
         "properties": {
           "config_path": {
@@ -1588,6 +1607,58 @@
           }
         },
         "summary": "Workspace Detail"
+      }
+    },
+    "/api/workspace/{entity_id}/reveal": {
+      "post": {
+        "description": "Release ONE re-obtainable secret, on an explicit request (ADR-0019).\n\nIts own endpoint, deliberately: a value must never be reachable by asking for a list. There is no\nequivalent for the store key, and there will not be \u2014 it cannot be re-obtained.",
+        "operationId": "reveal_secret_api_workspace__entity_id__reveal_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Revealed"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reveal Secret"
       }
     },
     "/api/workspace/{entity_id}/settings": {

@@ -148,6 +148,22 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                                 detail={"error": "settings", "reason": str(e), "field": e.field}) from None
         return got.as_dict()
 
+    @app.post("/api/workspace/{entity_id}/reveal", response_model=models.Revealed)
+    def reveal_secret(entity_id: str, body: dict) -> dict:
+        """Release ONE re-obtainable secret, on an explicit request (ADR-0019).
+
+        Its own endpoint, deliberately: a value must never be reachable by asking for a list. There is no
+        equivalent for the store key, and there will not be — it cannot be re-obtained.
+        """
+        target = _target_workspace(_manifest(), entity_id, None)
+        what = str(body.get("what", ""))
+        try:
+            value = settings.reveal(target, what)
+        except settings.SettingsError as e:
+            raise HTTPException(status_code=404,
+                                detail={"error": "secret", "reason": str(e), "field": e.field}) from None
+        return {"what": what, "value": value}
+
     @app.get("/api/jobs", response_model=list[models.Job])
     def list_jobs() -> list[dict]:
         """Everything this session has run. In memory by design (ADR-0002) — the UI says so."""

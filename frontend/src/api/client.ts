@@ -21,6 +21,7 @@ export type Provenance = components["schemas"]["Provenance"];
 export type Money = components["schemas"]["Money"];
 export type WorkspaceDetail = components["schemas"]["WorkspaceDetail"];
 export type SettingsInfo = components["schemas"]["SettingsInfo"];
+export type Revealed = components["schemas"]["Revealed"];
 
 export class ApiError extends Error {
   constructor(
@@ -69,6 +70,16 @@ export const api = {
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   jobs: () => request<Job[]>("/api/jobs"),
   workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),
+  /**
+   * ONE re-obtainable secret, by name (ADR-0019). Its own call on purpose: a value must never be
+   * reachable by asking for a list, and the store key has no equivalent at all.
+   */
+  reveal: (entity: string, what: string) =>
+    request<Revealed>(`/api/workspace/${entity}/reveal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ what }),
+    }),
   changeSettings: (entity: string, body: Record<string, unknown>) =>
     request<SettingsInfo>(`/api/workspace/${entity}/settings`, {
       method: "POST",

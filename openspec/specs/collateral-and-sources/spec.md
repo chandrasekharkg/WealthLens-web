@@ -22,9 +22,17 @@ instead of guessing through a list.
 
 ### Requirement: Revealing a password value is deliberate, momentary, and never displayed
 
-The value behind a reference SHALL be released only on an explicit per-document user action, SHALL be
-delivered straight to the clipboard without being rendered on screen, SHALL be cleared from the clipboard
-after a short interval, and SHALL never appear in a log, an error, or any bulk listing response.
+The value behind a reference SHALL be released only on an explicit per-document user action, on its own
+endpoint, and SHALL never appear in a log, an error, or any bulk listing response (ADR-0019). It SHALL be
+delivered to the clipboard rather than rendered on screen, and the app SHOULD clear it after a short
+interval.
+
+> Clearing is **best-effort, not a guarantee**: a page cannot reliably clear a clipboard later — the
+> permission is gated and focus-dependent in several browsers — and it would clobber whatever the user
+> copied in between. Writing it as a SHALL would be an untestable promise, and the honest version is a
+> value the user knows they now hold.
+>
+> This applies to re-obtainable secrets only. The store key has no reveal at any strength (ADR-0015).
 
 #### Scenario: Copying a password
 - **WHEN** a user asks for the password of one document

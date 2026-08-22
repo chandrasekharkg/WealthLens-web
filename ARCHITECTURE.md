@@ -71,7 +71,8 @@ follows from one sentence:
   [0015 store-key custody](openspec/decisions/0015-store-key-custody.md) ·
   [0016 currency & point-in-time](openspec/decisions/0016-currency-and-point-in-time.md) ·
   [0017 fleet uniformity](openspec/decisions/0017-fleet-uniformity.md) ·
-  [0018 backend-first testing](openspec/decisions/0018-backend-first-testing.md)
+  [0018 backend-first testing](openspec/decisions/0018-backend-first-testing.md) ·
+  [0019 secret exposure](openspec/decisions/0019-secret-exposure.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
@@ -118,6 +119,9 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       command rather than building the button (ADR-0012). Graduates on demand.
 - [x] WLC: **a `promote` verb** — shipped (WLC `c9fdb41`). Eight abort-first gates, backup, atomic
       `os.replace`. ADR-0006's in-UI promotion now has a verb to drive within the ADR-0005 boundary.
+- [ ] WLC: **a one-time password path for `import`** — e.g. `--password-file <path>`, read then forgotten,
+      so a caller can convey a password without it being written into the ring. Today "use it once" is
+      unbuildable: `import` takes no password argument and gives up on a closed stdin (ADR-0019).
 - [ ] WLC: **decide `schema.migrate()`'s fate** — it exists but is called from nowhere (no CLI path, no
       test), so a store never upgrades in place and rebuild+promote is the only route. Either wire it as an
       optimisation of that route (never an alternative — ADR-0017), or retire it; a function nothing calls

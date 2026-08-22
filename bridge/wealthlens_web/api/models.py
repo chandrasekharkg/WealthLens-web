@@ -173,6 +173,16 @@ class SettingsInfo(BaseModel):
     config_path: str
 
 
+class Revealed(BaseModel):
+    """One re-obtainable secret, released on an explicit request (ADR-0019).
+
+    This model exists on exactly one endpoint. Nothing that returns a list may carry it.
+    """
+
+    what: str
+    value: str
+
+
 class WorkspaceDetail(BaseModel):
     entity_id: str
     path: str

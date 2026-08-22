@@ -146,6 +146,20 @@ export const en = {
   "password.unnamed": "an unnamed password",
   "password.none": "nothing has opened it",
 
+  "secret.copy": "Copy",
+  "secret.copied": "Copied — it will not be shown here.",
+  "secret.copyFailed": "Could not reach the clipboard. {reason}",
+  "secret.keyNever":
+    "Your store key is never shown here. It cannot be re-obtained, so it stays in its file — back that file up.",
+
+  "locked.title": "This file needs a password",
+  "locked.name": "Call it",
+  "locked.value": "Password",
+  "locked.save": "Save and try again",
+  "locked.explain":
+    "It is kept in its own file and tried against future statements too. WealthLens-core proves it worked by opening the file — nothing here reads your statement.",
+  "locked.retrying": "Trying again…",
+
   "table.export": "Export CSV",
   "table.print": "Print",
   "table.showing": "Showing {shown} of {total} rows",

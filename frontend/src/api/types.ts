@@ -189,6 +189,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspace/{entity_id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reveal Secret
+         * @description Release ONE re-obtainable secret, on an explicit request (ADR-0019).
+         *
+         *     Its own endpoint, deliberately: a value must never be reachable by asking for a list. There is no
+         *     equivalent for the store key, and there will not be — it cannot be re-obtained.
+         */
+        post: operations["reveal_secret_api_workspace__entity_id__reveal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspace/{entity_id}/settings": {
         parameters: {
             query?: never;
@@ -533,6 +556,18 @@ export interface components {
              * @default []
              */
             warnings: string[];
+        };
+        /**
+         * Revealed
+         * @description One re-obtainable secret, released on an explicit request (ADR-0019).
+         *
+         *     This model exists on exactly one endpoint. Nothing that returns a list may carry it.
+         */
+        Revealed: {
+            /** Value */
+            value: string;
+            /** What */
+            what: string;
         };
         /** SettingsInfo */
         SettingsInfo: {
@@ -947,6 +982,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reveal_secret_api_workspace__entity_id__reveal_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Revealed"];
                 };
             };
             /** @description Validation Error */
