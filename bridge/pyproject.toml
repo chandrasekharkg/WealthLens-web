@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wealthlens-web"
+version = "0.1.0.dev0"
+description = "Local-first web bridge and UI over WealthLens-core stores"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
+
+# WealthLens-core is NOT a hard dependency here, deliberately.
+#
+# It is not on PyPI — households install it from source, and this repo is developed against a local
+# editable checkout. Making it a hard dependency would break `pip install -e .` for every contributor and
+# every CI run. Instead: the bridge imports it at runtime, preflight reports its absence as a first-class
+# state with a fix (cold-start spec), and the tests that need it skip when it is missing.
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+include = ["wealthlens_web*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning:wealthlens_web.*"]
