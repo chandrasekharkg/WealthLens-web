@@ -105,6 +105,75 @@ runs is exactly the shape that provokes it.
 - **WHEN** one entity's workspace is busy
 - **THEN** verbs and reads against other entities' workspaces proceed normally
 
+### Requirement: A restart forgets job state, and never pretends otherwise
+
+Job status and progress are held in memory (ADR-0002/ADR-0005), so a bridge restart loses the history of
+what ran. The system SHALL say so plainly rather than presenting an empty Activity as "nothing happened".
+
+What a restart does **not** change is the store: `rebuild` is non-destructive — it builds a fresh store
+alongside the live one and tallies the two — so an interrupted verb leaves the live store intact.
+
+#### Scenario: Activity after a restart
+- **WHEN** the app is reopened after the bridge was restarted
+- **THEN** Activity states that earlier jobs are not recorded, rather than showing a blank log implying an
+  idle history
+
+### Requirement: The truth about a store is re-established by asking it, not by remembering
+
+Where a verb's outcome was lost to a restart, the system SHALL offer `rebuild --check` — which asserts
+`store = replay(corpus)` and exits non-zero on drift — rather than reconstructing a claim from remembered
+state. Verification beats recollection: a log says what a process reported, a check says what the store is.
+
+#### Scenario: An interrupted rebuild
+- **WHEN** a rebuild was running when the bridge died and its outcome is unknown
+- **THEN** the UI offers the check as the way to learn the store's actual condition, and does not assert an
+  outcome it cannot know
+
+### Requirement: A lock is physics — it is surfaced, never broken
+
+If a store is held by another process, the system SHALL NOT offer to clear, force, steal or delete the
+lock, and SHALL NOT retry past it. It SHALL surface the engine's own error, including the holder it names,
+rather than replacing it with a generic "busy".
+
+> A force-unlock affordance is the shortest path to a corrupted store. It does not exist here.
+
+#### Scenario: A verb is requested against a locked store
+- **WHEN** the store cannot be opened because another process holds it
+- **THEN** the user is told which process holds it, as the engine reported, and is offered no way to
+  override it
+
+### Requirement: The lock holder is classified, because "will waiting help?" is the real question
+
+Naming the process answers *who*; the user needs *what to do*. The system SHALL distinguish:
+
+- **a WealthLens engine process** — a verb is running (possibly one this bridge started before restarting,
+  possibly the user's own CLI). It will finish and release; the workspace is shown as busy and no second
+  verb is offered against it.
+- **any other process** — a notebook left open by `wealthlens explore`, an editor, another tool. It holds
+  until the user closes it, so the guidance is to act rather than wait.
+
+This classification SHALL be derived at the time of the failure, from the holder the engine names — it
+SHALL NOT require state to have survived the restart.
+
+#### Scenario: A verb orphaned by the restart is still running
+- **WHEN** the bridge restarts while a rebuild it started is still running
+- **THEN** the workspace shows as busy with an engine process, no competing verb can be started against it,
+  and the workspace becomes available on its own once that process finishes
+
+#### Scenario: A notebook holds the store
+- **WHEN** the holder is not an engine process
+- **THEN** the message names it and says the store stays locked until it is closed
+
+### Requirement: Leftover rebuild output is named, not mistaken for a result
+
+A rebuild interrupted mid-run can leave a partial store file beside the live one. Where such a file is
+found, the system SHALL identify it as incomplete output rather than presenting it as a rebuild result,
+and removing it SHALL be treated as destructive (shown, confirmed, one at a time).
+
+#### Scenario: A partial rebuild file is found
+- **WHEN** a rebuild output exists from a run that did not complete
+- **THEN** it is labelled as incomplete, never offered for promotion, and its removal is confirmed
+
 ### Requirement: The API schema is generated, not hand-maintained
 
 The bridge SHALL publish a machine-readable schema of its endpoints and response models, and the

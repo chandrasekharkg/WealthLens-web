@@ -1,8 +1,8 @@
 # UX validation gate — findings
 
 A ten-step click-through of the cold start (nothing installed → a number the household trusts) was built
-before Phase 0 specifically to find what the specs don't answer. It found eleven. Four are blocking, and
-two of those are decisions rather than omissions.
+before Phase 0 specifically to find what the specs don't answer. It found eleven, and a twelfth surfaced while resolving them. Four were blocking, two of
+those decisions rather than omissions.
 
 The walkthrough is at `openspec/mockup/cold-start-walkthrough.html` — open it in a browser. Screens 1–10
 map to UC-A and UC-B, and the four decided findings are now reflected in the screens themselves.
@@ -29,7 +29,8 @@ already exists.
 | P7 | Password naming on entry | **Specified** — prove it opens, then ring-or-once, with the reproducibility consequence stated (setup-and-config) |
 | P8 | Mixed-scope provenance header | **Resolved** — aggregate views are point-in-time at one chosen date, so there is one date (ADR-0016) |
 | P9 | Foreign currency | **Decided** — three-level currency resolution, one reporting figure (ADR-0016); two WLC tasks raised |
-| P10 | Activity durability across restart | Open — Phase 5 |
+| P10 | Activity durability across restart | **Resolved** — forget state, surface the lock, classify the holder, verify with `rebuild --check` (bridge-api) |
+| P12 | Promotion has no WLC verb | **Open, blocking Phase 5** — ADR-0006 decided promotion ships in the UI, but WLC has no `promote`; performing it in WLW would be the store write WLW forbids |
 | P11 | The set of keys a family holds | **Resolved** — backup state per workspace in the manifest (ADR-0015) |
 
 The findings below are the original write-up, kept as the record of what the gate caught.
@@ -131,3 +132,24 @@ before or beside Phase 0, covering: how the app is installed and launched, what 
 or skewed, and how the store key is handed to a human being who must not lose it.
 
 Design held up well past that point — which is the useful half of this result.
+
+
+---
+
+## P12 — Promotion ships in the UI, but has no verb to drive
+
+Found while answering P10. ADR-0006 §1 decided that promotion ships in v1 in its guarded shape, reasoning
+that a lifecycle dead-ending at "now open a terminal" breaks exactly the users WLW exists for. That
+reasoning stands. The mechanism does not: **WLC has no `promote` verb** — promotion is a runbook step, a
+file swap performed by hand under the abort-first gate (WLC lessons-learned L4).
+
+So promotion in WLW today would mean WLW replacing a live store file itself — precisely the store write
+ADR-0001 and ADR-0005 forbid. This is P4's shape a second time: a UI built on a verb that does not exist.
+
+**The resolution is upstream, not a workaround here.** WLC should gain `wealthlens promote`: atomic (a
+rename, never a copy that can half-finish), refusing to run unless the rebuild it is promoting passed its
+check, and reporting what it replaced. That is a better home for the abort-first doctrine than a runbook —
+the gate becomes executable instead of remembered.
+
+Until it lands, promotion is **taught** (ADR-0012), and E2E #1 asserts the guard around the taught
+sequence rather than an in-app action.

@@ -108,7 +108,12 @@ The half that makes a non-technical household self-sufficient (UC-A, UC-C).
 - **Identity & settings** (identity-and-settings): everything bootstrap asks, editable afterwards;
   comment-preserving `config.toml` edits; PAN handled as a secret.
 - The locked-file loop: supply a password, retry, prove it worked.
-- Activity (job log), and the promotion guard.
+- Activity (job log), including the honest post-restart state: history is forgotten, the store is not at
+  risk, and `rebuild --check` re-establishes the truth (bridge-api).
+- Lock handling: surface the engine's named holder, classify it as an engine process or something else,
+  and never offer to break it.
+- Promotion — **gated on the WLC `promote` verb** (UX-VALIDATION P12). Until it exists, promotion is
+  taught, and E2E #1 asserts the guard around the taught sequence.
 
 **Done when:** E2E #1 (promotion unreachable without its check) goes green, and a workspace can be created,
 configured, corrected and imported without a terminal.
