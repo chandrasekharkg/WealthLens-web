@@ -54,6 +54,17 @@ the remaining entities and state plainly which entity is missing and why — nev
 - **THEN** the family total is labelled as excluding that entity, with the reason, rather than presented
   as the family's whole position
 
+### Requirement: Per-workspace freshness is surfaced
+
+Because a declared workspace may be a synced copy from another machine (ADR-0006), family views SHALL
+surface each workspace's freshness (latest store as-of; file age where meaningful), so a lagging copy is
+visible as such. Staleness is labelled, never smoothed.
+
+#### Scenario: A synced copy lags
+- **WHEN** one entity's workspace is a file copy last updated days ago
+- **THEN** that entity's figures carry their freshness alongside, and the family total notes the oldest
+  constituent
+
 ### Requirement: Provenance signals survive aggregation
 
 Per-entity `basis`, staleness (as-of dates), and footing signals from WLC SHALL flow through to family

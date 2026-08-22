@@ -7,6 +7,11 @@ rescued by an IDE assistant mid-import) — WLW exists to make that person self-
 
 ## Personas
 
+> Field evidence shaping all of this: the founder onboards users over Google Meet / WhatsApp video, often
+> with a desktop AI agent doing most of the workload; even seasoned professionals hesitate at a command
+> line; and a new user typically reaches WLC only AFTER hours of inbox work in document-collector — tired.
+> WLW's bar is that the entire lifecycle is completable in that state, in the browser.
+
 - **P1 — Household member, non-technical.** Downloads statements from net-banking; will never open a
   terminal. Wants: drop the file somewhere, see numbers, be told plainly when something needs attention.
 - **P2 — Family operator.** Set up WLC, understands workspaces and passwords, runs the bridge. Wants the
@@ -73,12 +78,15 @@ restart; the subprocess's own outcome is still in WLC's hands).
   visibility scoping is required. Deferred with phase-2 auth (ADR-0004) — but the manifest format must
   not preclude a future viewer model (per-entity visibility is a manifest concern, not a store concern).
 
-## Open questions (decide before the corresponding feature, not before publishing)
+## Resolved questions → ADR-0006
 
-1. **C3 promotion**: in v1 behind typed confirmation, or excluded from the UI entirely for now?
-2. **D3 remote workspaces**: candidate models — (a) one bridge per machine, manifest points at peer
-   bridges (federated read API; auth question arrives early); (b) file-level sync of the store to the
-   viewing machine (read-only replica; staleness honestly labelled); (c) out of scope — each machine
-   views its own. Leaning (b) for simplicity and honesty-friendliness, but undecided.
-3. **A4 password entry vs. remembering**: does WLW ever *store* a password even transiently beyond the
-   one write into WLC's config? (Position: no — WLC's `remembered.pass` convention is the only memory.)
+1. **C3 promotion: IN v1**, in the guarded shape (post-`--check`, delta rendered, typed confirmation).
+   The founder's field evidence decided it: onboarding happens over video calls, even pros resist the
+   terminal, and users arrive at WLC already tired from hours of document-collector work — the UI must
+   carry the full lifecycle.
+2. **D3 remote workspaces: the host-accessibility model.** The aggregator host sees the workspaces
+   accessible to it as files (local, mounted, or synced — declared in the manifest); every machine can run
+   its own identical WLW; a synced copy's staleness is surfaced per workspace, never smoothed. No bridge
+   federation, no WLW-built sync (future work behind a superseding ADR).
+3. **A4 passwords: zero retention.** One loopback transit into WLC's own config; WLW keeps nothing;
+   WLC's `remembered.pass` is the only memory in the system.
