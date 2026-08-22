@@ -35,7 +35,13 @@ follows from one sentence:
    token now; any bind beyond loopback requires the phase-2 ADR with a real auth model.
    → [ADR-0004](openspec/decisions/0004-bridge-and-security-posture.md) ·
    [bridge-api](openspec/specs/bridge-api/spec.md)
-5. **Honesty flows through** — basis, as-of, footing and import warnings render in the UI; polish never
+5. **Testability is architecture** — components are dumb, logic is pure functions, browser tests are
+   capped at a handful of guard flows. A conservative tool that is easy to enhance beats a
+   feature-rich one nobody can maintain. → [ADR-0010](openspec/decisions/0010-testability-first.md)
+6. **Extensions are data, not code in the UI** — a Python module plus a declarative page manifest,
+   rendered by the shipped components, visibly marked as user-supplied.
+   → [ADR-0011](openspec/decisions/0011-extension-model.md)
+7. **Honesty flows through** — basis, as-of, footing and import warnings render in the UI; polish never
    exceeds the data's honesty. → [report-views](openspec/specs/report-views/spec.md)
 
 ## The design index
@@ -51,11 +57,15 @@ follows from one sentence:
   [0006 v1 product decisions](openspec/decisions/0006-v1-product-decisions.md) ·
   [0007 bridge = FastAPI over a reusable core](openspec/decisions/0007-bridge-framework-fastapi.md) ·
   [0008 MCP exposure (designed, deferred, gated)](openspec/decisions/0008-mcp-exposure.md) ·
-  [0009 distribution: native first, container phased](openspec/decisions/0009-distribution-and-deployment.md)
+  [0009 distribution: native first, container phased](openspec/decisions/0009-distribution-and-deployment.md) ·
+  [0010 testability first](openspec/decisions/0010-testability-first.md) ·
+  [0011 extension model](openspec/decisions/0011-extension-model.md)
 - Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
   [report-views](openspec/specs/report-views/spec.md) ·
   [manual-facts](openspec/specs/manual-facts/spec.md) ·
+  [data-conventions](openspec/specs/data-conventions/spec.md) ·
+  [collateral-and-sources](openspec/specs/collateral-and-sources/spec.md) ·
   [bridge-api](openspec/specs/bridge-api/spec.md)
 - Manifest format — [family.example.toml](family.example.toml)
 
@@ -68,5 +78,8 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
 
 - [ ] WLC: promote `lens.py`'s read functions onto the semver-stable API surface (EXTENDING.md) — the
       contract this repo builds against.
+- [ ] WLC: add a **retraction verb** (`wealthlens forget <source_id>`) — `capture_io.delete_source()`
+      exists as a function with no CLI surface, so WLW cannot drive it within the ADR-0005 boundary
+      (collateral-and-sources spec).
 - [ ] Seed the bridge from the reviewed prototype (WLC PR #1's report server) — with ADR-0004's
       Host/Origin/token hardening and the manifest replacing ad-hoc workspace discovery.
