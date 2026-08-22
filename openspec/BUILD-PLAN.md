@@ -132,9 +132,18 @@ The half that makes a non-technical household self-sufficient (UC-A, UC-C).
 **Done when:** E2E #1 (promotion unreachable without its check) goes green, and a workspace can be created,
 configured, corrected and imported without a terminal.
 
-*Status: E2E #1 is green — the guard is enforced on the SERVER and asserted past the UI. Operations
-(rebuild → review the tally → guarded promote) is built. Remaining: workspace detail, collateral with the
-password ring, identity & settings, the locked-file loop, and Activity.*
+*Status: built — Operations (rebuild → review the tally → guarded promote, E2E #1 green), Workspace detail
+with collateral and the password ring, identity & settings with comment-preserving edits, and Activity.*
+
+**Two capabilities deliberately NOT built, each blocked on something real rather than on effort:**
+
+- **Revealing a password value.** `collateral-and-sources` says deliver it to the clipboard; `bridge-api`
+  says no endpoint returns the contents of a workspace's secret files. Both are current, and they give
+  opposite instructions — the design review flagged it and it is still unresolved. The ring shows
+  *references* today, which is the legible half; the reveal needs a decision, not an implementation.
+- **The "use it once" password.** `import` takes no password argument and gives up on a closed stdin, so a
+  one-time password cannot reach the engine at all: it can only be conveyed by writing it somewhere. The
+  ring half is buildable; the once half needs a WLC change (`--password-file`, deleted after the run).*
 
 ## Phase 6 — Extensions and manual facts
 

@@ -19,6 +19,8 @@ export type Deposit = components["schemas"]["Deposit"];
 export type EntityTotal = components["schemas"]["EntityTotal"];
 export type Provenance = components["schemas"]["Provenance"];
 export type Money = components["schemas"]["Money"];
+export type WorkspaceDetail = components["schemas"]["WorkspaceDetail"];
+export type SettingsInfo = components["schemas"]["SettingsInfo"];
 
 export class ApiError extends Error {
   constructor(
@@ -65,6 +67,14 @@ export const api = {
   transactions: (since?: string, until?: string) =>
     request<Transactions>(`/api/transactions${query({ since, until })}`),
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
+  jobs: () => request<Job[]>("/api/jobs"),
+  workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),
+  changeSettings: (entity: string, body: Record<string, unknown>) =>
+    request<SettingsInfo>(`/api/workspace/${entity}/settings`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
   /** Promotion carries its review: which rebuild's tally was read, and the typed confirmation. */
   promote: (entity: string, review: { confirm: string; after?: string }) =>
     request<Job>("/api/jobs", {

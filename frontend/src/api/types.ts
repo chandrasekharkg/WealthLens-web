@@ -11,7 +11,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Jobs
+         * @description Everything this session has run. In memory by design (ADR-0002) — the UI says so.
+         */
+        get: operations["list_jobs_api_jobs_get"];
         put?: never;
         /**
          * Start Job
@@ -165,6 +169,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspace/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workspace Detail
+         * @description Where an entity's money physically lives, what state it is in, and what built it.
+         */
+        get: operations["workspace_detail_api_workspace__entity_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspace/{entity_id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Settings
+         * @description Change one setting. Everything bootstrap asks is editable here (identity-and-settings).
+         */
+        post: operations["change_settings_api_workspace__entity_id__settings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -211,6 +255,24 @@ export interface components {
              * @description Set when a name collided: both files are kept, never overwritten
              */
             renamed_from?: string | null;
+        };
+        /** DocumentInfo */
+        DocumentInfo: {
+            /** Captured At */
+            captured_at?: string | null;
+            /** Filename */
+            filename?: string | null;
+            /** Kind */
+            kind: string;
+            password: components["schemas"]["PasswordRef"];
+            /** Payload Ref */
+            payload_ref?: string | null;
+            /** Provider */
+            provider?: string | null;
+            /** Rows */
+            rows?: number | null;
+            /** Source Id */
+            source_id: string;
         };
         /** EngineInfo */
         EngineInfo: {
@@ -377,6 +439,17 @@ export interface components {
          * @enum {string}
          */
         Outcome: "ok" | "attention" | "refused" | "failed";
+        /** PasswordRef */
+        PasswordRef: {
+            /**
+             * Kind
+             * @description THREE states, not two: named, opened-by-something-unnamed, or never opened
+             * @enum {string}
+             */
+            kind: "named" | "unnamed" | "none";
+            /** Name */
+            name?: string | null;
+        };
         /** PositionRow */
         PositionRow: {
             /** Account Id */
@@ -461,6 +534,28 @@ export interface components {
              */
             warnings: string[];
         };
+        /** SettingsInfo */
+        SettingsInfo: {
+            /** Config Path */
+            config_path: string;
+            /**
+             * Holder Names
+             * @default []
+             */
+            holder_names: string[];
+            /** Organize */
+            organize: boolean;
+            /**
+             * Pan Set
+             * @description Set or unset only — the value is never returned by any read
+             */
+            pan_set: boolean;
+            /**
+             * Secret Names
+             * @default []
+             */
+            secret_names: string[];
+        };
         /** StoreInfo */
         StoreInfo: {
             availability: components["schemas"]["Availability"];
@@ -536,6 +631,20 @@ export interface components {
              */
             stores: components["schemas"]["StoreInfo"][];
         };
+        /** WorkspaceDetail */
+        WorkspaceDetail: {
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["DocumentInfo"][];
+            /** Entity Id */
+            entity_id: string;
+            /** Path */
+            path: string;
+            settings: components["schemas"]["SettingsInfo"];
+            workspace: components["schemas"]["WorkspaceInfo"];
+        };
         /** WorkspaceInfo */
         WorkspaceInfo: {
             availability: components["schemas"]["Availability"];
@@ -556,6 +665,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_jobs_api_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"][];
+                };
+            };
+        };
+    };
     start_job_api_jobs_post: {
         parameters: {
             query?: never;
@@ -796,6 +925,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Version"];
+                };
+            };
+        };
+    };
+    workspace_detail_api_workspace__entity_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_settings_api_workspace__entity_id__settings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
