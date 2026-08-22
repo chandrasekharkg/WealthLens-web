@@ -132,6 +132,10 @@ The half that makes a non-technical household self-sufficient (UC-A, UC-C).
 **Done when:** E2E #1 (promotion unreachable without its check) goes green, and a workspace can be created,
 configured, corrected and imported without a terminal.
 
+*Status: E2E #1 is green — the guard is enforced on the SERVER and asserted past the UI. Operations
+(rebuild → review the tally → guarded promote) is built. Remaining: workspace detail, collateral with the
+password ring, identity & settings, the locked-file loop, and Activity.*
+
 ## Phase 6 — Extensions and manual facts
 
 - The declarative page renderer plus the canonical hello-world extension, which doubles as its fixture.

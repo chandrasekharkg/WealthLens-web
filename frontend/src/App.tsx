@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type NetWorth, type Positions, type Version } from "./api/client";
 import { defaultFormatter } from "./i18n";
 import { Import } from "./screens/Import";
+import { Operations } from "./screens/Operations";
 import { Overview } from "./screens/Overview";
 import { Reports } from "./screens/Reports";
 
@@ -21,7 +22,7 @@ export function App() {
   const [version, setVersion] = useState<Load<Version>>({ state: "loading" });
   const [netWorth, setNetWorth] = useState<Load<NetWorth>>({ state: "loading" });
   const [positions, setPositions] = useState<Load<Positions>>({ state: "loading" });
-  const [screen, setScreen] = useState<"overview" | "reports" | "import">("overview");
+  const [screen, setScreen] = useState<"overview" | "reports" | "import" | "operations">("overview");
 
   // The fetch itself sets state only from its callbacks — never synchronously in the effect body, which
   // would cascade a render on every mount for no benefit. The initial "loading" is the initial STATE.
@@ -113,6 +114,13 @@ export function App() {
         <button type="button" onClick={() => setScreen("import")} aria-current={screen === "import"}>
           {t("nav.import")}
         </button>
+        <button
+          type="button"
+          onClick={() => setScreen("operations")}
+          aria-current={screen === "operations"}
+        >
+          {t("nav.operations")}
+        </button>
       </nav>
 
       {screen === "overview" && <Overview data={netWorth.data} format={defaultFormatter} />}
@@ -124,6 +132,13 @@ export function App() {
         ))}
       {screen === "import" && (
         <Import entities={entities} format={defaultFormatter} onImported={refresh} />
+      )}
+      {screen === "operations" && (
+        <Operations
+          entities={netWorth.data.entities}
+          format={defaultFormatter}
+          onPromoted={refresh}
+        />
       )}
     </>
   );

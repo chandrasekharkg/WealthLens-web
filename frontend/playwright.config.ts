@@ -16,6 +16,14 @@ export default defineConfig({
   testIgnore: ["**/setup/**", "**/fixtures/**"],
   globalSetup: "./e2e/setup/global-setup.ts",
   forbidOnly: !!process.env.CI,
+  /**
+   * One worker, in order. These three flows share ONE household's workspace, so they are not independent:
+   * an import and a rebuild against the same store are exactly what the job model serialises, and running
+   * them concurrently tests the queue rather than the flows. Parallelism here would buy seconds and cost
+   * determinism.
+   */
+  workers: 1,
+  fullyParallel: false,
   timeout: 60_000,
   use: { baseURL: `http://127.0.0.1:${PORT}` },
   webServer: {

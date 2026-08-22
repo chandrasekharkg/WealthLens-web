@@ -86,6 +86,17 @@ class VerbNotAllowed(ValueError):
     """The requested verb is not in the sanctioned set. The list is the contract (bridge-api)."""
 
 
+class PromotionNotReviewed(ValueError):
+    """Promotion was requested without the review it must follow.
+
+    This is enforced HERE, on the server, not merely by a disabled button. The bridge has to pass `--yes`
+    to promote — stdin is closed, so the engine's own eighth gate (show the tally, type the store's name)
+    cannot run — which means the bridge OWNS that gate. A guard that only exists in the UI would be
+    bypassable by anything that can reach the endpoint, and this is the one irreversible act in the
+    product.
+    """
+
+
 # The closed set this app may drive. Anything outside it is a defect, not a configuration option.
 ALLOWED_VERBS = frozenset({"import", "rebuild", "verify", "promote", "diagnose",
                            "fetch-prices", "fetch-fx", "fetch-instruments"})
@@ -121,6 +132,35 @@ class Runner:
         return bool(lock and lock.locked())
 
     # ── running ──────────────────────────────────────────────────────────────────────────────────────
+
+    def reviewed_rebuild(self, workspace: pathlib.Path) -> Job | None:
+        """The most recent completed rebuild for this workspace, if there is one this session."""
+        target = pathlib.Path(workspace).resolve()
+        candidates = [
+            job for job in self._jobs.values()
+            if job.verb == "rebuild" and job.workspace == target and job.state is JobState.FINISHED
+            and job.outcome in (Outcome.OK, Outcome.ATTENTION)
+        ]
+        return candidates[-1] if candidates else None
+
+    def check_promotion(self, workspace: pathlib.Path, *, after: str | None, confirm: str,
+                        expected: str) -> Job:
+        """The gate the bridge owns. Returns the rebuild being promoted, or refuses."""
+        if confirm != expected:
+            raise PromotionNotReviewed(
+                f"type {expected!r} to confirm you are replacing that store. Promotion is the one act "
+                "here that cannot be undone.")
+        rebuild = self.reviewed_rebuild(workspace)
+        if rebuild is None:
+            raise PromotionNotReviewed(
+                "nothing has been rebuilt for this workspace in this session, so there is no tally to "
+                "have reviewed. Run a rebuild, read the differences, then promote.")
+        if after and after != rebuild.id:
+            # The client is echoing a rebuild that is no longer the latest — so the tally on screen is not
+            # the one that would be installed. Refuse rather than promote something unreviewed.
+            raise PromotionNotReviewed(
+                "a newer rebuild has finished since the tally you reviewed. Look at that one, then promote.")
+        return rebuild
 
     def submit(self, verb: str, *, entity_id: str, workspace: pathlib.Path,
                args: list[str] | None = None) -> Job:

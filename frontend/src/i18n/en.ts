@@ -87,6 +87,35 @@ export const en = {
   "column.rows": "Rows",
   "column.warnings": "Warnings",
 
+  "nav.operations": "Operations",
+
+  "ops.title": "Operations",
+  "ops.workspace": "Workspace",
+  "ops.schema": "Schema",
+  "ops.availability": "Store",
+  "ops.rebuild": "Rebuild",
+  "ops.rebuilding": "Rebuilding…",
+  "ops.rebuildWhy":
+    "Replays every source document into a fresh store beside the live one, and tallies the two. Nothing is replaced until you promote.",
+  "ops.tally": "What a rebuild would change",
+  "ops.tallyTable": "Table",
+  "ops.tallyCurrent": "Live",
+  "ops.tallyRebuilt": "Rebuilt",
+  "ops.tallyDelta": "Difference",
+  "ops.noChange": "No differences — the live store already matches its sources.",
+  "ops.regressions": "{count} table(s) reproduced FEWER rows. That is how a parser gap looks — investigate before promoting.",
+  "ops.promote": "Promote this rebuild",
+  "ops.promoteWarning":
+    "This replaces {label}'s live store. It cannot be undone. The previous store is kept as a backup.",
+  "ops.confirmLabel": "Type {id} to confirm",
+  "ops.promoted": "Promoted. {label}'s store is now the rebuilt one.",
+  "ops.needsRebuild": "Rebuild first, and read the tally — there is nothing to promote until you have.",
+
+  "activity.title": "Activity",
+  "activity.forgotten":
+    "Jobs are remembered only while the app is running, so this list is empty after a restart. Your stores are unaffected: a rebuild never touches the live one, and promotion is atomic.",
+  "activity.none": "Nothing has run in this session.",
+
   "table.export": "Export CSV",
   "table.print": "Print",
   "table.showing": "Showing {shown} of {total} rows",

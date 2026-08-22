@@ -144,8 +144,23 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             raise HTTPException(status_code=400, detail={"error": "entity", "reason":
                                 "name exactly one entity — there is no import-into-all"})
         target = _target_workspace(m, entity_id, body.get("workspace"))
+
+        args: list[str] = []
+        if verb == "promote":
+            # stdin is closed, so the engine's own final gate — show the tally, type the store's name —
+            # cannot run and this bridge owns it instead. Enforced server-side: a disabled button is not a
+            # guard for the one irreversible act in the product.
+            try:
+                app.state.runner.check_promotion(
+                    target, after=body.get("after"), confirm=str(body.get("confirm", "")),
+                    expected=entity_id)
+            except verbs.PromotionNotReviewed as e:
+                raise HTTPException(status_code=409,
+                                    detail={"error": "unreviewed", "reason": str(e)}) from None
+            args = ["--yes"]
+
         try:
-            job = app.state.runner.submit(verb, entity_id=entity_id, workspace=target)
+            job = app.state.runner.submit(verb, entity_id=entity_id, workspace=target, args=args)
         except verbs.VerbNotAllowed as e:
             raise HTTPException(status_code=400, detail={"error": "verb", "reason": str(e)}) from None
         return JSONResponse(_job(job), status_code=202)

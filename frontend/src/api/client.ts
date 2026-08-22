@@ -65,6 +65,13 @@ export const api = {
   transactions: (since?: string, until?: string) =>
     request<Transactions>(`/api/transactions${query({ since, until })}`),
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
+  /** Promotion carries its review: which rebuild's tally was read, and the typed confirmation. */
+  promote: (entity: string, review: { confirm: string; after?: string }) =>
+    request<Job>("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ verb: "promote", entity, ...review }),
+    }),
   startJob: (verb: string, entity: string) =>
     request<Job>("/api/jobs", {
       method: "POST",
