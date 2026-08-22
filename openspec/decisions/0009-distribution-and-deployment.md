@@ -1,6 +1,7 @@
 # ADR-0009 — Distribution: native-first for a personal machine, container for the family server
 
-**Status:** PROPOSED — recommendation below; confirm before it shapes onboarding docs
+**Status:** ACCEPTED 2026-08-22 — with explicit phasing: **native is the project's starting point;**
+the container is designed here but built only once real user feedback tells us what belongs in it.
 
 ## Context
 
@@ -31,9 +32,24 @@ Against that, containers genuinely win on: the **system-binary problem** (tesser
 once, correctly, for everyone), Python-version immunity, a pinned WLC↔WLW pair, and headless
 restart-safe operation on a server.
 
-## Recommendation
+## Decision
 
-**Support both, and let the deployment follow the use case. Native is the default.**
+**Both are supported in the design, and the deployment follows the use case — but they are PHASED.**
+
+**Phase 1 (now): native only.** The project starts and ships native. Everything below under (A) is v1;
+the container is not built yet.
+
+**Phase 2 (later): the container, once enough users have run it and their feedback is baked in.** The
+reason to wait is that we do not yet know what belongs in the image. Which system binaries matter in
+practice, whether households actually want the always-on server deployment, what the real data-root
+layout looks like across families — these are answerable from usage, not from a whiteboard. Packaging
+early bakes in guesses and then makes them expensive to change, because an image is a contract with
+whoever pulled it.
+
+**The trigger to build it** is any of: repeated native-install failures of the same shape (system
+binaries being the likeliest), a household that genuinely wants the headless family aggregator, or
+contributors needing a reproducible environment. Until one of those is real, effort goes into the
+product.
 
 **A. Native (default) — "my laptop, my data."**
 `python bootstrap.py` extends WLC's existing pattern: create a venv, install WLW + a pinned WLC, build or
@@ -42,7 +58,7 @@ access, fast I/O over large corpora (the 131-PDF rebuild is a real workload), an
 works. Optional extras (`[ocr]`, `[xls]`) install on demand, and where a **system** binary is missing the
 UI says exactly that — naming the one `brew`/`apt` line — rather than failing obscurely.
 
-**B. Container (first-class alternative) — "the family aggregator on the home server."**
+**B. Container (PHASE 2) — "the family aggregator on the home server."**
 An official image (Dockerfile in-repo, built from tagged source so anyone can rebuild it) for the
 ADR-0006 host-accessibility model: one always-on host that can see the household's workspaces as files.
 Ships tesseract + poppler preinstalled, so OCR "just works". Documented feature deltas, stated up front
@@ -55,8 +71,10 @@ project's trust story depends on, and still doesn't solve tesseract/poppler. A d
 
 ## Consequences
 
-- Two supported install paths to document and test; CI should build the image and smoke-test the native
-  bootstrap on macOS + Linux.
+- **v1 has one install path to document and test** — CI smoke-tests the native bootstrap on macOS +
+  Linux. The container's CI arrives with the container.
+- The design constraints below are recorded now so phase 2 cannot quietly violate them later, even
+  though nothing is built yet.
 - The container's feature deltas must be enforced in the product, not just documented: when running
   containerized, the UI hides reveal-in-file-manager and constrains the workspace picker to the mounted
   root, rather than offering an action that will fail.

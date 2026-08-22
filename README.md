@@ -53,6 +53,10 @@ architecturally significant choices are [ADRs](openspec/decisions/). Same licens
 
 ## Status
 
+**Runs natively** — `python bootstrap.py` (Python 3.11/3.12), no Docker required. A container for the
+always-on family-aggregator deployment is designed but deliberately deferred until real usage says what
+belongs in it ([ADR-0009](openspec/decisions/0009-distribution-and-deployment.md)).
+
 **Definition stage — specs and design settled, implementation next.** The [use cases](openspec/USE-CASES.md),
 [UX first pass](openspec/UX.md) (information architecture, screens, the four critical flows), six
 [ADRs](openspec/decisions/) and four capability specs define what gets built. The stack is React + Vite +

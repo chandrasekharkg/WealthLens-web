@@ -51,7 +51,7 @@ follows from one sentence:
   [0006 v1 product decisions](openspec/decisions/0006-v1-product-decisions.md) ·
   [0007 bridge = FastAPI over a reusable core](openspec/decisions/0007-bridge-framework-fastapi.md) ·
   [0008 MCP exposure (designed, deferred, gated)](openspec/decisions/0008-mcp-exposure.md) ·
-  [0009 distribution: native-first + container (PROPOSED)](openspec/decisions/0009-distribution-and-deployment.md)
+  [0009 distribution: native first, container phased](openspec/decisions/0009-distribution-and-deployment.md)
 - Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
   [report-views](openspec/specs/report-views/spec.md) ·
