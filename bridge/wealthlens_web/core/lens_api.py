@@ -9,16 +9,23 @@ caller, because a caller that must RELEASE a store so a verb can run has to own 
 """
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from wealthlens_web.core.money import Money
 
 TOTAL_ROW = "TOTAL"
 
 
+# WLC stores money as DECIMAL(18,2), so two places IS the store's own scale. Pinning it here — at the one
+# boundary where the scale is known — keeps every figure consistent instead of leaking whatever the pandas
+# round-trip happened to produce ("3500.0" from one query, "3500.00" from another). Money itself stays
+# scale-agnostic, because not every currency has two decimals and that decision is not ours to bake in.
+_MONEY_SCALE = Decimal("0.01")
+
+
 def _dec(v) -> Decimal:
-    """A store figure as a Decimal, without a float in the middle of it."""
-    return Decimal(str(v if v is not None else 0))
+    """A store figure as a Decimal at the store's scale, without a float surviving in the middle of it."""
+    return Decimal(str(v if v is not None else 0)).quantize(_MONEY_SCALE, rounding=ROUND_HALF_UP)
 
 
 def net_worth_by_class(con, *, on: str | None, owner: str, currency: str) -> list[dict]:

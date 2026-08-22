@@ -34,7 +34,7 @@ def test_two_entities_compose_into_one_total(make_workspace):
 
     got = aggregate.net_worth(m, on="2026-07-31")
 
-    assert got.total == money.Money(Decimal("3500"), "INR")
+    assert got.total == money.Money(Decimal("3500.00"), "INR")
     assert not got.is_partial and not got.excluded
     assert {e.entity_id for e in got.entities} == {"alpha", "beta"}
 
@@ -46,8 +46,8 @@ def test_every_part_stays_attributable(make_workspace):
     got = aggregate.net_worth(_manifest(_entity("alpha", a), _entity("beta", b)), on="2026-07-31")
 
     by_id = {e.entity_id: e for e in got.entities}
-    assert by_id["alpha"].total == money.Money(Decimal("1000"), "INR")
-    assert by_id["beta"].total == money.Money(Decimal("2500"), "INR")
+    assert by_id["alpha"].total == money.Money(Decimal("1000.00"), "INR")
+    assert by_id["beta"].total == money.Money(Decimal("2500.00"), "INR")
     assert sum(e.total.amount for e in got.entities) == got.total.amount
 
 
@@ -64,7 +64,7 @@ workspaces = ["{current}", "{legacy}"]
 ''')
     got = aggregate.net_worth(m, on="2026-07-31")
     view = got.entities[0]
-    assert view.total == money.Money(Decimal("1000"), "INR")
+    assert view.total == money.Money(Decimal("1000.00"), "INR")
     # A person is only as current as their stalest store, so the OLDER date is the one reported.
     assert view.evidence_as_of == "2025-03-31"
 
@@ -86,7 +86,7 @@ def test_a_missing_store_is_named_and_the_total_is_marked_partial(make_workspace
 
     got = aggregate.net_worth(m, on="2026-07-31")
 
-    assert got.total == money.Money(Decimal("1000"), "INR"), "the readable part is still shown"
+    assert got.total == money.Money(Decimal("1000.00"), "INR"), "the readable part is still shown"
     assert got.is_partial, "a total missing a declared entity must say so"
     assert [e.entity_id for e in got.excluded] == ["ghost"]
     assert "missing" in got.excluded[0].excluded_reason
@@ -100,7 +100,7 @@ def test_a_schema_skewed_store_is_excluded_with_the_way_back(make_workspace, dow
 
     got = aggregate.net_worth(_manifest(_entity("alpha", a), _entity("beta", b)), on="2026-07-31")
 
-    assert got.total == money.Money(Decimal("1000"), "INR")
+    assert got.total == money.Money(Decimal("1000.00"), "INR")
     assert [e.entity_id for e in got.excluded] == ["beta"]
     reason = got.excluded[0].excluded_reason
     assert "different engine" in reason and "rebuild" in reason.lower()
@@ -167,7 +167,7 @@ def test_the_declared_owner_makes_the_same_store_readable(make_workspace):
 
     got = aggregate.net_worth(m, on="2026-07-31")
 
-    assert got.total == money.Money(Decimal("5000"), "INR")
+    assert got.total == money.Money(Decimal("5000.00"), "INR")
     assert not got.is_partial and got.entities[0].owner_warning is None
 
 
@@ -175,7 +175,7 @@ def test_a_store_with_no_ownership_rows_needs_no_owner_configured(make_workspace
     """The common single-person store: every instrument is implicitly wholly owned."""
     a = make_workspace("alpha", {"A": 1000})
     got = aggregate.net_worth(_manifest(_entity("alpha", a)), on="2026-07-31")
-    assert got.total == money.Money(Decimal("1000"), "INR")
+    assert got.total == money.Money(Decimal("1000.00"), "INR")
 
 
 # ── currency ─────────────────────────────────────────────────────────────────────────────────────────
