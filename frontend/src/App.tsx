@@ -51,6 +51,24 @@ export function App() {
     void fetchAll();
   }, [fetchAll]);
 
+  /**
+   * Re-read the figures WITHOUT clearing what is on screen.
+   *
+   * A successful import must not unmount the screen showing its verdict — which is exactly what happened
+   * when this reused the retry path: the loading state replaced the app, the Import screen remounted, and
+   * the per-file verdict the user needed to read disappeared at the moment it mattered most.
+   */
+  const refresh = useCallback(() => {
+    void api
+      .netWorth()
+      .then((data) => setNetWorth({ state: "ready", data }))
+      .catch(() => undefined);
+    void api
+      .positions()
+      .then((data) => setPositions({ state: "ready", data }))
+      .catch(() => undefined);
+  }, []);
+
   const retry = useCallback(() => {
     setVersion({ state: "loading" });
     setNetWorth({ state: "loading" });
@@ -105,7 +123,7 @@ export function App() {
           <p role="status">…</p>
         ))}
       {screen === "import" && (
-        <Import entities={entities} format={defaultFormatter} onImported={retry} />
+        <Import entities={entities} format={defaultFormatter} onImported={refresh} />
       )}
     </>
   );

@@ -1,0 +1,13 @@
+{
+  "properties": [
+    {
+      "id": "prop:e2e-cottage",
+      "name": "A Test Cottage",
+      "area_sqft": 900,
+      "acq_start": "2020-01-01",
+      "possession": "2020-06-30",
+      "acq_cost": 2500000,
+      "owned_after_split": true
+    }
+  ]
+}

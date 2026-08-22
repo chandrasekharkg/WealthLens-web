@@ -109,6 +109,10 @@ The first phase a household can actually use (UC-B).
 **Done when:** E2E #3 (upload → import → a number appears) goes green, and Sharath can run his own
 workspace through it.
 
+*Status: E2E #3 is green. The shell, Overview, Reports and Import are built; the statement-collection help
+sits on the Import screen. Remaining: the freshness strip on Reports, and a family drill-down from a
+combined row to its per-entity parts.*
+
 ## Phase 5 — Operations and configuration
 
 The half that makes a non-technical household self-sufficient (UC-A, UC-C).

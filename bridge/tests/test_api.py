@@ -254,3 +254,32 @@ def test_the_runner_knows_which_pids_are_its_own(make_workspace):
     """The only lock-holder classification that can be KNOWN rather than guessed."""
     runner = verbs.Runner()
     assert runner.our_pids == frozenset()
+
+
+def test_the_app_must_know_the_port_it_is_actually_served_on(tmp_path, make_workspace):
+    """Found by the end-to-end run: served on 7799 while believing it was on 7788, so the Host check
+    refused every request with `reason: host` and nothing explained why.
+
+    The address the app checks against and the address the server binds have to come from one place.
+    """
+    a = make_workspace("alpha", {"A": 1})
+    mf = tmp_path / "family.toml"
+    mf.write_text(f'[family]\nreporting_currency = "INR"\n\n[[entity]]\nid="alpha"\nworkspace="{a}"\n')
+
+    app = create_app(mf, host="127.0.0.1", port=7799, token="t")
+    on_the_right_port = TestClient(app, headers={"host": "127.0.0.1:7799"})
+    assert on_the_right_port.get("/api/version").status_code == 200
+
+    on_the_wrong_port = TestClient(app, headers={"host": "127.0.0.1:7788"})
+    assert on_the_wrong_port.get("/api/version").status_code == 403
+
+
+def test_serve_reads_the_bound_address_from_the_environment(monkeypatch):
+    from wealthlens_web import serve
+
+    monkeypatch.setenv(serve.HOST_ENV, "127.0.0.1")
+    monkeypatch.setenv(serve.PORT_ENV, "9001")
+    assert serve.bound_to() == ("127.0.0.1", 9001)
+
+    monkeypatch.delenv(serve.PORT_ENV)
+    assert serve.bound_to()[1] == 7788, "the default is the port the launcher uses"

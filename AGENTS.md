@@ -130,9 +130,12 @@ git config core.hooksPath .githooks
 E2E is **not** in the hooks (too slow for every push) and **is** runnable on demand:
 
 ```bash
-cd frontend && npx playwright install --with-deps   # once
-npm run e2e
+cd frontend && npm run e2e:install   # once
+npm run build && npm run e2e         # e2e serves the BUILT app, so build first
 ```
+
+E2E runs against a throwaway workspace it creates itself (`e2e/setup/`), on a different port from the
+app's usual one — so a run can never touch a household's real stores or collide with a live instance.
 
 Run it locally before anything that touches the three guarded flows. The daily CI run is a backstop, not
 the first time anyone finds out.
