@@ -107,8 +107,14 @@ named, with the total labelled partial, in exactly the same shape as an unreacha
 ### Requirement: Per-workspace freshness is surfaced
 
 Because a declared workspace may be a synced copy from another machine (ADR-0006), family views SHALL
-surface each workspace's freshness (latest store as-of; file age where meaningful), so a lagging copy is
-visible as such. Staleness is labelled, never smoothed.
+surface each workspace's freshness, so a lagging copy is visible as such. Staleness is labelled, never
+smoothed.
+
+Freshness SHALL mean the currency of **document** evidence — what a statement supplied — and SHALL NOT be
+satisfied by fetched market data. A store whose newest statement is months old but whose prices were pulled
+this morning is stale, and reporting it as current would be the exact smoothing this requirement forbids.
+WLC answers this directly (`lens.freshness()` / `lens.latest_evidence()`), so the UI reads it rather than
+inferring it from a valuation date.
 
 #### Scenario: A synced copy lags
 - **WHEN** one entity's workspace is a file copy last updated days ago

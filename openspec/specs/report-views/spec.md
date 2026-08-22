@@ -50,6 +50,11 @@ This SHALL NOT be used to conceal two facts that remain true:
 - **THEN** the view states that its answer covers evidence only up to that entity's own latest — the shared
   date does not make a lagging store current
 
+#### Scenario: The date a view must NOT read as freshness
+- **WHEN** a view needs an entity's evidence currency
+- **THEN** it comes from WLC's freshness answer, never from the `as_of` on a holdings row — most valuation
+  tiers echo the requested date back, so reading it would report every store as perfectly fresh
+
 ### Requirement: Uncertainty is rendered, not hidden
 
 `basis` labels, `units_incomplete`/footing warnings, and "needs attention" import outcomes SHALL be

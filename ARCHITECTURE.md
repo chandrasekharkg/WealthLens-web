@@ -96,8 +96,10 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
 - [x] WLC: **honest lock errors** — shipped with the above. `StoreLocked` carries the holding process and
       pid as the database reported them; the engine no longer discards the error and guesses a culprit.
 - [x] WLC: **`lens.owners()`** — shipped. Makes the silent-zero ownership hazard answerable.
-- [ ] WLC: **freshness on the read surface** — `_latest_as_of()` returns *today* and `holdings().as_of`
-      echoes the requested date on most tiers, so "staleness is labelled, never smoothed" has no source.
+- [x] WLC: **freshness on the read surface** — shipped (WLC `d550a8e`). `lens.freshness()` reports the
+      newest date per evidence kind; `lens.latest_evidence()` reduces it to one. Document evidence is split
+      from fetched market data, so a store with three-month-old statements and this morning's prices reports
+      as stale rather than current.
 - [ ] WLC: **currency + native amount on lens rows** — no lens function returns a currency, and
       `position_snapshots` has no currency column, so ADR-0012's free-landing test cannot pass yet.
 - [ ] WLC: **FX honesty** — conversion uses the nearest earlier rate and *drops* an instrument when no rate
