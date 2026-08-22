@@ -9,21 +9,25 @@ pyramid nobody builds.
 
 ---
 
-## Phase 00 — The cold start (added by the UX validation gate)
+## Phase 00 — The cold start
 
-The walkthrough found that everything before "a store exists with data in it" is thin: every use case was
-written starting from a workspace that already exists. Four blocking findings (UX-VALIDATION P1–P4), two of
-them decisions rather than omissions:
+The UX validation gate found that everything before "a store exists with data in it" was thin: every use
+case had been written starting from a workspace that already exists. Four blocking findings, now resolved
+into work (UX-VALIDATION P1–P4).
 
-- **How the app is installed and launched**, and therefore who puts WLC and a Python runtime on the machine
-  (P1 — needs a decision, then an ADR; it may add a packaging phase).
-- **What the user sees when WLC is missing or version-skewed** (P2) — the first failure a real user can hit.
-- **How the store key is handed to a human who must not lose it** (P3) — currently in direct conflict with
-  "keys never reach the browser", and multiplied by one key per workspace.
-- **Retraction's taught command names a verb that does not exist** (P4) — ADR-0012's principle holds, its
-  worked example does not.
+- **The installer and launcher** (ADR-0014): prepare Python + WLC + bridge, create a launcher, open the
+  browser — and create no workspace, key or config. Failure reporting is part of the deliverable, not a
+  polish item; unattended setup fails in ways nobody can debug remotely.
+- **Preflight at every launch** (cold-start): WLC present and in range, with a screen that names the
+  problem and the fix. Not a one-time install check — users upgrade WLC independently.
+- **The key ceremony** (ADR-0015): reveal the key file on the user's machine, never transmit it; explicit
+  dated confirmation; optional fingerprint so a user can check what they saved; backup state per workspace
+  recorded in the manifest and surfaced family-wide.
+- **First-run empty state** (cold-start): guided create-or-connect, candidates offered not included.
+- **Retraction teaches the real sequence** (collateral-and-sources): quarantine → rebuild → review →
+  promote. No `forget` verb exists, and a taught command that fails when pasted is worse than no button.
 
-Nothing below moves. This phase goes first because P1 can change what Phase 0 packages.
+Platform priority is evidence-led (ADR-0009's rule): start where the users are.
 
 ## Phase 0 — Make the pyramid real
 

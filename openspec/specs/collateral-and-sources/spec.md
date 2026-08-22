@@ -69,17 +69,26 @@ store. **Where no such verb exists, the UI SHALL show the user the exact steps t
 (ADR-0012) — a copyable command with the source identified — rather than a disabled control or a local
 reimplementation.
 
-> **v1 position:** `capture_io.delete_source()` exists in WLC as a function with no CLI verb, and few
-> households need retraction early. So v1 teaches it. **Graduation trigger:** when WLC gains a retraction
-> verb, or when enough users ask, the taught command becomes the guarded in-app action specified above —
-> the requirements below are written now so that graduation changes the mechanism, not the safeguards.
+> **v1 position.** `capture_io.delete_source()` exists in WLC as a function with **no CLI verb**, so there
+> is no single command to teach. What v1 teaches instead is the sequence WLC genuinely supports, which is
+> the corpus invariant doing the work: move the document into `_quarantine/` (which `rebuild` and `import`
+> skip entirely), `wealthlens rebuild` to replay the remaining corpus into a fresh store alongside the
+> current one, review the tally, then promote.
+>
+> That is not a workaround — retraction *is* `store = replay(corpus)` with one document removed, and the
+> taught sequence is more honest than a one-shot delete because the user sees the difference before
+> promoting.
+>
+> **Graduation trigger:** if WLC gains a one-step retraction verb, or rebuild proves too slow for the
+> households that need this, the sequence becomes the guarded in-app action specified above. The
+> requirements are written now so graduation changes the mechanism, not the safeguards.
 
-#### Scenario: No retraction verb is installed
-- **WHEN** a user asks to remove a source and the installed WLC cannot be driven to do it
-- **THEN** the UI shows the precise steps to run in WLC, naming the source, and nothing in WLW writes to
-  the store
+#### Scenario: A user asks to remove a source in v1
+- **WHEN** retraction is requested and the installed WLC has no one-step verb
+- **THEN** the UI shows the quarantine-rebuild-promote sequence with this document's real path filled in,
+  and nothing in WLW writes to the store
 
-#### Scenario: The taught command is correct by construction
-- **WHEN** the steps are displayed
-- **THEN** they name WLC's own verb and the real source identifier, so following them cannot diverge from
-  what the app would have done
+#### Scenario: Taught steps must be executable as shown
+- **WHEN** any command is displayed for the user to run
+- **THEN** it names a verb the installed WLC actually has, with real paths and identifiers — a taught
+  command that fails when pasted is worse than no button at all (UX-VALIDATION P4)

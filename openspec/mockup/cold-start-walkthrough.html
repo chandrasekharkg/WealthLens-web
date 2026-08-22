@@ -219,8 +219,8 @@ footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--line); colo
       <div class="eyebrow">WealthLens-web · UX validation gate</div>
       <h1>How a household starts, screen by screen</h1>
       <p class="dek">A click-through of the cold start — from “nothing installed” to “a number I trust” — built to
-        find what the specs don’t answer yet. Ten steps, drawn from the use cases and ADRs. Purple pins mark the
-        holes this walkthrough exposed.</p>
+        find what the specs don’t answer yet. Ten steps, drawn from the use cases and ADRs. Purple pins mark what it exposed;
+        four blocking findings have since been decided and the screens below reflect them.</p>
     </div>
     <div class="controls">
       <button class="btn" id="pinToggle" aria-pressed="true">Open questions · on</button>
@@ -284,36 +284,37 @@ const BARE = body => `<div class="app" style="grid-template-columns:1fr">
 const STEPS = [
 /* 1 ── LAUNCH ─────────────────────────────────────────────────────────── */
 {
-  n:"Launch", url:"—  nothing open yet", pins:true,
+  n:"Install & launch", url:"—  the installer, then the launcher",
   screen: BARE(`
-    <h2 class="screen">Step zero has no screen — and that is the problem <span class="pin">1</span></h2>
-    <p class="sub">Every use case begins after a browser is already showing WealthLens. Nothing in the specs says
-      how it gets there, or who put Python and WealthLens-core on the machine. Three candidate answers, none decided:</p>
-    <div class="grid3">
-      <div class="card"><div class="lbl">Candidate A</div>
-        <p style="margin:8px 0 0;font-weight:600">An app you double-click</p>
-        <p class="tiny muted" style="margin:6px 0 0">Bundles Python + WLC + the bridge. The only option a
-          non-technical household can actually use — and the one that makes WLW own the install.</p></div>
-      <div class="card"><div class="lbl">Candidate B</div>
-        <p style="margin:8px 0 0;font-weight:600">A command they type</p>
-        <div class="cmd" style="margin-top:8px"><span>wealthlens-web</span></div>
-        <p class="tiny muted" style="margin:6px 0 0">Assumes WLC already installed. Contradicts the reason WLW
-          exists (ADR-0006 §1).</p></div>
-      <div class="card"><div class="lbl">Candidate C</div>
-        <p style="margin:8px 0 0;font-weight:600">Always running</p>
-        <p class="tiny muted" style="margin:6px 0 0">A login item serving 127.0.0.1. Convenient; a persistent
-          local service is a security posture nobody has specified.</p></div>
+    <h2 class="screen">A guided installer prepares the machine; a launcher starts the app</h2>
+    <p class="sub">Decided after this walkthrough found step zero had no owner. The installer ensures Python,
+      installs WealthLens-core and the bridge, makes a launcher, and opens the browser — and creates no
+      workspace, no key and no configuration. <span class="ref">ADR-0014</span></p>
+    <div class="card" style="margin-top:4px">
+      <div class="lbl">What it reports when it finishes</div>
+      <div class="mono muted" style="margin-top:9px;line-height:1.8">
+        ✓ Python 3.12 — already present<br>
+        ✓ wealthlens 3.9.2 → ~/Library/Application Support/WealthLens/env<br>
+        ✓ wealthlens-web 0.1.0<br>
+        ✓ Launcher → Applications<br>
+        ✗ Desktop shortcut — skipped (no permission)<br>
+        <span style="color:var(--accent)">Report saved: ~/Library/Logs/WealthLens/install-2026-08-22.txt</span>
+      </div>
+      <p class="tiny muted" style="margin:11px 0 0">Failure reporting is part of the deliverable. Unattended
+        setup on a household’s machine fails in ways nobody can debug remotely.</p>
     </div>
-    <div class="pinbox"><span class="pin">1</span><div><b>Who installs WealthLens-core?</b> ADR-0009 chose
-      “native first”, but not what native <i>contains</i>. If WLW assumes WLC is present, the household that
-      needs WLW most can never reach step 2.</div></div>
-    <div class="pinbox"><span class="pin">2</span><div><b>And if it isn’t installed, or is the wrong version?</b>
-      The bridge has a version endpoint (bridge-api), but no screen is specified for “WLC missing / too old”.
-      That state is the <i>first</i> thing a real user can hit.</div></div>`),
-  what:["The user has statements and a laptop. Nothing else is assumed.",
-        "This is the only step with no specification behind it at all."],
-  holes:["<strong>P1</strong> — installation ownership is undecided; it gates every other screen.",
-         "<strong>P2</strong> — no design for “WLC absent or version-skewed”, the most likely first failure."]
+    <div class="card">
+      <div class="lbl">And every launch preflights — not just the install</div>
+      <p class="tiny muted" style="margin:7px 0 11px">A user can upgrade WealthLens-core independently, move a
+        folder, or use a machine someone else set up. So the check runs each time:</p>
+      <div class="strip crit"><div><b>WealthLens-core is 3.4 — this app needs 3.8 or newer.</b>
+        Update the engine, then reopen. <span class="mono" style="font-size:12px">pip install -U wealthlens</span></div></div>
+      <p class="tiny muted" style="margin:11px 0 0">Named problem, named fix — never a blank page or a
+        dashboard that silently shows nothing. <span class="ref">cold-start</span></p>
+    </div>`),
+  what:["The installer prepares software only; data setup happens after launch through WLC's own verbs. <span class='ref'>ADR-0014</span>",
+        "Preflight runs at every launch and names the found version, the supported range, and which side to change. <span class='ref'>cold-start</span>"],
+  holes:["Resolved — P1 decided (guided installer), P2 specified (preflight screen)."]
 },
 /* 2 ── FIRST RUN ──────────────────────────────────────────────────────── */
 {
@@ -376,35 +377,38 @@ const STEPS = [
 },
 /* 4 ── THE KEY ────────────────────────────────────────────────────────── */
 {
-  n:"The key", url:"/setup/key", pins:true,
+  n:"The key", url:"/setup/key",
   screen: BARE(`
-    <div style="max-width:600px">
+    <div style="max-width:620px">
       <div class="eyebrow">Step 2 of 3</div>
-      <h2 class="screen" style="margin-top:6px">Save this key somewhere safe <span class="pin">4</span></h2>
-      <div class="strip crit" style="margin-top:14px"><div><b>This is the only key to your data.</b> WealthLens
-        encrypts your store with it. Nobody — not us, not you — can open the store without it. There is no reset.</div></div>
-      <div class="card" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:14px">
-        <span class="mono" style="letter-spacing:.08em">•••• •••• •••• •••• •••• •••• •••• ••••</span>
-        <span class="fake ghost">Copy to clipboard</span>
+      <h2 class="screen" style="margin-top:6px">Save this workspace’s key</h2>
+      <div class="strip crit" style="margin-top:14px"><div><b>This key is the only way to open Dad’s data.</b>
+        WealthLens encrypts the store with it. There is no reset and no recovery — if it is lost, the data
+        is gone.</div></div>
+      <div class="card" style="margin-top:14px">
+        <div class="lbl">The key stays on your machine</div>
+        <p class="tiny muted" style="margin:7px 0 12px">WealthLens-web never receives it — not to show you, not
+          to copy it. Open the folder and put the file somewhere you keep things that cannot be replaced.
+          <span class="ref">ADR-0015</span></p>
+        <div class="cmd" style="border-style:solid"><span>~/WealthLens/dad-WealthLens-data/store.key</span>
+          <span class="cp">SHOW IN FINDER</span></div>
       </div>
-      <label style="display:flex;gap:9px;align-items:flex-start;margin-top:14px;font-size:13.5px;color:var(--ink-2)">
-        <input type="checkbox" checked style="margin-top:3px;accent-color:var(--accent)">
-        <span>I have saved this key in my password manager.</span></label>
-      <div class="actions" style="margin-top:16px"><span class="fake">Continue</span>
-        <span class="fake off">Skip</span></div>
-      <div class="pinbox" style="margin-top:16px"><span class="pin">4</span><div><b>This screen contradicts a
-        non-negotiable.</b> “Keys never reach the browser” (project.md) — yet a household that loses
-        <span class="mono">store.key</span> loses everything, and the CLI’s answer is to print it and say BACK
-        THIS UP. Either the browser shows the key, or the UI must walk the user to the file without ever
-        holding its contents. Undecided, and it is the single most destructive moment in the product.</div></div>
-      <div class="pinbox"><span class="pin">5</span><div><b>Four people, four keys.</b> Each workspace has its
-        own. A family of four repeats this ceremony four times and must retain four separate secrets — a burden
-        nothing in the design acknowledges.</div></div>
+      <div class="card">
+        <div class="lbl">Check you saved the right one</div>
+        <p class="tiny muted" style="margin:7px 0 9px">A fingerprint of the key — not the key. Compare it with
+          what you stored to be sure it belongs to this workspace.</p>
+        <div class="mono" style="letter-spacing:.1em;color:var(--accent)">7f2a · c419 · 8b03</div>
+      </div>
+      <label style="display:flex;gap:9px;align-items:flex-start;margin-top:15px;font-size:13.5px;color:var(--ink-2)">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--accent)">
+        <span>I have saved this key somewhere I can find it again.</span></label>
+      <div class="actions" style="margin-top:15px"><span class="fake off">Continue</span>
+        <span class="tiny muted">Until this is confirmed, the workspace shows as needing a backup.</span></div>
     </div>`),
-  what:["WLC generates <span class='ref'>store.key</span> during init and prints a back-it-up warning.",
-        "In a browser, that warning either gets a real ceremony or gets clicked past."],
-  holes:["<strong>P4</strong> — key custody vs. “keys never reach the browser”: a direct conflict, undecided.",
-         "<strong>P5</strong> — per-workspace keys multiply the ceremony across a family; no design covers the set."]
+  what:["The key never crosses the bridge; the UI reveals the file and the user handles it. <span class='ref'>ADR-0015</span>",
+        "Confirmation is explicit and dated; a fingerprint lets a user verify without the secret travelling.",
+        "Each workspace has its own key — the family view tracks which are confirmed, so none is silently assumed safe."],
+  holes:["Resolved — P3 decided, P5 (per-workspace key set) answered by manifest-tracked backup state."]
 },
 /* 5 ── INBOX ──────────────────────────────────────────────────────────── */
 {
@@ -525,7 +529,7 @@ const STEPS = [
 },
 /* 9 ── WORKSPACE ──────────────────────────────────────────────────────── */
 {
-  n:"Collateral", url:"/entity/dad/collateral", pins:true,
+  n:"Collateral", url:"/entity/dad/collateral",
   screen: SHELL("workspaces", CTX("Dad", "as of 31 Jul 2026"), `
     <div><h2 class="screen">What this store was built from</h2>
       <p class="sub">Every document, what became of it, and which password opens it.</p></div>
@@ -543,17 +547,19 @@ const STEPS = [
       </tbody></table></div>
     <div class="card q">
       <div class="lbl">Remove everything one document contributed</div>
-      <p class="tiny muted" style="margin:7px 0 10px">WealthLens-web can’t do this yet — it doesn’t write to your
-        store. Run this in WealthLens-core and the rows go with it: <span class="ref">ADR-0012</span></p>
-      <div class="cmd"><span>wealthlens forget src:nsdl:2026-07:dad</span><span class="cp">COPY</span></div>
+      <p class="tiny muted" style="margin:7px 0 10px">WealthLens-web can’t write to your store. There is no
+        one-step “forget” either — so this is the sequence WealthLens-core genuinely supports. You will see the
+        difference before anything replaces your live store. <span class="ref">ADR-0012 · collateral-and-sources</span></p>
+      <div class="cmd" style="margin-bottom:7px"><span>mv statements/bank/hdfc/hdfc-stmt-jul.pdf _quarantine/</span><span class="cp">COPY</span></div>
+      <div class="cmd" style="margin-bottom:7px"><span>wealthlens rebuild</span><span class="cp">COPY</span></div>
+      <p class="tiny muted" style="margin:9px 0 0">Rebuild replays what’s left of the corpus into a fresh store
+        <i>alongside</i> the current one and tallies the two. Promote it when the difference looks right.</p>
     </div>
-    <div class="pinbox"><span class="pin">10</span><div><b>The taught command names a verb that does not exist.</b>
-      <span class="mono">forget</span> is unimplemented in WLC — teaching a command that fails is worse than a
-      disabled button. Either the verb ships, or v1 teaches the real sequence (rebuild without the file), or this
-      panel doesn’t appear at all.</div></div>`),
+    <div class="strip info"><div>Retraction isn’t a missing feature — it <b>is</b> <span class="mono">store = replay(corpus)</span>
+      with one document removed.</div></div>`),
   what:["The password ring shows which named password opens each file — the reference, never the value. <span class='ref'>collateral-and-sources</span>",
         "Revealing a value is deliberate, goes straight to the clipboard, and is never rendered. "],
-  holes:["<strong>P10</strong> — “teach the command” assumed a command exists; for retraction it doesn’t yet."]
+  holes:["Resolved — v1 teaches quarantine → rebuild → promote, every verb of which exists."]
 },
 /* 10 ── SETTINGS ──────────────────────────────────────────────────────── */
 {

@@ -4,8 +4,8 @@ A ten-step click-through of the cold start (nothing installed → a number the h
 before Phase 0 specifically to find what the specs don't answer. It found eleven. Four are blocking, and
 two of those are decisions rather than omissions.
 
-The walkthrough itself is a mockup, not a build: `openspec/mockup/` if committed, otherwise the published
-artifact. Screens 1–10 map to UC-A and UC-B.
+The walkthrough is at `openspec/mockup/cold-start-walkthrough.html` — open it in a browser. Screens 1–10
+map to UC-A and UC-B, and the four decided findings are now reflected in the screens themselves.
 
 ## The shape of what it found
 
@@ -15,6 +15,22 @@ Everything before that point is thin, because every use case was written startin
 already exists.
 
 ---
+
+## Resolution status
+
+| | Finding | Status |
+|---|---|---|
+| P1 | Installation ownership | **Decided** — guided installer, then launcher (ADR-0014) |
+| P2 | WLC missing / version-skewed | **Specified** — preflight at every launch (cold-start) |
+| P3 | Store-key custody | **Decided** — never crosses the bridge (ADR-0015) |
+| P4 | Retraction teaches a missing verb | **Fixed** — teaches quarantine→rebuild→promote (collateral-and-sources) |
+| P5 | Empty states | First run specified; the rest is a Phase 4 item |
+| P6 | Statement acquisition | Open — inbox empty state must teach it |
+| P7 | Password naming on entry | Open — Phase 5 |
+| P8 | Mixed-scope provenance header | Open — Phase 3, where the header is built |
+| P9–P11 | Foreign currency, Activity durability, key set | Noted; P11 resolved by ADR-0015's manifest tracking |
+
+The findings below are the original write-up, kept as the record of what the gate caught.
 
 ## Blocking
 

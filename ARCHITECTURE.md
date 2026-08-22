@@ -65,8 +65,11 @@ follows from one sentence:
   [0010 testability first](openspec/decisions/0010-testability-first.md) ·
   [0011 extension model](openspec/decisions/0011-extension-model.md) ·
   [0012 evolution](openspec/decisions/0012-evolution.md) ·
-  [0013 egress: export & print](openspec/decisions/0013-egress.md)
-- Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
+  [0013 egress: export & print](openspec/decisions/0013-egress.md) ·
+  [0014 installation & launch](openspec/decisions/0014-installation-and-launch.md) ·
+  [0015 store-key custody](openspec/decisions/0015-store-key-custody.md)
+- Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
+  [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
   [report-views](openspec/specs/report-views/spec.md) ·
   [manual-facts](openspec/specs/manual-facts/spec.md) ·
