@@ -1,14 +1,9 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Report, ReportSummary } from "../api/client";
+import type { Report } from "../api/client";
 import { formatter } from "../i18n";
 import { Reports } from "./Reports";
-
-const catalogue: ReportSummary[] = [
-  { id: "accounts", title: "Accounts", subtitle: "With a bank.", sections: [] },
-  { id: "market", title: "Market instruments", subtitle: "Priced by somebody else.", sections: [] },
-];
 
 const row = (name: string, cls: string, amount: string) => ({
   entity_id: "me",
@@ -46,11 +41,7 @@ const report = (over: Partial<Report> = {}): Report => ({
 function stub(reportBody: Report = report()) {
   vi.stubGlobal(
     "fetch",
-    vi.fn((input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      const payload = url.match(/\/api\/reports$/) ? catalogue : reportBody;
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(payload) } as Response);
-    }),
+    vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(reportBody) } as Response)),
   );
 }
 
@@ -58,36 +49,27 @@ afterEach(() => vi.unstubAllGlobals());
 
 const show = async (body?: Report) => {
   stub(body);
-  render(<Reports format={formatter("en-IN")} />);
-  // The report title is an h1; section provenance blocks carry their own headings too.
+  render(<Reports reportId="market" format={formatter("en-IN")} />);
   await screen.findByRole("heading", { level: 1, name: "Market instruments" });
 };
-
-describe("a list of reports", () => {
-  it("offers every report the bridge declares", async () => {
-    await show();
-    const nav = screen.getByRole("navigation", { name: "Reports" });
-    expect(within(nav).getByRole("button", { name: "Accounts" })).toBeTruthy();
-    expect(within(nav).getByRole("button", { name: "Market instruments" })).toBeTruthy();
-  });
-
-  it("marks which report is being read", async () => {
-    await show();
-    const nav = screen.getByRole("navigation", { name: "Reports" });
-    fireEvent.click(within(nav).getByRole("button", { name: "Accounts" }));
-    await waitFor(() =>
-      expect(
-        within(nav).getByRole("button", { name: "Accounts" }).getAttribute("aria-current"),
-      ).toBe("true"),
-    );
-  });
-});
 
 describe("sections", () => {
   it("shows each section with its icon, count and total", async () => {
     await show();
     const equities = screen.getByRole("region", { name: "Equities" });
-    expect(within(equities).getByText(/1 · ₹1,000.00/)).toBeTruthy();
+    // Count beside the name, total on its own — the two used to be run together in one line of dot-
+    // separated fragments that read as a sentence and scanned as none.
+    expect(within(equities).getByRole("heading", { level: 2 }).textContent).toContain("(1)");
+    // By class rather than by text: with one row in the section, the row's own value cell reads the same,
+    // and a query that cannot tell the total from a cell would pass whichever one it found.
+    expect(equities.querySelector(".section-total")?.textContent).toBe("₹1,000.00");
+  });
+
+  it("states the scope, date and currency ONCE for the report, not once per table", async () => {
+    // Four sections repeating "Me · as of … · in INR" said nothing new four times and pushed the data
+    // down the page. It has to remain present exactly once, because on paper it is the only context.
+    await show();
+    expect(screen.getAllByRole("region", { name: "About these figures" })).toHaveLength(1);
   });
 
   it("says a group is empty rather than rendering a headerless table", async () => {

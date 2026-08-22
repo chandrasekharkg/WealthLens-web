@@ -1,51 +1,47 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { api, type Report, type ReportSection, type ReportSummary } from "../api/client";
+import { api, type Report, type ReportSection } from "../api/client";
 import { DataTable } from "../components/DataTable";
+import { Provenance } from "../components/Provenance";
 import type { Formatter } from "../i18n";
 import type { Column } from "../lib/csv";
 
 /**
- * Reports: a list of reports on the left, each a series of sections.
+ * Reports: a series of sections, one per kind of thing.
  *
- * One flat table of everything is accurate and unreadable. A section per kind of thing — cash, deposits,
- * equities — is how a person actually asks the question, and each is one lens answer laid out rather than
- * anything recomputed here.
+ * One flat table of everything is accurate and unreadable. A section per kind — cash, deposits, equities —
+ * is how a person actually asks the question, and each is one lens answer laid out rather than anything
+ * recomputed here.
  *
  * The section list is expected to churn. It arrives from the bridge as data, so adding a cut or an icon
  * changes no code on this screen.
+ *
+ * **Which report is on screen is the shell's business**, not this component's: the list of them lives in
+ * the left rail, which every tab shares.
  */
 
 type Row = ReportSection["rows"][number];
 
 export type ReportsProps = {
+  readonly reportId: string;
   readonly format: Formatter;
 };
 
-export function Reports({ format }: ReportsProps) {
+export function Reports({ reportId, format }: ReportsProps) {
   const { t, money, date, number } = format;
-  const [catalogue, setCatalogue] = useState<ReportSummary[]>([]);
-  const [current, setCurrent] = useState("accounts");
   const [dateField, setDateField] = useState("");
   const [asOf, setAsOf] = useState("");
   const [report, setReport] = useState<Report | null>(null);
 
-  useEffect(() => {
+  const load = useCallback((id: string, on: string) => {
     void api
-      .reports()
-      .then(setCatalogue)
-      .catch(() => setCatalogue([]));
-  }, []);
-
-  const load = useCallback((id: string, asOf: string) => {
-    void api
-      .report(id, asOf || undefined)
+      .report(id, on || undefined)
       .then(setReport)
       .catch(() => setReport(null));
   }, []);
 
-  useEffect(() => load(current, asOf), [current, asOf, load]);
+  useEffect(() => load(reportId, asOf), [reportId, asOf, load]);
 
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
@@ -66,6 +62,7 @@ export function Reports({ format }: ReportsProps) {
       {
         id: "units",
         header: t("column.units"),
+        meta: { numeric: true },
         accessorFn: (r) => r.quantity ?? 0,
         cell: ({ row }) =>
           row.original.quantity === null || row.original.quantity === undefined
@@ -75,6 +72,9 @@ export function Reports({ format }: ReportsProps) {
       {
         id: "value",
         header: t("column.value"),
+        meta: { numeric: true },
+        // Sorting is the ONE place a number is unavoidable — comparison needs one. The rendered cell still
+        // formats the exact decimal string, so the double is never what a reader sees.
         accessorFn: (r) => Number(r.value.amount),
         cell: ({ row }) => money(row.original.value),
       },
@@ -99,86 +99,85 @@ export function Reports({ format }: ReportsProps) {
 
   return (
     <main data-layout="reports">
-      <nav aria-label={t("reports.pick")} data-print="hide">
-        <h2>{t("reports.pick")}</h2>
-        <ul>
-          {catalogue.map((entry) => (
-            <li key={entry.id}>
-              <button
-                type="button"
-                onClick={() => setCurrent(entry.id)}
-                aria-current={entry.id === current}
-                data-selected={entry.id === current}
-              >
-                {entry.title}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <section>
-        <h1>{report?.title ?? t("reports.title")}</h1>
-        {report?.subtitle && <p>{report.subtitle}</p>}
+      <div className="report-head">
+        <div>
+          <h1>{report?.title ?? t("reports.title")}</h1>
+          {report?.subtitle && <p className="subtitle">{report.subtitle}</p>}
+        </div>
 
         <form
+          className="as-of"
           data-print="hide"
           onSubmit={(event) => {
             event.preventDefault();
             setAsOf(dateField);          // applies on submit, not on every keystroke
           }}
         >
-          <label htmlFor="as-of">{t("reports.asOfLabel")}</label>{" "}
+          <label htmlFor="as-of">{t("reports.asOfLabel")}</label>
           <input
             id="as-of"
             type="date"
             value={dateField}
             onChange={(event) => setDateField(event.target.value)}
-          />{" "}
+          />
           <button type="submit">{t("reports.apply")}</button>
         </form>
+      </div>
 
-        {report?.excluded.length ? (
-          <div>
-            <h3>{t("reports.excludedHeading")}</h3>
-            <ul>
-              {report.excluded.map((entity) => (
-                <li key={entity.entity_id} role="alert" data-tone="warning">
-                  {entity.label}: {entity.reason ?? entity.owner_warning}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+      {/*
+        ONE provenance header for the whole report, rather than one above every section.
+        Scope, date and currency are properties of the report — repeating them over each of four tables
+        said nothing new and pushed the data down the page. It keeps no `data-print="hide"`: on paper this
+        block is the only thing that says what the figures are and when they were true.
+      */}
+      {report ? <Provenance header={report.provenance} /> : null}
 
-        {report?.sections.map((section) => (
-          <section key={section.id} aria-label={section.title}>
+      {report?.excluded.length ? (
+        <div>
+          <h3>{t("reports.excludedHeading")}</h3>
+          <ul>
+            {report.excluded.map((entity) => (
+              <li key={entity.entity_id} role="alert" data-tone="warning">
+                {entity.label}: {entity.reason ?? entity.owner_warning}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {report?.sections.map((section) => (
+        <section key={section.id} aria-label={section.title} className="report-section">
+          <header className="section-head">
             <h2>
-              <span aria-hidden="true">{section.icon}</span> {section.title}
+              <span className="section-icon" aria-hidden="true">
+                {section.icon}
+              </span>
+              {section.title}
+              <span className="section-count">{t("reports.sectionCount", { count: number(section.count) })}</span>
             </h2>
-            <p>
-              {t("reports.sectionTotal", {
-                count: number(section.count),
-                total: section.total ? money(section.total) : "—",
-              })}
-              {section.note ? ` · ${section.note}` : ""}
+            <p className="section-total">{section.total ? money(section.total) : "—"}</p>
+          </header>
+          {section.note ? <p className="section-note">{section.note}</p> : null}
+          {section.rows.length === 0 ? (
+            <p role="status" className="section-note">
+              {t("reports.sectionEmpty")}
             </p>
-            {section.rows.length === 0 ? (
-              <p role="status">{t("reports.sectionEmpty")}</p>
-            ) : (
-              <DataTable
-                rows={section.rows}
-                columns={columns}
-                exportColumns={exportColumns}
-                provenance={{ ...report.provenance, title: `${report.title} — ${section.title}` }}
-                pageSize={25}
-                caption={`${section.title} — ${date(report.as_of)}`}
-                format={format}
-              />
-            )}
-          </section>
-        ))}
-      </section>
+          ) : (
+            <DataTable
+              rows={section.rows}
+              columns={columns}
+              exportColumns={exportColumns}
+              // Still passed, and still exact: the CSV carries its own provenance header even though the
+              // screen now shows one per report rather than one per table.
+              provenance={{ ...report.provenance, title: `${report.title} — ${section.title}` }}
+              showProvenance={false}
+              pageSize={25}
+              caption={`${section.title} — ${date(report.as_of)}`}
+              format={format}
+            />
+          )}
+        </section>
+      ))}
     </main>
   );
 }

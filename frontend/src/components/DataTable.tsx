@@ -5,6 +5,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type RowData,
   useReactTable,
 } from "@tanstack/react-table";
 import { useEffect, useId, useState } from "react";
@@ -24,12 +25,32 @@ import { Provenance } from "./Provenance";
  * already in the reporting currency, already carrying their unit (ADR-0018).
  */
 
+/**
+ * A column can declare itself numeric. That is a data property, not a style: figures line up on the decimal
+ * and use tabular figures so columns of digits are comparable at a glance, on screen and on paper alike.
+ */
+/* eslint-disable @typescript-eslint/consistent-type-definitions, @typescript-eslint/no-unused-vars --
+   a module augmentation must be an interface, and must repeat the upstream type parameters verbatim even
+   though this addition uses neither. */
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData extends RowData, TValue> {
+    numeric?: boolean;
+  }
+}
+/* eslint-enable @typescript-eslint/consistent-type-definitions, @typescript-eslint/no-unused-vars */
+
 export type DataTableProps<Row> = {
   readonly rows: readonly Row[];
   readonly columns: ColumnDef<Row>[];
   /** Column definitions for what LEAVES — the same headers, mapped to plain cells. */
   readonly exportColumns: readonly Column<Row>[];
   readonly provenance: ProvenanceHeader;
+  /**
+   * Whether to RENDER the provenance block. It is always carried into the CSV either way — a screen that
+   * shows one header above several tables (Reports) suppresses the duplicates here, it does not drop them
+   * from what leaves.
+   */
+  readonly showProvenance?: boolean;
   readonly pageSize?: number;
   /** Locale-aware strings. A component that renders words takes the catalog, never its own literals. */
   readonly format?: { t: (key: never, params?: Record<string, string | number>) => string };
@@ -52,6 +73,7 @@ export function DataTable<Row>({
   columns,
   exportColumns,
   provenance,
+  showProvenance = true,
   pageSize = 50,
   onExport,
   caption,
@@ -101,6 +123,7 @@ export function DataTable<Row>({
 
   const leaving = rowsThatLeave(table);
   const shown = printing ? leaving : table.getPaginationRowModel().rows;
+  const columnsHidden = columnsThatLeave(table).length < table.getAllLeafColumns().length;
 
   const exportCsv = () => {
     const csv = toCsv(
@@ -113,18 +136,19 @@ export function DataTable<Row>({
   };
 
   return (
-    <div>
-      <Provenance header={{ ...provenance, row_count: leaving.length }} />
+    <div className="datatable">
+      {showProvenance ? <Provenance header={{ ...provenance, row_count: leaving.length }} /> : null}
 
-      <div data-print="hide">
-        <label htmlFor={`${tableId}-filter`}>{t("table.filter")}</label>{" "}
+      <div className="table-tools" data-print="hide">
+        <label htmlFor={`${tableId}-filter`}>{t("table.filter")}</label>
         <input
           id={`${tableId}-filter`}
           type="search"
           value={globalFilter}
           placeholder={t("table.filterPlaceholder")}
           onChange={(event) => setGlobalFilter(event.target.value)}
-        />{" "}
+        />
+        <span className="spacer" />
         <button type="button" onClick={exportCsv}>
           {t("table.export")}
         </button>
@@ -142,6 +166,7 @@ export function DataTable<Row>({
                 {group.headers.map((header) => (
                   <th
                     key={header.id}
+                    className={header.column.columnDef.meta?.numeric ? "numeric" : undefined}
                     aria-sort={
                       header.column.getIsSorted() === "asc"
                         ? "ascending"
@@ -176,7 +201,12 @@ export function DataTable<Row>({
             {shown.map((row) => (
               <tr key={row.id}>
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                  <td
+                    key={cell.id}
+                    className={cell.column.columnDef.meta?.numeric ? "numeric" : undefined}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -186,13 +216,16 @@ export function DataTable<Row>({
 
       {/* Stating both numbers is what makes a paginated view honest — and the controls are what make the
           rest of them REACHABLE, which a count alone conspicuously does not. */}
-      <div data-print="hide">
-        <p>
-          {t("table.showing", { shown: shown.length, total: leaving.length })}
-          {columnsThatLeave(table).length < table.getAllLeafColumns().length
-            ? " · some columns hidden"
-            : ""}
-        </p>
+      <div className="table-foot" data-print="hide">
+        {/* The count is a DISCLOSURE, so it appears when there is something to disclose: rows held back by
+            the page size, a filter narrowing the set, or a column left out. With every row of an unfiltered
+            table already on screen it repeated the count in the heading above and told nobody anything. */}
+        {shown.length < leaving.length || globalFilter.trim() !== "" || columnsHidden ? (
+          <p>
+            {t("table.showing", { shown: shown.length, total: leaving.length })}
+            {columnsHidden ? " · some columns hidden" : ""}
+          </p>
+        ) : null}
         {table.getPageCount() > 1 && (
           <p>
             <button

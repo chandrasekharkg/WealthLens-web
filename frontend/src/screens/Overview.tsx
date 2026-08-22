@@ -41,6 +41,7 @@ export function Overview({ data, format }: OverviewProps) {
       {
         id: "total",
         header: t("column.total"),
+        meta: { numeric: true },
         accessorFn: (e) => e.total?.amount ?? "",
         cell: ({ row }) => (row.original.total ? money(row.original.total) : "—"),
       },
@@ -99,10 +100,12 @@ export function Overview({ data, format }: OverviewProps) {
         {excluded.length === 0 && stale.length === 0 && <p data-tone="ok">{t("overview.trusted")}</p>}
       </div>
 
-      <section aria-label={t("overview.netWorth")}>
+      {/* The figure is given the weight it has — but AFTER the caveats above, which is the whole point of
+          this screen and the reason the card is not at the top of it. */}
+      <section className="headline" aria-label={t("overview.netWorth")}>
         <h2>{t("overview.netWorth")}</h2>
-        <p data-testid="net-worth-total">{data.total ? money(data.total) : "—"}</p>
-        <p>
+        <p className="figure" data-testid="net-worth-total">{data.total ? money(data.total) : "—"}</p>
+        <p className="figure-note">
           {t("overview.asOf", { date: data.as_of ? date(data.as_of) : t("overview.noDate") })} ·{" "}
           {t("overview.reportingIn", { currency: data.reporting_currency })}
         </p>

@@ -52,8 +52,12 @@
     display: block !important;
   }
 
-  /* The provenance header leads the document and stays with it. */
-  .provenance {
+  /*
+   * The provenance header leads the document and stays with it. On screen it is a quiet line and its title
+   * duplicates the heading above it; on paper both the box and the title are the only context there is, so
+   * they are given back here. `body` outranks the screen rule without reaching for !important.
+   */
+  body .provenance {
     border: 1px solid #999;
     padding: 8px 10px;
     margin-bottom: 10px;
@@ -61,8 +65,35 @@
     break-inside: avoid;
   }
 
+  body .provenance h2 {
+    display: block;
+    margin: 0 0 4px;
+    font-size: 11pt;
+  }
+
   .provenance .warning {
     font-weight: 700;
+  }
+
+  /*
+   * Each table's caption is what names it once the sections are printed one after another — hidden on
+   * screen, where the heading above already says it.
+   */
+  body table caption {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+    overflow: visible;
+    text-align: left;
+    font-weight: 700;
+    padding: 6px 0 3px;
+  }
+
+  /* The screen's card treatment is ink on paper for no benefit. */
+  .scroll-x {
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   table {

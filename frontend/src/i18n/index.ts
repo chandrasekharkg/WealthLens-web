@@ -7,6 +7,8 @@
  */
 import { en, type MessageKey } from "./en";
 
+export type { MessageKey };
+
 export type Catalog = Record<MessageKey, string>;
 
 export const catalogs: Record<string, Catalog> = { en };

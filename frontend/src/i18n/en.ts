@@ -13,6 +13,9 @@ export const en = {
   "nav.overview": "Overview",
   "nav.reports": "Reports",
 
+  "rail.collapse": "Hide the list",
+  "rail.expand": "Show the list",
+
   "overview.title": "Is this picture trustworthy right now?",
   "overview.netWorth": "Net worth",
   "overview.asOf": "as of {date}",
@@ -161,7 +164,7 @@ export const en = {
   "locked.retrying": "Trying again…",
 
   "reports.pick": "Reports",
-  "reports.sectionTotal": "{count} · {total}",
+  "reports.sectionCount": "({count})",
   "reports.sectionEmpty": "Nothing in this group.",
   "reports.excludedHeading": "Not included",
 

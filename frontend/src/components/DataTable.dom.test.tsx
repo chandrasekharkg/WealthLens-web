@@ -57,6 +57,13 @@ describe("the shipped table", () => {
     expect(screen.getByText(/Showing 5 of 12 rows/)).toBeTruthy();
   });
 
+  it("says nothing about the count when nothing is being held back", () => {
+    // The line is a disclosure. With every row on screen and no filter, it repeated a number the heading
+    // above already gave — and a caveat that is always there is a caveat nobody reads.
+    setup({ pageSize: 50 });
+    expect(screen.queryByText(/Showing \d+ of \d+ rows/)).toBeNull();
+  });
+
   it("renders the provenance header as part of the document", () => {
     setup();
     expect(screen.getByRole("heading", { name: "Holdings" })).toBeTruthy();

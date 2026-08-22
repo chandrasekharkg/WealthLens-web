@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { api, ApiError, type NetWorth, type Version } from "./api/client";
-import { defaultFormatter } from "./i18n";
+import { api, ApiError, type NetWorth, type ReportSummary, type Version } from "./api/client";
+import { SideRail } from "./components/SideRail";
+import { defaultFormatter, type MessageKey } from "./i18n";
 import { Import } from "./screens/Import";
 import { Activity } from "./screens/Activity";
 import { Operations } from "./screens/Operations";
@@ -19,11 +20,62 @@ import { Workspace } from "./screens/Workspace";
 
 type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error"; error: unknown };
 
+type Screen = "overview" | "reports" | "import" | "operations" | "workspace" | "activity";
+
+// The tab strip as data. Six near-identical buttons written out six times is six places to forget one.
+const TABS: readonly { readonly id: Screen; readonly key: MessageKey }[] = [
+  { id: "overview", key: "nav.overview" },
+  { id: "reports", key: "nav.reports" },
+  { id: "import", key: "nav.import" },
+  { id: "operations", key: "nav.operations" },
+  { id: "workspace", key: "nav.workspace" },
+  { id: "activity", key: "nav.activity" },
+];
+
+/** A lens over a rising line — the app's own subject, at 24px. */
+function Logo() {
+  return (
+    <svg viewBox="0 0 24 24" className="logo" aria-hidden="true" focusable="false">
+      <rect width="24" height="24" rx="7" fill="currentColor" />
+      <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="#fff" strokeWidth="1.9" />
+      <path
+        d="M8 12 L10 9.4 L13 12"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M14.7 14.7 L18.6 18.6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function App() {
   const { t } = defaultFormatter;
   const [version, setVersion] = useState<Load<Version>>({ state: "loading" });
   const [netWorth, setNetWorth] = useState<Load<NetWorth>>({ state: "loading" });
-  const [screen, setScreen] = useState<"overview" | "reports" | "import" | "operations" | "workspace" | "activity">("overview");
+  const [screen, setScreen] = useState<Screen>("overview");
+  const [railOpen, setRailOpen] = useState(true);
+
+  /**
+   * The report catalogue lives HERE, not in the Reports screen, because the rail that lists it belongs to
+   * the shell. A screen pushing its navigation up into its parent would be a render-loop waiting to happen;
+   * owning the selection here makes Reports a plain controlled view.
+   *
+   * It is fetched on first visit rather than at launch: it is static and opens no store, but a household on
+   * Overview should not pay a request for a tab it has not opened.
+   */
+  const [catalogue, setCatalogue] = useState<ReportSummary[]>([]);
+  const [reportId, setReportId] = useState("accounts");
+  const wantCatalogue = screen === "reports" && catalogue.length === 0;
+  useEffect(() => {
+    if (!wantCatalogue) return;
+    void api
+      .reports()
+      .then(setCatalogue)
+      .catch(() => setCatalogue([]));
+  }, [wantCatalogue]);
 
   // The fetch itself sets state only from its callbacks — never synchronously in the effect body, which
   // would cascade a render on every mount for no benefit. The initial "loading" is the initial STATE.
@@ -91,55 +143,63 @@ export function App() {
     available: e.contributes,
   }));
 
+  // Today only Reports has choices within a tab. The rail is the place the next ones go — a member picker
+  // on Import and Operations, a drill-down trail under a report — rather than a second layout each time.
+  const railItems =
+    screen === "reports"
+      ? catalogue.map((entry) => ({
+          id: entry.id,
+          label: entry.title,
+          current: entry.id === reportId,
+          onPick: () => setReportId(entry.id),
+        }))
+      : [];
+
   return (
     <>
-      <nav aria-label={t("app.name")} data-print="hide">
-        <button type="button" onClick={() => setScreen("overview")} aria-current={screen === "overview"}>
-          {t("nav.overview")}
-        </button>
-        <button type="button" onClick={() => setScreen("reports")} aria-current={screen === "reports"}>
-          {t("nav.reports")}
-        </button>
-        <button type="button" onClick={() => setScreen("import")} aria-current={screen === "import"}>
-          {t("nav.import")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setScreen("operations")}
-          aria-current={screen === "operations"}
-        >
-          {t("nav.operations")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setScreen("workspace")}
-          aria-current={screen === "workspace"}
-        >
-          {t("nav.workspace")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setScreen("activity")}
-          aria-current={screen === "activity"}
-        >
-          {t("nav.activity")}
-        </button>
-      </nav>
+      <header className="topbar" data-print="hide">
+        <div className="brand">
+          <Logo />
+          <span>{t("app.name")}</span>
+        </div>
+        <nav className="tabs" aria-label={t("app.name")}>
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setScreen(tab.id)}
+              aria-current={screen === tab.id}
+            >
+              {t(tab.key)}
+            </button>
+          ))}
+        </nav>
+      </header>
 
-      {screen === "overview" && <Overview data={netWorth.data} format={defaultFormatter} />}
-      {screen === "reports" && <Reports format={defaultFormatter} />}
-      {screen === "import" && (
-        <Import entities={entities} format={defaultFormatter} onImported={refresh} />
-      )}
-      {screen === "workspace" && <Workspace entities={entities} format={defaultFormatter} />}
-      {screen === "activity" && <Activity format={defaultFormatter} />}
-      {screen === "operations" && (
-        <Operations
-          entities={netWorth.data.entities}
-          format={defaultFormatter}
-          onPromoted={refresh}
+      <div className="shell">
+        <SideRail
+          heading={t(TABS.find((tab) => tab.id === screen)?.key ?? "nav.overview")}
+          items={railItems}
+          open={railOpen}
+          onToggle={() => setRailOpen((was) => !was)}
+          labels={{ collapse: t("rail.collapse"), expand: t("rail.expand") }}
         />
-      )}
+
+        {screen === "overview" && <Overview data={netWorth.data} format={defaultFormatter} />}
+        {screen === "reports" && <Reports reportId={reportId} format={defaultFormatter} />}
+        {screen === "import" && (
+          <Import entities={entities} format={defaultFormatter} onImported={refresh} />
+        )}
+        {screen === "workspace" && <Workspace entities={entities} format={defaultFormatter} />}
+        {screen === "activity" && <Activity format={defaultFormatter} />}
+        {screen === "operations" && (
+          <Operations
+            entities={netWorth.data.entities}
+            format={defaultFormatter}
+            onPromoted={refresh}
+          />
+        )}
+      </div>
     </>
   );
 }

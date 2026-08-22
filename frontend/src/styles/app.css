@@ -12,6 +12,8 @@
   --muted: #5c6a68;
   --line: #dde2e1;
   --accent: #0f6b62;
+  --accent-soft: #e4efed;
+  --hover: #f1f4f3;
   --warn: #8a5a06;
   --warn-bg: #fdf3e0;
   --ok: #2c6b44;
@@ -26,6 +28,8 @@
     --muted: #94a3a0;
     --line: #27312f;
     --accent: #4fb3a6;
+    --accent-soft: #1b2c2a;
+    --hover: #1c2624;
     --warn: #d9a03f;
     --warn-bg: #2a2317;
     --ok: #79be8e;
@@ -35,19 +39,176 @@
 
 body {
   margin: 0;
-  padding: 24px;
+  padding: 0;
   background: var(--ground);
   color: var(--ink);
   font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
 }
 
+/*
+ * The width belongs to the DATA. A centred column of 1100px was a reading measure applied to tables of
+ * fifteen columns, which then scrolled sideways inside it while the screen sat empty on both sides.
+ * Prose keeps a measure of its own, below.
+ */
 main {
-  max-width: 1100px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  min-width: 0;
+}
+
+main > p {
+  max-width: 74ch;
+}
+
+/* ── The shell: a thin bar of identity and tabs, then a rail and the work. ──────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 18px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--accent);      /* the mark paints itself with currentColor */
+  white-space: nowrap;
+}
+
+.brand span {
+  color: var(--ink);
+}
+
+.logo {
+  width: 23px;
+  height: 23px;
+  display: block;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.tabs button {
+  margin: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  padding: 5px 11px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.tabs button:hover {
+  color: var(--ink);
+  background: var(--hover);
+  border-color: transparent;
+}
+
+.tabs button[aria-current="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.shell {
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  padding: 18px 20px 48px;
+}
+
+/* flex, not grid: when a tab has no rail there is no empty column left behind, and min-width:0 is what
+   keeps a wide table's overflow inside the table rather than on the page. */
+.shell > main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rail {
+  flex: 0 0 214px;
+  position: sticky;
+  top: 68px;
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+}
+
+.rail[data-open="false"] {
+  flex-basis: 40px;
+}
+
+.rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+  min-height: 28px;
+}
+
+.rail-head h2 {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+
+.rail-toggle {
+  margin: 0;
+  padding: 2px 7px;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.rail ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rail nav button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0;
+  padding: 8px 11px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.rail nav button:hover {
+  background: var(--hover);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.rail nav button[data-selected="true"] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* Honesty is not decoration: a caveat is styled to be noticed, next to what it qualifies. */
@@ -72,6 +233,12 @@ main {
   color: var(--warn);
 }
 
+.scroll-x {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -81,26 +248,73 @@ table {
 th,
 td {
   text-align: left;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
 }
 
+thead th {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: var(--hover);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Figures line up on the decimal and share a digit width, so a column of them is comparable by eye. */
+td.numeric,
+th.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+th.numeric button[data-sort] {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+/* An identifier a row simply does not have is context, not content. */
+[data-identifier="none"] {
+  color: var(--muted);
+}
+
+/*
+ * The caption repeats the section heading on screen and is the ONLY label on paper — so it is present in
+ * the DOM, hidden visually here, and restored by print.css.
+ */
+table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * On screen the provenance is a quiet line under the title. On paper it is the whole context, and print.css
+ * gives it back its box and its heading.
+ */
 .provenance {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin: 12px 0;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 4px;
 }
 
 .provenance h2 {
-  margin: 0 0 4px;
-  font-size: 1rem;
+  display: none;
 }
 
 .provenance p {
   margin: 2px 0;
   color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .provenance .warning {
@@ -156,64 +370,195 @@ input[type="search"] {
   min-width: 16rem;
 }
 
-/* Reports: the report list beside the report. */
-main[data-layout="reports"] {
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: 28px;
-  align-items: start;
+/* ── Overview: one figure, given the weight it has. ────────────────────────────────────────────────── */
+
+.headline {
+  width: fit-content;
+  min-width: 15rem;
+  margin: 14px 0 20px;
+  padding: 14px 18px 15px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
 }
 
-/*
- * A grid child defaults to min-width:auto, so a wide table refuses to let its column shrink and the whole
- * PAGE scrolls sideways instead of the table doing it. minmax(0, 1fr) above and this together are what keep
- * the overflow inside .scroll-x where it belongs.
- */
-main[data-layout="reports"] > section {
-  min-width: 0;
-}
-
-@media (max-width: 720px) {
-  main[data-layout="reports"] {
-    grid-template-columns: 1fr;
-  }
-}
-
-main[data-layout="reports"] > nav h2 {
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
+.headline h2 {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 0 0 8px;
 }
 
-main[data-layout="reports"] > nav ul {
-  list-style: none;
+.headline .figure {
+  margin: 6px 0 3px;
+  font-size: 2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.headline .figure-note {
   margin: 0;
-  padding: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
-main[data-layout="reports"] > nav li + li {
-  margin-top: 4px;
+/* ── Reports ───────────────────────────────────────────────────────────────────────────────────────── */
+
+.report-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-main[data-layout="reports"] > nav button {
-  display: block;
-  width: 100%;
-  text-align: left;
+.report-head h1 {
   margin: 0;
 }
 
-main[data-layout="reports"] > nav button[data-selected="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
+.report-head .subtitle {
+  margin: 3px 0 0;
+  color: var(--muted);
+  max-width: 74ch;
 }
 
-/* A section is a unit: its heading, its total, its table. */
-main[data-layout="reports"] section[aria-label] > h2 {
-  font-size: 1.05rem;
-  margin: 22px 0 2px;
-  padding-top: 14px;
+.as-of {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.as-of button {
+  margin: 0;
+}
+
+input[type="date"] {
+  font: inherit;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* A section is a unit: its heading and total on one line, its note, its table. */
+.report-section {
+  margin-top: 26px;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
   border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.section-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.section-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.section-count {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.92rem;
+}
+
+.section-total {
+  margin: 0;
+  font-weight: 650;
+  font-size: 1.02rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.section-note {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+/* ── The table's own furniture ─────────────────────────────────────────────────────────────────────── */
+
+.datatable {
+  margin-top: 12px;
+}
+
+.table-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.table-tools button {
+  margin: 0;
+}
+
+.table-tools .spacer {
+  flex: 1 1 auto;
+}
+
+.table-foot {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.table-foot p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-foot button,
+.table-foot select {
+  margin: 0;
+  font: inherit;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  .rail {
+    position: static;
+    max-height: none;
+  }
+
+  .shell {
+    flex-wrap: wrap;
+  }
 }
