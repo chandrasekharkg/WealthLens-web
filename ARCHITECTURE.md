@@ -89,8 +89,21 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
 
 ## Cross-repo tasks (tracked here until they land)
 
-- [ ] WLC: promote `lens.py`'s read functions onto the semver-stable API surface (EXTENDING.md) — the
-      contract this repo builds against.
+- [x] WLC: **a named-workspace read surface** — shipped (WLC `a618a87`). `wealthlens.workspace` resolves an
+      explicit path, opens it read-only with that workspace's own key, several at once in one process, with
+      no cache and no environment mutation. Declared stable in EXTENDING.md alongside `lens.py`'s `__all__`.
+      This was the v1 blocker: family aggregation had no foundation without it.
+- [x] WLC: **honest lock errors** — shipped with the above. `StoreLocked` carries the holding process and
+      pid as the database reported them; the engine no longer discards the error and guesses a culprit.
+- [x] WLC: **`lens.owners()`** — shipped. Makes the silent-zero ownership hazard answerable.
+- [ ] WLC: **freshness on the read surface** — `_latest_as_of()` returns *today* and `holdings().as_of`
+      echoes the requested date on most tiers, so "staleness is labelled, never smoothed" has no source.
+- [ ] WLC: **currency + native amount on lens rows** — no lens function returns a currency, and
+      `position_snapshots` has no currency column, so ADR-0012's free-landing test cannot pass yet.
+- [ ] WLC: **FX honesty** — conversion uses the nearest earlier rate and *drops* an instrument when no rate
+      exists, which silently under-reports. data-conventions requires refusal with a reason instead.
+- [ ] WLC: **a machine-readable job contract** — only `import` has `--json`; rebuild/verify/promote emit
+      prose, and `import --json` exits non-zero whenever any file merely needs attention.
 - [ ] WLC (**not v1-blocking**): a retraction verb (`wealthlens forget <source_id>`).
       `capture_io.delete_source()` exists as a function with no CLI surface — until then WLW *teaches* the
       command rather than building the button (ADR-0012). Graduates on demand.

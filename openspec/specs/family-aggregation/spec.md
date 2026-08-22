@@ -54,6 +54,31 @@ the remaining entities and state plainly which entity is missing and why — nev
 - **THEN** the family total is labelled as excluding that entity, with the reason, rather than presented
   as the family's whole position
 
+### Requirement: Whose share is being valued is declared, never defaulted into silence
+
+Each entity SHALL declare the owner identity its figures are valued for, and the system SHALL use it when
+asking WLC for that entity's money.
+
+> This is not a preference. WLC weights every money figure by a caller-supplied owner, and an instrument
+> that IS owned but not by that owner contributes **zero** — with no error. A family view that defaulted
+> would silently under-report every jointly-held or transferred asset in any store whose ownership rows
+> name someone else. That is a wrong headline number with nothing to notice, which is the failure class
+> this project exists to prevent.
+
+#### Scenario: A store records joint ownership
+- **WHEN** an entity's store contains ownership rows naming an entity id
+- **THEN** the manifest's declared owner for that entity is used, and the resulting figures include that
+  entity's beneficial share
+
+#### Scenario: The declared owner matches nothing in the store
+- **WHEN** a store has ownership rows and none names the declared owner
+- **THEN** the system SHALL surface that as a warning on that entity — a total of zero from a populated
+  store is reported as a misconfiguration, never as an answer
+
+#### Scenario: A store with no ownership rows
+- **WHEN** no instrument in a store carries ownership
+- **THEN** every instrument is implicitly wholly owned and the declared owner does not change the figures
+
 ### Requirement: An aggregate is uniform by construction
 
 Aggregation SHALL read every store with **one** engine — the bridge's installed WLC (ADR-0017) — and SHALL

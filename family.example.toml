@@ -12,6 +12,10 @@ reporting_currency = "INR"
 id = "self"                                     # stable id used by the API and views
 label = "Me"
 workspace = "~/WealthLens/me-WealthLens-data"   # a WLC workspace (its store + secrets stay ITS OWN)
+# owner = "self"   # WHOSE share to value. WLC weights every figure by this, and an instrument owned by a
+                   # DIFFERENT entity contributes ZERO — silently. Defaults to "self", which is right for a
+                   # store with no ownership rows. If a store records joint or transferred assets, set this
+                   # to the entity id those rows name (`wealthlens` lens.owners() lists them).
 
 [[entity]]
 id = "spouse"

@@ -142,27 +142,33 @@ rather than replacing it with a generic "busy".
 - **THEN** the user is told which process holds it, as the engine reported, and is offered no way to
   override it
 
-### Requirement: The lock holder is classified, because "will waiting help?" is the real question
+### Requirement: The holder is reported as observed, and classified only as far as is knowable
 
-Naming the process answers *who*; the user needs *what to do*. The system SHALL distinguish:
+Naming the process answers *who*; the user needs *what to do*. WLC's `StoreLocked` carries the holding
+process and pid **as the database reported them**, or states that none was named. The UI SHALL pass that
+through, and SHALL distinguish only what it can actually establish:
 
-- **a WealthLens engine process** — a verb is running (possibly one this bridge started before restarting,
-  possibly the user's own CLI). It will finish and release; the workspace is shown as busy and no second
-  verb is offered against it.
-- **any other process** — a notebook left open by `wealthlens explore`, an editor, another tool. It holds
-  until the user closes it, so the guidance is to act rather than wait.
+- **a process this bridge started** — the pid matches a verb it launched, so it will finish and release.
+  The workspace shows as busy and no second verb is offered against it.
+- **anything else** — reported by name and pid, with the honest statement that the app did not start it and
+  cannot tell what it is; it holds until whatever owns it lets go.
 
-This classification SHALL be derived at the time of the failure, from the holder the engine names — it
-SHALL NOT require state to have survived the restart.
+The system SHALL NOT infer the holder's *identity* from its executable path. A `wealthlens` verb and a
+Jupyter kernel are both "python", so a guess dressed as an observation is worse than an admitted gap — and
+WLC deliberately reports rather than guesses for the same reason.
 
-#### Scenario: A verb orphaned by the restart is still running
-- **WHEN** the bridge restarts while a rebuild it started is still running
-- **THEN** the workspace shows as busy with an engine process, no competing verb can be started against it,
-  and the workspace becomes available on its own once that process finishes
+#### Scenario: A verb this bridge started is still running after a restart
+- **WHEN** the bridge restarts while a rebuild it launched still holds the store
+- **THEN** the workspace shows as busy, no competing verb can be started against it, and it becomes
+  available on its own once that process finishes
 
-#### Scenario: A notebook holds the store
-- **WHEN** the holder is not an engine process
-- **THEN** the message names it and says the store stays locked until it is closed
+#### Scenario: Something the bridge did not start holds the store
+- **WHEN** the holder's pid is not one this bridge launched
+- **THEN** the UI names the process and pid as reported and says it cannot identify it further
+
+#### Scenario: The database named no holder
+- **WHEN** `StoreLocked` carries no holder
+- **THEN** the UI says the store is held but by what is unknown — it names no likely candidate
 
 ### Requirement: Leftover rebuild output is named, not mistaken for a result
 
