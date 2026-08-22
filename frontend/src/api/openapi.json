@@ -849,6 +849,163 @@
         "title": "Provenance",
         "type": "object"
       },
+      "Report": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "excluded": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Excluded"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_partial": {
+            "title": "Is Partial",
+            "type": "boolean"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "reporting_currency": {
+            "title": "Reporting Currency",
+            "type": "string"
+          },
+          "sections": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReportSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "reporting_currency",
+          "is_partial",
+          "provenance"
+        ],
+        "title": "Report",
+        "type": "object"
+      },
+      "ReportSection": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "icon": {
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PositionRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None when the section spans currencies"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "count"
+        ],
+        "title": "ReportSection",
+        "type": "object"
+      },
+      "ReportSummary": {
+        "description": "A report as it appears in the nav \u2014 no store is opened to build this.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "sections": {
+            "default": [],
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "subtitle"
+        ],
+        "title": "ReportSummary",
+        "type": "object"
+      },
       "Revealed": {
         "description": "One re-obtainable secret, released on an explicit request (ADR-0019).\n\nThis model exists on exactly one endpoint. Nothing that returns a list may carry it.",
         "properties": {
@@ -1447,6 +1604,84 @@
           }
         },
         "summary": "Positions"
+      }
+    },
+    "/api/reports": {
+      "get": {
+        "description": "What reports exist. Static \u2014 no store is opened, so the nav renders before any data loads.",
+        "operationId": "report_list_api_reports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReportSummary"
+                  },
+                  "title": "Response Report List Api Reports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Report List"
+      }
+    },
+    "/api/reports/{report_id}": {
+      "get": {
+        "operationId": "report_api_reports__report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "on",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "On"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report"
       }
     },
     "/api/transactions": {

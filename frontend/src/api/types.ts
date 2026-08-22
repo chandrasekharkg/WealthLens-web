@@ -109,6 +109,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report List
+         * @description What reports exist. Static — no store is opened, so the nav renders before any data loads.
+         */
+        get: operations["report_list_api_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Report */
+        get: operations["report_api_reports__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -557,6 +594,71 @@ export interface components {
              */
             warnings: string[];
         };
+        /** Report */
+        Report: {
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: components["schemas"]["Excluded"][];
+            /** Id */
+            id: string;
+            /** Is Partial */
+            is_partial: boolean;
+            provenance: components["schemas"]["Provenance"];
+            /** Reporting Currency */
+            reporting_currency: string;
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["ReportSection"][];
+            /** Subtitle */
+            subtitle: string;
+            /** Title */
+            title: string;
+        };
+        /** ReportSection */
+        ReportSection: {
+            /** Count */
+            count: number;
+            /** Icon */
+            icon: string;
+            /** Id */
+            id: string;
+            /** Note */
+            note?: string | null;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["PositionRow"][];
+            /** Title */
+            title: string;
+            /** @description None when the section spans currencies */
+            total?: components["schemas"]["Money"] | null;
+        };
+        /**
+         * ReportSummary
+         * @description A report as it appears in the nav — no store is opened to build this.
+         */
+        ReportSummary: {
+            /** Id */
+            id: string;
+            /**
+             * Sections
+             * @default []
+             */
+            sections: {
+                [key: string]: string;
+            }[];
+            /** Subtitle */
+            subtitle: string;
+            /** Title */
+            title: string;
+        };
         /**
          * Revealed
          * @description One re-obtainable secret, released on an explicit request (ADR-0019).
@@ -866,6 +968,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Positions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_list_api_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSummary"][];
+                };
+            };
+        };
+    };
+    report_api_reports__report_id__get: {
+        parameters: {
+            query?: {
+                on?: string | null;
+            };
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
                 };
             };
             /** @description Validation Error */

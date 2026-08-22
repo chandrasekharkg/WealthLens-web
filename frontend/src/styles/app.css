@@ -155,3 +155,65 @@ input[type="search"] {
   color: var(--ink);
   min-width: 16rem;
 }
+
+/* Reports: the report list beside the report. */
+main[data-layout="reports"] {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+/*
+ * A grid child defaults to min-width:auto, so a wide table refuses to let its column shrink and the whole
+ * PAGE scrolls sideways instead of the table doing it. minmax(0, 1fr) above and this together are what keep
+ * the overflow inside .scroll-x where it belongs.
+ */
+main[data-layout="reports"] > section {
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  main[data-layout="reports"] {
+    grid-template-columns: 1fr;
+  }
+}
+
+main[data-layout="reports"] > nav h2 {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+main[data-layout="reports"] > nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+main[data-layout="reports"] > nav li + li {
+  margin-top: 4px;
+}
+
+main[data-layout="reports"] > nav button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0;
+}
+
+main[data-layout="reports"] > nav button[data-selected="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* A section is a unit: its heading, its total, its table. */
+main[data-layout="reports"] section[aria-label] > h2 {
+  font-size: 1.05rem;
+  margin: 22px 0 2px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}

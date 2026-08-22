@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { api, ApiError, type NetWorth, type Positions, type Version } from "./api/client";
+import { api, ApiError, type NetWorth, type Version } from "./api/client";
 import { defaultFormatter } from "./i18n";
 import { Import } from "./screens/Import";
 import { Activity } from "./screens/Activity";
@@ -23,7 +23,6 @@ export function App() {
   const { t } = defaultFormatter;
   const [version, setVersion] = useState<Load<Version>>({ state: "loading" });
   const [netWorth, setNetWorth] = useState<Load<NetWorth>>({ state: "loading" });
-  const [positions, setPositions] = useState<Load<Positions>>({ state: "loading" });
   const [screen, setScreen] = useState<"overview" | "reports" | "import" | "operations" | "workspace" | "activity">("overview");
 
   // The fetch itself sets state only from its callbacks — never synchronously in the effect body, which
@@ -34,21 +33,13 @@ export function App() {
       setVersion({ state: "ready", data: found });
       if (found.engine.present && found.engine.schema_version) {
         setNetWorth({ state: "ready", data: await api.netWorth() });
-        setPositions({ state: "ready", data: await api.positions() });
       }
     } catch (error: unknown) {
       setVersion((prev) => (prev.state === "ready" ? prev : { state: "error", error }));
       setNetWorth({ state: "error", error });
-      setPositions({ state: "error", error });
     }
   }, []);
 
-  const showPositions = useCallback((on: string) => {
-    api
-      .positions(on || undefined)
-      .then((data) => setPositions({ state: "ready", data }))
-      .catch((error: unknown) => setPositions({ state: "error", error }));
-  }, []);
 
   useEffect(() => {
     void fetchAll();
@@ -65,10 +56,6 @@ export function App() {
     void api
       .netWorth()
       .then((data) => setNetWorth({ state: "ready", data }))
-      .catch(() => undefined);
-    void api
-      .positions()
-      .then((data) => setPositions({ state: "ready", data }))
       .catch(() => undefined);
   }, []);
 
@@ -140,12 +127,7 @@ export function App() {
       </nav>
 
       {screen === "overview" && <Overview data={netWorth.data} format={defaultFormatter} />}
-      {screen === "reports" &&
-        (positions.state === "ready" ? (
-          <Reports data={positions.data} format={defaultFormatter} onDateChange={showPositions} />
-        ) : (
-          <p role="status">…</p>
-        ))}
+      {screen === "reports" && <Reports format={defaultFormatter} />}
       {screen === "import" && (
         <Import entities={entities} format={defaultFormatter} onImported={refresh} />
       )}

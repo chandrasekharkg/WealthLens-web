@@ -191,6 +191,37 @@ class WorkspaceDetail(BaseModel):
     documents: list[DocumentInfo] = []
 
 
+class ReportSection(BaseModel):
+    id: str
+    title: str
+    icon: str
+    note: str | None = None
+    rows: list[PositionRow] = []
+    total: Money | None = Field(default=None, description="None when the section spans currencies")
+    count: int
+
+
+class ReportSummary(BaseModel):
+    """A report as it appears in the nav — no store is opened to build this."""
+
+    id: str
+    title: str
+    subtitle: str
+    sections: list[dict[str, str]] = []
+
+
+class Report(BaseModel):
+    id: str
+    title: str
+    subtitle: str
+    as_of: str | None = None
+    reporting_currency: str
+    is_partial: bool
+    excluded: list[Excluded] = []
+    provenance: Provenance
+    sections: list[ReportSection] = []
+
+
 class EngineInfo(BaseModel):
     present: bool
     schema_version: str | None = None

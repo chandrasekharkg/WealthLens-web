@@ -1,40 +1,61 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { Positions } from "../api/client";
+import { api, type Report, type ReportSection, type ReportSummary } from "../api/client";
 import { DataTable } from "../components/DataTable";
-import { EmptyState } from "../components/EmptyState";
 import type { Formatter } from "../i18n";
 import type { Column } from "../lib/csv";
 
 /**
- * Holdings, at a chosen point in time.
+ * Reports: a list of reports on the left, each a series of sections.
  *
- * The date is the basis of computation, not a label: changing it re-asks every store the same question at
- * the same instant, which is what makes one as-of date honest across a family (ADR-0016).
+ * One flat table of everything is accurate and unreadable. A section per kind of thing — cash, deposits,
+ * equities — is how a person actually asks the question, and each is one lens answer laid out rather than
+ * anything recomputed here.
+ *
+ * The section list is expected to churn. It arrives from the bridge as data, so adding a cut or an icon
+ * changes no code on this screen.
  */
 
-type Row = Positions["rows"][number];
+type Row = ReportSection["rows"][number];
 
 export type ReportsProps = {
-  readonly data: Positions;
   readonly format: Formatter;
-  readonly onDateChange: (date: string) => void;
 };
 
-export function Reports({ data, format, onDateChange }: ReportsProps) {
+export function Reports({ format }: ReportsProps) {
   const { t, money, date, number } = format;
-  const [pending, setPending] = useState(data.as_of ?? "");
+  const [catalogue, setCatalogue] = useState<ReportSummary[]>([]);
+  const [current, setCurrent] = useState("accounts");
+  const [dateField, setDateField] = useState("");
+  const [asOf, setAsOf] = useState("");
+  const [report, setReport] = useState<Report | null>(null);
+
+  useEffect(() => {
+    void api
+      .reports()
+      .then(setCatalogue)
+      .catch(() => setCatalogue([]));
+  }, []);
+
+  const load = useCallback((id: string, asOf: string) => {
+    void api
+      .report(id, asOf || undefined)
+      .then(setReport)
+      .catch(() => setReport(null));
+  }, []);
+
+  useEffect(() => load(current, asOf), [current, asOf, load]);
 
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
       { id: "name", accessorKey: "name", header: t("column.instrument") },
       { id: "entity", accessorKey: "entity_label", header: t("column.whose") },
+      { id: "account", accessorKey: "account_id", header: t("ops.workspace") },
       {
         id: "identifier",
         header: t("column.identifier"),
         accessorFn: (r) => r.identifier.value ?? "",
-        // "No identifier" is STATED. A blank would be both hidden and matched by a filter (data-conventions).
         cell: ({ row }) =>
           row.original.identifier.kind === "isin" ? (
             row.original.identifier.value
@@ -46,8 +67,6 @@ export function Reports({ data, format, onDateChange }: ReportsProps) {
         id: "units",
         header: t("column.units"),
         accessorFn: (r) => r.quantity ?? 0,
-        // A quantity is genuinely absent for cash, a deposit, a property — an em dash says so, where a
-        // zero would assert the holding is empty.
         cell: ({ row }) =>
           row.original.quantity === null || row.original.quantity === undefined
             ? "—"
@@ -68,7 +87,7 @@ export function Reports({ data, format, onDateChange }: ReportsProps) {
     () => [
       { header: t("column.instrument"), value: (r) => r.name ?? null },
       { header: t("column.whose"), value: (r) => r.entity_label },
-      // The stated "not applicable" travels too — an empty cell would be ambiguous in a spreadsheet as well.
+      { header: t("ops.workspace"), value: (r) => r.account_id ?? null },
       { header: t("column.identifier"), value: (r) => r.identifier.value ?? t("identifier.none") },
       { header: t("column.units"), value: (r) => r.quantity ?? null },
       { header: t("column.value"), value: (r) => r.value },
@@ -79,57 +98,87 @@ export function Reports({ data, format, onDateChange }: ReportsProps) {
   );
 
   return (
-    <main>
-      <h1>{t("reports.title")}</h1>
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onDateChange(pending);
-        }}
-      >
-        <label htmlFor="as-of">{t("reports.asOfLabel")}</label>{" "}
-        <input
-          id="as-of"
-          type="date"
-          value={pending}
-          onChange={(event) => setPending(event.target.value)}
-        />{" "}
-        <button type="submit">{t("reports.apply")}</button>
-      </form>
-
-      {data.excluded.length > 0 && (
-        <ul aria-label={t("overview.partial", { count: data.excluded.length, total: 0 })}>
-          {data.excluded.map((entity) => (
-            <li key={entity.entity_id} data-tone="warning" role="alert">
-              {entity.label}: {entity.reason ?? entity.owner_warning}
+    <main data-layout="reports">
+      <nav aria-label={t("reports.pick")} data-print="hide">
+        <h2>{t("reports.pick")}</h2>
+        <ul>
+          {catalogue.map((entry) => (
+            <li key={entry.id}>
+              <button
+                type="button"
+                onClick={() => setCurrent(entry.id)}
+                aria-current={entry.id === current}
+                data-selected={entry.id === current}
+              >
+                {entry.title}
+              </button>
             </li>
           ))}
         </ul>
-      )}
+      </nav>
 
-      <h2>
-        {t("reports.holdings")} — {date(data.as_of)}
-      </h2>
+      <section>
+        <h1>{report?.title ?? t("reports.title")}</h1>
+        {report?.subtitle && <p>{report.subtitle}</p>}
 
-      {data.rows.length === 0 ? (
-        <EmptyState
-          state={
-            data.is_partial
-              ? { kind: "unavailable", reason: data.excluded[0]?.reason ?? "" }
-              : { kind: "nothing-yet" }
-          }
-          format={format}
-        />
-      ) : (
-        <DataTable
-          rows={data.rows}
-          columns={columns}
-          exportColumns={exportColumns}
-          provenance={data.provenance}
-          caption={t("reports.holdings")}
-        />
-      )}
+        <form
+          data-print="hide"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setAsOf(dateField);          // applies on submit, not on every keystroke
+          }}
+        >
+          <label htmlFor="as-of">{t("reports.asOfLabel")}</label>{" "}
+          <input
+            id="as-of"
+            type="date"
+            value={dateField}
+            onChange={(event) => setDateField(event.target.value)}
+          />{" "}
+          <button type="submit">{t("reports.apply")}</button>
+        </form>
+
+        {report?.excluded.length ? (
+          <div>
+            <h3>{t("reports.excludedHeading")}</h3>
+            <ul>
+              {report.excluded.map((entity) => (
+                <li key={entity.entity_id} role="alert" data-tone="warning">
+                  {entity.label}: {entity.reason ?? entity.owner_warning}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {report?.sections.map((section) => (
+          <section key={section.id} aria-label={section.title}>
+            <h2>
+              <span aria-hidden="true">{section.icon}</span> {section.title}
+            </h2>
+            <p>
+              {t("reports.sectionTotal", {
+                count: number(section.count),
+                total: section.total ? money(section.total) : "—",
+              })}
+              {section.note ? ` · ${section.note}` : ""}
+            </p>
+            {section.rows.length === 0 ? (
+              <p role="status">{t("reports.sectionEmpty")}</p>
+            ) : (
+              <DataTable
+                rows={section.rows}
+                columns={columns}
+                exportColumns={exportColumns}
+                provenance={{ ...report.provenance, title: `${report.title} — ${section.title}` }}
+                pageSize={25}
+                caption={`${section.title} — ${date(report.as_of)}`}
+                format={format}
+              />
+            )}
+          </section>
+        ))}
+      </section>
     </main>
   );
 }

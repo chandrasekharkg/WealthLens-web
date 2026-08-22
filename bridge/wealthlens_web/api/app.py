@@ -25,6 +25,7 @@ from wealthlens_web.core import (
     inbox,
     manifest,
     provenance,
+    reports,
     settings,
     verbs,
     workspaces,
@@ -89,6 +90,26 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             "entities": [_entity_total(e) for e in got.entities],
             "provenance": provenance.for_net_worth(got).as_dict(),
         }
+
+    @app.get("/api/reports", response_model=list[models.ReportSummary])
+    def report_list() -> list[dict]:
+        """What reports exist. Static — no store is opened, so the nav renders before any data loads."""
+        return reports.catalogue()
+
+    @app.get("/api/reports/{report_id}", response_model=models.Report)
+    def report(report_id: str, on: str | None = Query(default=None)) -> dict:
+        try:
+            built = reports.build(_manifest(), report_id, on=on,
+                                  our_pids=app.state.runner.our_pids)
+        except KeyError:
+            known = ", ".join(r["id"] for r in reports.catalogue())
+            raise HTTPException(status_code=404, detail={"error": "report", "reason":
+                                f"no report {report_id!r} — there is {known}"}) from None
+        return {**built, "sections": [
+            {**section,
+             "rows": [_row(r) for r in section["rows"]],
+             "total": section["total"].as_dict() if section["total"] else None}
+            for section in built["sections"]]}
 
     @app.get("/api/positions", response_model=models.Positions)
     def positions(on: str | None = Query(default=None)) -> dict:

@@ -1,114 +1,117 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Positions } from "../api/client";
+import type { Report, ReportSummary } from "../api/client";
 import { formatter } from "../i18n";
 import { Reports } from "./Reports";
 
-const row = (over: Partial<Positions["rows"][number]> = {}): Positions["rows"][number] => ({
+const catalogue: ReportSummary[] = [
+  { id: "accounts", title: "Accounts", subtitle: "With a bank.", sections: [] },
+  { id: "market", title: "Market instruments", subtitle: "Priced by somebody else.", sections: [] },
+];
+
+const row = (name: string, cls: string, amount: string) => ({
   entity_id: "me",
   entity_label: "Me",
-  name: "An Equity Fund",
-  asset_class: "mutual_fund",
+  name,
+  asset_class: cls,
   account_id: "demat:x",
-  quantity: 120.5,
-  value: { amount: "425000.00", currency: "INR" },
-  identifier: { kind: "isin", value: "INF000000000" }, // pii-ok — a shaped placeholder
+  quantity: 10,
+  value: { amount, currency: "INR" },
+  identifier: { kind: "isin" as const, value: "INF000000000" }, // pii-ok — a shaped placeholder
   as_of: "2026-07-31",
   basis: "statement",
-  ...over,
 });
 
-const data = (over: Partial<Positions> = {}): Positions => ({
-  granularity: "positions",
+const report = (over: Partial<Report> = {}): Report => ({
+  id: "market",
+  title: "Market instruments",
+  subtitle: "Priced by somebody else.",
   as_of: "2026-07-31",
   reporting_currency: "INR",
   is_partial: false,
   excluded: [],
-  rows: [row()],
   provenance: {
-    title: "Positions",
-    scope: "Me",
-    as_of: "2026-07-31",
-    reporting_currency: "INR",
-    stores: [],
-    filters: [],
-    warnings: [],
-    row_count: 1,
+    title: "Positions", scope: "Me", as_of: "2026-07-31", reporting_currency: "INR",
+    stores: [], filters: [], warnings: [], row_count: 2,
   },
+  sections: [
+    { id: "equities", title: "Equities", icon: "📈", note: null, count: 1,
+      total: { amount: "1000.00", currency: "INR" }, rows: [row("A Share", "listed_equity", "1000.00")] },
+    { id: "bonds", title: "Bonds", icon: "🧾", note: null, count: 0, total: null, rows: [] },
+  ],
   ...over,
 });
 
-const show = (over: Partial<Positions> = {}, onDateChange = vi.fn()) => {
-  render(<Reports data={data(over)} format={formatter("en-IN")} onDateChange={onDateChange} />);
-  return { onDateChange };
+function stub(reportBody: Report = report()) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      const payload = url.match(/\/api\/reports$/) ? catalogue : reportBody;
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(payload) } as Response);
+    }),
+  );
+}
+
+afterEach(() => vi.unstubAllGlobals());
+
+const show = async (body?: Report) => {
+  stub(body);
+  render(<Reports format={formatter("en-IN")} />);
+  // The report title is an h1; section provenance blocks carry their own headings too.
+  await screen.findByRole("heading", { level: 1, name: "Market instruments" });
 };
 
-describe("holdings", () => {
-  it("shows the value formatted for the locale and the basis it was valued by", () => {
-    show();
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("₹4,25,000.00")).toBeTruthy(); // pii-ok — a formatting fixture
-    expect(within(table).getByText("statement")).toBeTruthy();
+describe("a list of reports", () => {
+  it("offers every report the bridge declares", async () => {
+    await show();
+    const nav = screen.getByRole("navigation", { name: "Reports" });
+    expect(within(nav).getByRole("button", { name: "Accounts" })).toBeTruthy();
+    expect(within(nav).getByRole("button", { name: "Market instruments" })).toBeTruthy();
   });
 
-  it("states 'not applicable' for a holding with no market identifier", () => {
-    // A blank would be both hidden and matched by an ISIN filter — the thing data-conventions forbids.
-    show({ rows: [row({ identifier: { kind: "none", value: null }, name: "A Deposit" })] });
-    expect(screen.getByText("not applicable")).toBeTruthy();
-  });
-
-  it("shows an em dash for an absent quantity rather than a zero", () => {
-    // Cash, a deposit and a property genuinely have no unit count. Zero would assert the holding is empty.
-    show({ rows: [row({ quantity: null, name: "A Deposit" })] });
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("—")).toBeTruthy();
+  it("marks which report is being read", async () => {
+    await show();
+    const nav = screen.getByRole("navigation", { name: "Reports" });
+    fireEvent.click(within(nav).getByRole("button", { name: "Accounts" }));
+    await waitFor(() =>
+      expect(
+        within(nav).getByRole("button", { name: "Accounts" }).getAttribute("aria-current"),
+      ).toBe("true"),
+    );
   });
 });
 
-describe("the date is the basis of computation", () => {
-  it("asks for a new date when one is applied", () => {
-    const { onDateChange } = show();
-    const input = screen.getByLabelText("Show figures as of");
-    input.setAttribute("value", "2026-03-31");
-    screen.getByRole("button", { name: "Apply" }).click();
-    expect(onDateChange).toHaveBeenCalled();
+describe("sections", () => {
+  it("shows each section with its icon, count and total", async () => {
+    await show();
+    const equities = screen.getByRole("region", { name: "Equities" });
+    expect(within(equities).getByText(/1 · ₹1,000.00/)).toBeTruthy();
   });
 
-  it("names the date the figures were computed at", () => {
-    show();
-    // The provenance block has its own h2, so select by name rather than by level.
-    expect(screen.getByRole("heading", { name: /Holdings — 31 Jul 2026/ })).toBeTruthy();
-  });
-});
-
-describe("the three kinds of empty", () => {
-  it("says 'nothing imported yet' when a reachable store simply has no rows", () => {
-    show({ rows: [], provenance: { ...data().provenance, row_count: 0 } });
-    expect(screen.getByRole("status").textContent).toBe("Nothing has been imported for this member yet.");
+  it("says a group is empty rather than rendering a headerless table", async () => {
+    await show();
+    const bonds = screen.getByRole("region", { name: "Bonds" });
+    expect(within(bonds).getByRole("status").textContent).toBe("Nothing in this group.");
   });
 
-  it("says why, when the emptiness is because a store could not be read", () => {
-    // The dangerous one: an unreachable store rendered as an empty table is indistinguishable from
-    // genuinely owning nothing.
-    show({
-      rows: [],
-      is_partial: true,
-      excluded: [{ entity_id: "dad", label: "Dad", reason: "the store is in use", owner_warning: null }],
-    });
-    const alerts = screen.getAllByRole("alert").map((n) => n.textContent ?? "");
-    expect(alerts.some((text) => text.includes("the store is in use"))).toBe(true);
+  it("gives each section its own export, named for that section", async () => {
+    // A reader exporting "Equities" should get equities, not the whole report.
+    await show();
+    const equities = screen.getByRole("region", { name: "Equities" });
+    expect(within(equities).getByRole("button", { name: "Export CSV" })).toBeTruthy();
   });
 });
 
-describe("excluded members", () => {
-  it("names each one with its reason, above the table", () => {
-    show({
-      is_partial: true,
-      excluded: [
-        { entity_id: "dad", label: "Dad", reason: "the store was built by a different engine", owner_warning: null },
-      ],
-    });
-    expect(screen.getByText(/Dad: the store was built by a different engine/)).toBeTruthy();
+describe("honesty survives the regrouping", () => {
+  it("names an excluded member above the sections", async () => {
+    await show(
+      report({
+        is_partial: true,
+        excluded: [{ entity_id: "dad", label: "Dad", reason: "the store is missing", owner_warning: null }],
+      }),
+    );
+    expect(screen.getByRole("alert").textContent).toContain("Dad: the store is missing");
   });
 });

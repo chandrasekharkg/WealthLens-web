@@ -160,6 +160,11 @@ export const en = {
     "It is kept in its own file and tried against future statements too. WealthLens-core proves it worked by opening the file — nothing here reads your statement.",
   "locked.retrying": "Trying again…",
 
+  "reports.pick": "Reports",
+  "reports.sectionTotal": "{count} · {total}",
+  "reports.sectionEmpty": "Nothing in this group.",
+  "reports.excludedHeading": "Not included",
+
   "table.filter": "Filter rows",
   "table.filterPlaceholder": "Type to narrow…",
   "table.prev": "Previous",

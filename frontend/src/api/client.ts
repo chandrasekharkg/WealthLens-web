@@ -22,6 +22,9 @@ export type Money = components["schemas"]["Money"];
 export type WorkspaceDetail = components["schemas"]["WorkspaceDetail"];
 export type SettingsInfo = components["schemas"]["SettingsInfo"];
 export type Revealed = components["schemas"]["Revealed"];
+export type Report = components["schemas"]["Report"];
+export type ReportSummary = components["schemas"]["ReportSummary"];
+export type ReportSection = components["schemas"]["ReportSection"];
 
 export class ApiError extends Error {
   constructor(
@@ -64,6 +67,8 @@ const query = (params: Record<string, string | undefined>) => {
 export const api = {
   version: () => request<Version>("/api/version"),
   netWorth: (on?: string) => request<NetWorth>(`/api/networth${query({ on })}`),
+  reports: () => request<ReportSummary[]>("/api/reports"),
+  report: (id: string, on?: string) => request<Report>(`/api/reports/${id}${query({ on })}`),
   positions: (on?: string) => request<Positions>(`/api/positions${query({ on })}`),
   transactions: (since?: string, until?: string) =>
     request<Transactions>(`/api/transactions${query({ since, until })}`),
