@@ -110,8 +110,9 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       its cost. Verified in the engine and now pinned by a test.
 - [ ] **Fleet event pending:** WLC's schema is now 3.10. Existing stores read 3.9 and need a rebuild +
       promote before an aggregator will include them (ADR-0017).
-- [ ] WLC: **a machine-readable job contract** — only `import` has `--json`; rebuild/verify/promote emit
-      prose, and `import --json` exits non-zero whenever any file merely needs attention.
+- [x] WLC: **a machine-readable job contract** — shipped (WLC `455c0e0`). `--json` on rebuild, verify and
+      promote; an `outcome` (ok / attention / refused / failed) separate from the exit code; every refusal
+      names its gate; under `--json` the envelope owns stdout and narration goes to stderr.
 - [ ] WLC (**not v1-blocking**): a retraction verb (`wealthlens forget <source_id>`).
       `capture_io.delete_source()` exists as a function with no CLI surface — until then WLW *teaches* the
       command rather than building the button (ADR-0012). Graduates on demand.

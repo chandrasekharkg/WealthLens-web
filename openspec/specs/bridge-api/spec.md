@@ -180,6 +180,31 @@ and removing it SHALL be treated as destructive (shown, confirmed, one at a time
 - **WHEN** a rebuild output exists from a run that did not complete
 - **THEN** it is labelled as incomplete, never offered for promotion, and its removal is confirmed
 
+### Requirement: A verb's result is read from its contract, never from its prose or its exit code
+
+The bridge SHALL run verbs with WLC's machine-readable flag and SHALL classify the result from the
+`outcome` it reports — `ok`, `attention`, `refused`, `failed` — never by parsing human output and never by
+treating a non-zero exit as failure.
+
+> `import` exits non-zero when a file merely needs attention. A bridge reading the exit code alone is
+> forced to be wrong in one direction: calling ordinary imports failures, or hiding real breakage. WLC now
+> reports both, and the outcome is the authority.
+
+#### Scenario: An import where a file needs attention
+- **WHEN** an import completes with an unparsed file
+- **THEN** the job is recorded as completed-with-attention and its per-file verdicts are rendered — not as
+  a failed job
+
+#### Scenario: A refusal is surfaced with its cause
+- **WHEN** a verb refuses
+- **THEN** the UI states that nothing was changed and identifies the gate by its name, rather than showing
+  the raw message alone
+
+#### Scenario: Narration never contaminates the result
+- **WHEN** a verb prints warnings or progress while running
+- **THEN** the bridge parses only the result channel, and the narration is available separately as the
+  job's log
+
 ### Requirement: The API schema is generated, not hand-maintained
 
 The bridge SHALL publish a machine-readable schema of its endpoints and response models, and the
