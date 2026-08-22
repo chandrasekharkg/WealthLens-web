@@ -111,3 +111,34 @@ def test_every_read_response_carries_its_provenance(client):
 def test_the_view_filters_reach_the_header(client):
     body = client.get("/api/transactions?since=2026-01-01&until=2026-06-30").json()
     assert body["provenance"]["filters"] == ["from 2026-01-01", "to 2026-06-30"]
+
+
+# ── the date is always concrete ──────────────────────────────────────────────────────────────────────
+
+def test_a_view_with_no_date_still_names_the_date_it_used(make_workspace):
+    """Found by running the app: the header read "as of not specified" while the screen said "today".
+
+    An artifact that cannot name its own date is the mixed-scope problem in a different costume — and the
+    engine had in fact valued at today, so the information existed and was simply thrown away.
+    """
+    import datetime
+
+    a = make_workspace("alpha", {"A": 1000})
+    got = aggregate.net_worth(_manifest(_entity("alpha", a)))          # no `on`
+    today = datetime.date.today().isoformat()
+    assert got.as_of == today
+    assert provenance.for_net_worth(got).as_of == today
+
+
+def test_staleness_is_detectable_without_an_explicit_date(make_workspace):
+    """The second half of the same defect: with no date there was nothing to compare evidence against, so
+    a months-old store rendered as current."""
+    stale = make_workspace("stale", {"A": 1000}, as_of="2026-02-28")
+    got = aggregate.net_worth(_manifest(_entity("stale", stale)))      # no `on`
+    assert any("evidence only to 2026-02-28" in w for w in provenance.for_net_worth(got).warnings)
+
+
+def test_an_explicit_date_is_used_verbatim(make_workspace):
+    a = make_workspace("alpha", {"A": 1000})
+    got = aggregate.net_worth(_manifest(_entity("alpha", a)), on="2026-07-31")
+    assert got.as_of == "2026-07-31"

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WealthLens</title>
+    <!--
+      The session token is injected here by the bridge when it serves this page. A script on another origin
+      cannot read it — that is what the same-origin policy protects — and without it no state-changing
+      request is accepted (ADR-0004). In dev, Vite serves this file unmodified and the placeholder stays.
+    -->
+    <meta name="wlw-token" content="__WLW_TOKEN__" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

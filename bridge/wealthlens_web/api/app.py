@@ -13,7 +13,8 @@ import dataclasses
 import pathlib
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from wealthlens_web import engine as _engine
 from wealthlens_web.api import models
@@ -173,6 +174,19 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             # In-memory by design (ADR-0002), so say which it is: forgotten, not never-existed.
             raise HTTPException(status_code=404, detail={"error": "unknown_job", "reason": _FORGOTTEN})
         return _job(job)
+
+    # ── the page itself ──────────────────────────────────────────────────────────────────────────────
+    # Serving the built SPA is what lets the token be "issued with the page": it is written into the HTML
+    # at serve time, so a script on another origin cannot read it (ADR-0004). A dev server running Vite
+    # separately simply has no dist/ and this is skipped.
+    dist = pathlib.Path(__file__).resolve().parents[3] / "frontend" / "dist"
+    index = dist / "index.html"
+    if index.exists():
+        @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+        def page() -> HTMLResponse:
+            return HTMLResponse(index.read_text().replace("__WLW_TOKEN__", app.state.token))
+
+        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 
     return app
 

@@ -20,6 +20,7 @@ Four honesty rules are built into the shape rather than left to a caller:
 from __future__ import annotations
 
 import dataclasses
+import datetime as _dt
 import enum
 from decimal import Decimal
 
@@ -80,6 +81,19 @@ class FamilyNetWorth:
         return bool(self.excluded)
 
 
+def resolve_date(on: str | None) -> str:
+    """The date a view is computed at, always concrete.
+
+    Passing `None` down to the engine works — it values at today — but then nobody upstream knows WHICH
+    date was used, and the answer travels as "as of not specified". An artifact that cannot name its own
+    date is the mixed-scope problem in a different costume, so the date is resolved here, once, and the
+    same value is both sent to the engine and reported. It also makes staleness computable: without a
+    concrete date there is nothing to compare a store's evidence against, and a four-month-old store reads
+    as current.
+    """
+    return on or _dt.date.today().isoformat()
+
+
 def net_worth(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] = frozenset()) -> FamilyNetWorth:
     """Family net worth at one point in time, composed from each entity's own store."""
     if m.reporting_currency not in SUPPORTED_REPORTING_CURRENCIES:
@@ -88,6 +102,7 @@ def net_worth(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] = 
             f"{m.reporting_currency}. WealthLens-core stores an INR-relative exchange rate, so another "
             "reporting currency would be an INR figure under a different label.")
 
+    on = resolve_date(on)
     views = tuple(_entity_view(e, on=on, currency=m.reporting_currency, our_pids=our_pids)
                   for e in m.entities)
     contributing = [v.total for v in views if v.contributes]
@@ -205,6 +220,7 @@ class FamilyRows:
 
 def positions(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] = frozenset()) -> FamilyRows:
     """Instrument-level holdings across the family."""
+    on = resolve_date(on)
     return _rows(m, Granularity.POSITIONS, on=on, our_pids=our_pids,
                  fetch=lambda con, entity: lens_api.positions(
                      con, on=on, owner=entity.owner, currency=m.reporting_currency))
@@ -213,7 +229,7 @@ def positions(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] = 
 def transactions(m: Manifest, *, since: str | None = None, until: str | None = None,
                  our_pids: frozenset[int] = frozenset()) -> FamilyRows:
     """Ledger-level rows across the family — the finest granularity there is."""
-    return _rows(m, Granularity.TRANSACTIONS, on=until, our_pids=our_pids,
+    return _rows(m, Granularity.TRANSACTIONS, on=resolve_date(until), our_pids=our_pids,
                  fetch=lambda con, entity: lens_api.transactions(
                      con, since=since, until=until, currency=m.reporting_currency))
 

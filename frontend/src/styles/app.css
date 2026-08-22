@@ -1,0 +1,125 @@
+/*
+ * Enough style to read the data honestly. Not a design system — that lands when there are screens to
+ * design a system for.
+ *
+ * Theme-aware from the start because it is far cheaper here than retrofitted, and because a printed page
+ * has to force light regardless (see print.css).
+ */
+:root {
+  --ground: #f6f7f7;
+  --surface: #ffffff;
+  --ink: #16201f;
+  --muted: #5c6a68;
+  --line: #dde2e1;
+  --accent: #0f6b62;
+  --warn: #8a5a06;
+  --warn-bg: #fdf3e0;
+  --ok: #2c6b44;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0e1413;
+    --surface: #161e1d;
+    --ink: #e8edec;
+    --muted: #94a3a0;
+    --line: #27312f;
+    --accent: #4fb3a6;
+    --warn: #d9a03f;
+    --warn-bg: #2a2317;
+    --ok: #79be8e;
+    color-scheme: dark;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--ground);
+  color: var(--ink);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Honesty is not decoration: a caveat is styled to be noticed, next to what it qualifies. */
+[data-tone="warning"] {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+[data-tone="ok"] {
+  color: var(--ok);
+}
+
+[data-status="excluded"] {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+[data-status="stale"] {
+  color: var(--warn);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.provenance {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 12px 0;
+}
+
+.provenance h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.provenance p {
+  margin: 2px 0;
+  color: var(--muted);
+}
+
+.provenance .warning {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+button {
+  font: inherit;
+  padding: 6px 12px;
+  margin-right: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
