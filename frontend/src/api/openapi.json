@@ -109,6 +109,83 @@
         "title": "Deposit",
         "type": "object"
       },
+      "DocumentInfo": {
+        "properties": {
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "password": {
+            "$ref": "#/components/schemas/PasswordRef"
+          },
+          "payload_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload Ref"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "password"
+        ],
+        "title": "DocumentInfo",
+        "type": "object"
+      },
       "EngineInfo": {
         "properties": {
           "detail": {
@@ -522,6 +599,36 @@
         "title": "Outcome",
         "type": "string"
       },
+      "PasswordRef": {
+        "properties": {
+          "kind": {
+            "description": "THREE states, not two: named, opened-by-something-unnamed, or never opened",
+            "enum": [
+              "named",
+              "unnamed",
+              "none"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "PasswordRef",
+        "type": "object"
+      },
       "PositionRow": {
         "properties": {
           "account_id": {
@@ -740,6 +847,46 @@
           "reporting_currency"
         ],
         "title": "Provenance",
+        "type": "object"
+      },
+      "SettingsInfo": {
+        "properties": {
+          "config_path": {
+            "title": "Config Path",
+            "type": "string"
+          },
+          "holder_names": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Holder Names",
+            "type": "array"
+          },
+          "organize": {
+            "title": "Organize",
+            "type": "boolean"
+          },
+          "pan_set": {
+            "description": "Set or unset only \u2014 the value is never returned by any read",
+            "title": "Pan Set",
+            "type": "boolean"
+          },
+          "secret_names": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Secret Names",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pan_set",
+          "organize",
+          "config_path"
+        ],
+        "title": "SettingsInfo",
         "type": "object"
       },
       "StoreInfo": {
@@ -961,6 +1108,40 @@
         "title": "Version",
         "type": "object"
       },
+      "WorkspaceDetail": {
+        "properties": {
+          "documents": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DocumentInfo"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SettingsInfo"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/WorkspaceInfo"
+          }
+        },
+        "required": [
+          "entity_id",
+          "path",
+          "workspace",
+          "settings"
+        ],
+        "title": "WorkspaceDetail",
+        "type": "object"
+      },
       "WorkspaceInfo": {
         "properties": {
           "availability": {
@@ -1019,6 +1200,27 @@
   "openapi": "3.1.0",
   "paths": {
     "/api/jobs": {
+      "get": {
+        "description": "Everything this session has run. In memory by design (ADR-0002) \u2014 the UI says so.",
+        "operationId": "list_jobs_api_jobs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Job"
+                  },
+                  "title": "Response List Jobs Api Jobs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Jobs"
+      },
       "post": {
         "description": "Run a WLC verb against exactly one named, manifest-declared workspace.\n\nThere is no \"run against all\": each store has its own gates, its own key and its own lock, and a\nfan-out would hide which one refused.",
         "operationId": "start_job_api_jobs_post",
@@ -1346,6 +1548,98 @@
           }
         },
         "summary": "Version"
+      }
+    },
+    "/api/workspace/{entity_id}": {
+      "get": {
+        "description": "Where an entity's money physically lives, what state it is in, and what built it.",
+        "operationId": "workspace_detail_api_workspace__entity_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workspace Detail"
+      }
+    },
+    "/api/workspace/{entity_id}/settings": {
+      "post": {
+        "description": "Change one setting. Everything bootstrap asks is editable here (identity-and-settings).",
+        "operationId": "change_settings_api_workspace__entity_id__settings_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Settings"
       }
     }
   }

@@ -12,6 +12,9 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "python-multipart>=0.0.9",   # multipart uploads: the statement deposit endpoint
+    # Style-preserving TOML. A plain writer would destroy the ~70 lines of comments WLC ships in
+    # config.toml — the user's own documentation — on the first setting they change.
+    "tomlkit>=0.13",
 ]
 
 # WealthLens-core is NOT a hard dependency here, deliberately.

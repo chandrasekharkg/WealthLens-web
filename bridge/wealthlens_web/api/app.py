@@ -19,7 +19,16 @@ from fastapi.staticfiles import StaticFiles
 from wealthlens_web import engine as _engine
 from wealthlens_web.api import models
 from wealthlens_web.api.security import LocalOnly, new_token
-from wealthlens_web.core import aggregate, inbox, manifest, provenance, verbs, workspaces
+from wealthlens_web.core import (
+    aggregate,
+    collateral,
+    inbox,
+    manifest,
+    provenance,
+    settings,
+    verbs,
+    workspaces,
+)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7788
@@ -93,6 +102,56 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                                    f"to {until}" if until else None) if f)
         return _rows(aggregate.transactions(_manifest(), since=since, until=until,
                                             our_pids=app.state.runner.our_pids), filters=window)
+
+    # ── the custodian, made legible ──────────────────────────────────────────────────────────────────
+
+    @app.get("/api/workspace/{entity_id}", response_model=models.WorkspaceDetail)
+    def workspace_detail(entity_id: str) -> dict:
+        """Where an entity's money physically lives, what state it is in, and what built it."""
+        m = _manifest()
+        target = _target_workspace(m, entity_id, None)
+        status = workspaces.check(target, our_pids=app.state.runner.our_pids)
+
+        documents: list[dict] = []
+        if status.is_readable:
+            from wealthlens import workspace as wl_workspace
+            with wl_workspace.resolve(target).open() as con:
+                documents = [d.as_dict() for d in collateral.documents(con, target)]
+
+        return {
+            "entity_id": entity_id,
+            "path": str(target),
+            "workspace": _workspace(status),
+            "settings": settings.read(target).as_dict(),
+            "documents": documents,
+        }
+
+    @app.post("/api/workspace/{entity_id}/settings", response_model=models.SettingsInfo)
+    def change_settings(entity_id: str, body: dict) -> dict:
+        """Change one setting. Everything bootstrap asks is editable here (identity-and-settings)."""
+        target = _target_workspace(_manifest(), entity_id, None)
+        try:
+            if "holder_names" in body:
+                got = settings.set_holder_names(target, list(body["holder_names"]))
+            elif "pan" in body:
+                got = settings.set_pan(target, str(body["pan"]))
+            elif "organize" in body:
+                got = settings.set_organize(target, bool(body["organize"]))
+            elif "secret" in body:
+                secret = body["secret"]
+                got = settings.add_secret(target, str(secret.get("name", "")), str(secret.get("value", "")))
+            else:
+                raise HTTPException(status_code=400, detail={"error": "field", "reason":
+                                    "name a setting to change"})
+        except settings.SettingsError as e:
+            raise HTTPException(status_code=400,
+                                detail={"error": "settings", "reason": str(e), "field": e.field}) from None
+        return got.as_dict()
+
+    @app.get("/api/jobs", response_model=list[models.Job])
+    def list_jobs() -> list[dict]:
+        """Everything this session has run. In memory by design (ADR-0002) — the UI says so."""
+        return [_job(job) for job in reversed(app.state.runner.jobs())]
 
     # ── the one side-effecting surface ───────────────────────────────────────────────────────────────
 

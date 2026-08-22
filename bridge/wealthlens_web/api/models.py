@@ -148,6 +148,39 @@ class Deposit(BaseModel):
     inbox: str
 
 
+class PasswordRef(BaseModel):
+    kind: Literal["named", "unnamed", "none"] = Field(
+        description="THREE states, not two: named, opened-by-something-unnamed, or never opened")
+    name: str | None = None
+
+
+class DocumentInfo(BaseModel):
+    source_id: str
+    kind: str
+    provider: str | None = None
+    filename: str | None = None
+    payload_ref: str | None = None
+    rows: int | None = None
+    captured_at: str | None = None
+    password: PasswordRef
+
+
+class SettingsInfo(BaseModel):
+    holder_names: list[str] = []
+    pan_set: bool = Field(description="Set or unset only — the value is never returned by any read")
+    organize: bool
+    secret_names: list[str] = []
+    config_path: str
+
+
+class WorkspaceDetail(BaseModel):
+    entity_id: str
+    path: str
+    workspace: WorkspaceInfo
+    settings: SettingsInfo
+    documents: list[DocumentInfo] = []
+
+
 class EngineInfo(BaseModel):
     present: bool
     schema_version: str | None = None
