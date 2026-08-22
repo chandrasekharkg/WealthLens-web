@@ -123,3 +123,35 @@ button:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* A sortable header IS the control, so it has to look like one — and keep the header's own weight. */
+th button[data-sort] {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+th button[data-sort]:hover,
+th button[data-sort]:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+th button[data-sort]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input[type="search"] {
+  font: inherit;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 16rem;
+}

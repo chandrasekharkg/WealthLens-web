@@ -14,6 +14,13 @@ import type { Formatter } from "../i18n";
 
 type Tally = { table: string; current: number; rebuilt: number; delta: number };
 
+/** Whether a verb can be run against this entity's store at all. */
+function isOperable(entity: NetWorth["entities"][number]): boolean {
+  if (entity.contributes) return true;
+  // Skew is the case operations EXISTS for: the store opens fine, it was just built by another engine.
+  return entity.workspaces.some((w) => w.availability === "schema_skew");
+}
+
 export type OperationsProps = {
   readonly entities: NetWorth["entities"];
   readonly format: Formatter;
@@ -22,7 +29,9 @@ export type OperationsProps = {
 
 export function Operations({ entities, format, onPromoted }: OperationsProps) {
   const { t, number } = format;
-  const [entity, setEntity] = useState(entities[0]?.entity_id ?? "");
+  const [entity, setEntity] = useState(
+    (entities.find(isOperable) ?? entities[0])?.entity_id ?? "",
+  );
   const [rebuild, setRebuild] = useState<Job | null>(null);
   const [promotion, setPromotion] = useState<Job | null>(null);
   const [confirm, setConfirm] = useState("");
@@ -93,8 +102,13 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
             setConfirm("");
           }}
         >
+          {/*
+            A store excluded for SCHEMA SKEW must stay selectable — promoting a rebuild is precisely how
+            that skew is resolved, so disabling it would lock the door from the inside. Only a store that
+            genuinely cannot be opened (missing, unreadable) has nothing to do here.
+          */}
           {entities.map((option) => (
-            <option key={option.entity_id} value={option.entity_id} disabled={!option.contributes}>
+            <option key={option.entity_id} value={option.entity_id} disabled={!isOperable(option)}>
               {option.label}
             </option>
           ))}

@@ -119,6 +119,11 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       command rather than building the button (ADR-0012). Graduates on demand.
 - [x] WLC: **a `promote` verb** — shipped (WLC `c9fdb41`). Eight abort-first gates, backup, atomic
       `os.replace`. ADR-0006's in-UI promotion now has a verb to drive within the ADR-0005 boundary.
+- [ ] WLC: **a structured account summary on the read surface.** `account_summary.build()` computes the
+      hierarchical net-worth-by-class view (label, value, basis, indent, kind) plus per-year document
+      coverage — but only emits text and HTML, and lives outside `lens.__all__`. WLW's Reports needs those
+      ROWS. Reimplementing the hierarchy here would be exactly the "recompute WLC's semantics" the boundary
+      forbids, so the fix is upstream: return the data, keep the rendering.
 - [ ] WLC (**deferred — waiting for a real user to want it**): a one-time password path for `import`,
       e.g. `--password-file <path>`, read then forgotten. Today "use it once" is unbuildable: `import`
       takes no password argument and gives up on a closed stdin (ADR-0019). Designed and understood, but

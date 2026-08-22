@@ -160,6 +160,15 @@ export const en = {
     "It is kept in its own file and tried against future statements too. WealthLens-core proves it worked by opening the file — nothing here reads your statement.",
   "locked.retrying": "Trying again…",
 
+  "table.filter": "Filter rows",
+  "table.filterPlaceholder": "Type to narrow…",
+  "table.prev": "Previous",
+  "table.next": "Next",
+  "table.page": "Page {page} of {pages}",
+  "table.sortBy": "Sort by {column}",
+  "table.perPage": "Rows per page",
+  "table.allRows": "All",
+
   "table.export": "Export CSV",
   "table.print": "Print",
   "table.showing": "Showing {shown} of {total} rows",

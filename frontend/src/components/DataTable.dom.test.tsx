@@ -120,3 +120,86 @@ describe("print", () => {
     expect(screen.queryByText("Item 12")).toBeNull();
   });
 });
+
+describe("sorting, filtering and reaching the rest of the rows", () => {
+  const setupPaged = () => {
+    const onExport = vi.fn();
+    render(
+      <DataTable
+        rows={ROWS}
+        columns={COLUMNS}
+        exportColumns={EXPORT_COLUMNS}
+        provenance={PROVENANCE}
+        pageSize={5}
+        onExport={onExport}
+      />,
+    );
+    return { onExport };
+  };
+
+  it("sorts when a column header is clicked, and says so to a screen reader", () => {
+    setupPaged();
+    const header = screen.getByRole("button", { name: /Sort by Instrument/ });
+    fireEvent.click(header);
+    expect(screen.getAllByRole("columnheader")[0]!.getAttribute("aria-sort")).toBe("ascending");
+    fireEvent.click(header);
+    expect(screen.getAllByRole("columnheader")[0]!.getAttribute("aria-sort")).toBe("descending");
+  });
+
+  it("filters across the table, and the count follows the filter", () => {
+    setupPaged();
+    fireEvent.change(screen.getByLabelText("Filter rows"), { target: { value: "Item 1" } });
+    // "Showing N of M" must reflect the FILTER, or the number is describing a table nobody is looking at.
+    expect(screen.getByText(/Showing \d+ of \d+ rows/).textContent).not.toContain("of 12 rows");
+  });
+
+  it("offers a way to reach the rows it is not showing", () => {
+    // The defect this fixes: "Showing 50 of 113 rows" with no control to see the other 63.
+    setupPaged();
+    expect(screen.getByText("Showing 5 of 12 rows")).toBeTruthy();
+    expect(screen.queryByText("Item 12")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText(/Page 2 of 3/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Previous" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("stops at the ends rather than wrapping silently", () => {
+    setupPaged();
+    expect(screen.getByRole("button", { name: "Previous" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByRole("button", { name: "Next" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("lets a reader ask for every row at once", () => {
+    setupPaged();
+    fireEvent.change(screen.getByLabelText("Rows per page"), { target: { value: "100" } });
+    expect(screen.getByText("Item 12")).toBeTruthy();
+  });
+
+  it("exports the whole filtered set regardless of the page on screen", () => {
+    // Pagination is a view, never a slice of what leaves.
+    const { onExport } = setupPaged();
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+    const csv = (onExport.mock.calls[0] as [string, string])[0];
+    expect(csv).toContain("Rows: 12");
+    expect(csv).toContain("Item 12");
+  });
+
+  it("hides its own controls from a printed page", () => {
+    const { container } = render(
+      <DataTable
+        rows={ROWS}
+        columns={COLUMNS}
+        exportColumns={EXPORT_COLUMNS}
+        provenance={PROVENANCE}
+        pageSize={5}
+        onExport={vi.fn()}
+      />,
+    );
+    const pager = screen.getByText("Showing 5 of 12 rows").closest('[data-print="hide"]');
+    expect(pager).toBeTruthy();
+    expect(container.querySelector('input[type="search"]')?.closest('[data-print="hide"]')).toBeTruthy();
+  });
+});

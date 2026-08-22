@@ -140,3 +140,39 @@ describe("switching member", () => {
     await waitFor(() => expect(screen.getByText(/Rebuild first/)).toBeTruthy());
   });
 });
+
+describe("a store that needs promoting is the one that must be selectable", () => {
+  const skewed: NetWorth["entities"][number] = {
+    ...entities[0]!,
+    entity_id: "old",
+    label: "Old",
+    contributes: false,
+    total: null,
+    excluded_reason: "the store was built by a different engine — rebuild and promote it",
+    workspaces: [
+      { label: "old-WealthLens-data", availability: "schema_skew", detail: null,
+        schema_version: "3.8", holder: null },
+    ],
+  };
+
+  it("keeps a schema-skewed store selectable, because promoting is how skew is fixed", () => {
+    // Disabling it would lock the door from the inside: the store excluded FOR skew is the exact store
+    // whose rebuild needs promoting.
+    render(<Operations entities={[skewed]} format={formatter("en-IN")} />);
+    expect(screen.getByRole("option", { name: "Old" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("still refuses a store that genuinely cannot be opened", () => {
+    const missing = {
+      ...skewed,
+      entity_id: "gone",
+      label: "Gone",
+      workspaces: [
+        { label: "gone", availability: "missing" as const, detail: null, schema_version: null,
+          holder: null },
+      ],
+    };
+    render(<Operations entities={[missing]} format={formatter("en-IN")} />);
+    expect(screen.getByRole("option", { name: "Gone" }).hasAttribute("disabled")).toBe(true);
+  });
+});
