@@ -119,9 +119,11 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       command rather than building the button (ADR-0012). Graduates on demand.
 - [x] WLC: **a `promote` verb** — shipped (WLC `c9fdb41`). Eight abort-first gates, backup, atomic
       `os.replace`. ADR-0006's in-UI promotion now has a verb to drive within the ADR-0005 boundary.
-- [ ] WLC: **a one-time password path for `import`** — e.g. `--password-file <path>`, read then forgotten,
-      so a caller can convey a password without it being written into the ring. Today "use it once" is
-      unbuildable: `import` takes no password argument and gives up on a closed stdin (ADR-0019).
+- [ ] WLC (**deferred — waiting for a real user to want it**): a one-time password path for `import`,
+      e.g. `--password-file <path>`, read then forgotten. Today "use it once" is unbuildable: `import`
+      takes no password argument and gives up on a closed stdin (ADR-0019). Designed and understood, but
+      not built — the ring covers every case we have actually seen, and ADR-0012's rule is that native
+      support follows demand rather than anticipation. Graduates when somebody asks.
 - [ ] WLC: **decide `schema.migrate()`'s fate** — it exists but is called from nowhere (no CLI path, no
       test), so a store never upgrades in place and rebuild+promote is the only route. Either wire it as an
       optimisation of that route (never an alternative — ADR-0017), or retire it; a function nothing calls

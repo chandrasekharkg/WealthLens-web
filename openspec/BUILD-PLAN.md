@@ -142,10 +142,11 @@ such path and never will.
 The locked-file loop is built as **prove-by-retry**: the password joins the ring, the import re-runs, and
 WLC's own verdict says whether the file opened. Nothing here reads a statement.
 
-**One capability deliberately NOT built**, blocked on the engine rather than on effort: the *"use it once"*
-password. `import` takes no password argument and gives up on a closed stdin, so a one-time password cannot
-reach the engine at all — it can only be conveyed by writing it somewhere, which is precisely what "once"
-means not to do. Needs a WLC change (`--password-file`, deleted after the run).*
+**One capability deliberately NOT built, and now deliberately deferred:** the *"use it once"* password.
+`import` takes no password argument and gives up on a closed stdin, so it cannot reach the engine without
+being written somewhere — precisely what "once" means not to do. The WLC change is understood
+(`--password-file`, read then forgotten), and is **waiting for a real user to want it**: the ring covers
+every case seen so far, and ADR-0012's rule is demand over anticipation.*
 
 ## Phase 6 — Extensions and manual facts
 
