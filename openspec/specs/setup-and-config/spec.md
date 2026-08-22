@@ -37,6 +37,28 @@ logs, or be echoed back by any API.
 - **THEN** it lands in that entity's WLC workspace per WLC's convention, is never returned by any endpoint,
   and never appears in a log line
 
+### Requirement: Browser upload deposits into the inbox — and only the inbox
+
+Statement upload SHALL write the file into the chosen entity's `statements/` inbox and nowhere else, with
+an extension allowlist matching what WLC dispatch accepts, a size cap, and WLC's non-clobber naming (an
+existing file is never overwritten). Upload performs no parsing and no store writes — custody begins and
+ends with WLC's import gates (ADR-0005).
+
+#### Scenario: A duplicate filename arrives
+- **WHEN** an uploaded file's name already exists in the inbox
+- **THEN** both files survive under distinct names, and nothing is overwritten
+
+### Requirement: The locked-file loop closes in the browser
+
+When an import reports a password-locked file, the UI SHALL let the user supply the password, place it in
+that workspace's WLC config per WLC's conventions, and retry the import — so a non-technical user can
+complete the whole daily loop without a terminal.
+
+#### Scenario: A locked statement becomes imported
+- **WHEN** a file reports 🔒 and the user supplies the correct password
+- **THEN** the retried import succeeds, the password lives only in that workspace's WLC config, and no
+  WLW log, response, or state retains it
+
 ### Requirement: Connecting an existing workspace is explicit and validated
 
 Adding an entity SHALL require the user to pick the workspace, and the bridge SHALL validate it (opens

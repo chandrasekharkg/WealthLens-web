@@ -6,10 +6,12 @@ custodian**; the boundary between the two is this project's first law.
 
 ## Non-negotiables that shape every design
 
-- **Read-only over the custodian.** WLW never parses, never ingests, never writes a WLC store, never
-  carries schema knowledge beyond what `lens.py` exposes. The one sanctioned side effect is invoking
-  `wealthlens import` as a subprocess — WLC writing to its own store through its own gates. If a view needs
-  data `lens.py` cannot answer, the fix is a `lens.py` contribution to WLC, never a direct store query here.
+- **WLW never writes a store; it feeds and drives WLC, which does.** Its write powers are exactly three
+  (ADR-0005): deposit inputs (statement uploads into the inbox; passwords into WLC's own config, once,
+  unlogged), run WLC's verbs as subprocesses of the real CLI (import/rebuild/verify/diagnose/fetch-* —
+  every WLC gate applies unchanged), and nothing else. No parsing, no schema knowledge beyond `lens.py`,
+  no direct store access. If a view needs data `lens.py` cannot answer, the fix is a `lens.py`
+  contribution to WLC, never a direct store query here.
 - **No database.** All financial state lives in WLC stores. WLW's only durable artifact is the **family
   manifest** (`family.toml`): entities, workspace paths, labels, presentation preferences. Anything that
   smells like a cache with a lifecycle is a design smell.

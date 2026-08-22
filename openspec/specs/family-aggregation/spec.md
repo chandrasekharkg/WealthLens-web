@@ -33,6 +33,17 @@ labels. The system SHALL NOT auto-include a discovered workspace without it bein
 - **WHEN** a `*-WealthLens-data` workspace exists beside declared ones but is absent from the manifest
 - **THEN** no view includes it, and setup MAY offer it as a candidate to add — offering is not including
 
+### Requirement: An entity may span several workspaces
+
+An entity MAY declare more than one workspace (a legacy workspace beside a current one). The system SHALL
+aggregate an entity's workspaces exactly as it aggregates entities: read-time, in memory, every figure
+attributable to the workspace it came from.
+
+#### Scenario: A person with a legacy and a current workspace
+- **WHEN** an entity declares two workspaces and both hold positions
+- **THEN** the entity's view combines them with per-workspace attribution, and no combined artifact is
+  written
+
 ### Requirement: Partial availability degrades honestly
 
 If one entity's store is missing, locked by another process, or fails to open, family views SHALL render

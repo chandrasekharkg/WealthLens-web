@@ -15,6 +15,12 @@ id = "spouse"
 label = "Spouse"
 workspace = "~/WealthLens/spouse-WealthLens-data"
 
+# An entity may span several workspaces (e.g. a legacy one beside the current) — use `workspaces`:
+# [[entity]]
+# id = "parent"
+# label = "Dad"
+# workspaces = ["~/WealthLens/dad-WealthLens-data", "~/WealthLens/dad-legacy-WealthLens-data"]
+
 # [view] presentation preferences only — currency display, default date ranges, section order…
 [view]
 default = "family"                              # or an entity id
