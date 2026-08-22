@@ -54,7 +54,7 @@ real CLI, so every gate WLC has (oracles, provenance, PII hooks) applies unchang
 - **C3. PROMOTION is a guarded, explicit act.** Overwriting the live store is the one destructive step in
   the whole system. The UI may offer it ONLY after a completed `--check`, showing the delta/tally, behind
   a typed confirmation naming the entity — the product form of the project's abort-first promotion
-  doctrine (WLC lessons-learned L4). No one-click promote, ever. (Open to excluding it from v1 entirely.)
+  doctrine (WLC lessons-learned L4). No one-click promote, ever. **In v1** — ADR-0006 §1.
 - **C4. Diagnose an unsupported statement**: run `wealthlens diagnose`, render the masked report, with a
   "copy for a GitHub issue" affordance — the contributor funnel, in the browser.
 - **C5. Market data**: trigger `fetch-prices` / `fetch-instruments` / `fetch-fx`; show capture results.
@@ -73,7 +73,7 @@ restart; the subprocess's own outcome is still in WLC's hands).
   one. The manifest allows `workspaces = [...]` per entity; aggregation treats them like family
   aggregation does entities — read-time, attributable to the workspace.
 - **D3. A remote entity's workspace.** Real case in the founding family: one member's store lives on
-  another machine. **Deliberately unresolved** — see Open Questions.
+  another machine. **Resolved: the host-accessibility model** — ADR-0006 §2.
 - **D4. Who may see whom.** The moment more than one person USES the UI (vs one operator viewing all),
   visibility scoping is required. Deferred with phase-2 auth (ADR-0004) — but the manifest format must
   not preclude a future viewer model (per-entity visibility is a manifest concern, not a store concern).
