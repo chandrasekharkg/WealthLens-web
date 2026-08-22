@@ -1,0 +1,20 @@
+# family.toml — the ONLY file WealthLens-web owns. Entities, their WLC workspaces, and how to present
+# them. No financial data, no passwords, no keys — this file should be harmless if it were public.
+# Copy to family.toml and edit (family.toml itself is gitignored; it names your machine's paths).
+
+[family]
+label = "Example family"
+
+[[entity]]
+id = "self"                                     # stable id used by the API and views
+label = "Me"
+workspace = "~/WealthLens/me-WealthLens-data"   # a WLC workspace (its store + secrets stay ITS OWN)
+
+[[entity]]
+id = "spouse"
+label = "Spouse"
+workspace = "~/WealthLens/spouse-WealthLens-data"
+
+# [view] presentation preferences only — currency display, default date ranges, section order…
+[view]
+default = "family"                              # or an entity id

@@ -1,0 +1,60 @@
+# ARCHITECTURE.md — why WealthLens-web is built this way
+
+**Read this first** (~2 minutes). WLW is the presenter/aggregator half of the WealthLens split; the
+custodian half is [WealthLens-core](https://github.com/chandrasekharkg/WealthLens-core). The whole design
+follows from one sentence:
+
+> **WLC owns the truth; WLW shows it.** WLW is a stateless, read-only, local-first window over per-entity
+> WLC stores — plus one manifest file naming the family.
+
+```
+  family.toml            bridge/ (Python)                    frontend/ (SPA)
+  ───────────            ────────────────                    ───────────────
+  entities + paths  ──►  opens each store READ-ONLY   ──►    setup flows
+  labels, prefs          via wealthlens lens.py              per-entity reports
+  (no secrets,           aggregates IN MEMORY per request    family views
+   no data)              serves the SPA + JSON API           (talks only to the bridge)
+                         └─ one side effect: subprocess
+                            `wealthlens import --json`
+```
+
+## Five load-bearing principles
+
+1. **Custodian/presenter split** — separate repo, API boundary, no store writes, no parsing.
+   → [ADR-0001](openspec/decisions/0001-custodian-presenter-split.md)
+2. **No database** — stores + `family.toml` + ephemeral UI state; restart-surviving caches are prohibited.
+   → [ADR-0002](openspec/decisions/0002-no-database.md)
+3. **One store per entity, aggregation at read time** — family views compose in memory and every figure
+   stays attributable; WLC's federation semantics (its ADR-0008) are the foundation.
+   → [family-aggregation](openspec/specs/family-aggregation/spec.md)
+4. **Keys never reach the browser; localhost hardened; LAN is ADR-gated** — Host/Origin checks + session
+   token now; any bind beyond loopback requires the phase-2 ADR with a real auth model.
+   → [ADR-0004](openspec/decisions/0004-bridge-and-security-posture.md) ·
+   [bridge-api](openspec/specs/bridge-api/spec.md)
+5. **Honesty flows through** — basis, as-of, footing and import warnings render in the UI; polish never
+   exceeds the data's honesty. → [report-views](openspec/specs/report-views/spec.md)
+
+## The design index
+
+- Governance & non-negotiables — [openspec/project.md](openspec/project.md)
+- ADRs — [0001 split](openspec/decisions/0001-custodian-presenter-split.md) ·
+  [0002 no-database](openspec/decisions/0002-no-database.md) ·
+  [0003 frontend stack (PROPOSED)](openspec/decisions/0003-frontend-stack.md) ·
+  [0004 bridge & security](openspec/decisions/0004-bridge-and-security-posture.md)
+- Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
+  [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
+  [report-views](openspec/specs/report-views/spec.md) ·
+  [bridge-api](openspec/specs/bridge-api/spec.md)
+- Manifest format — [family.example.toml](family.example.toml)
+
+## Keep the docs current — the loop
+
+Same rule as WLC: **a change that ships code but not its docs is not done.** Governed behavior lands as an
+OpenSpec change first; significant choices become ADRs (immutable once decided — supersede, never edit).
+
+## Cross-repo tasks (tracked here until they land)
+
+- [ ] WLC: promote `lens.py`'s read functions onto the semver-stable API surface (EXTENDING.md) — the
+      contract this repo builds against.
+- [ ] Seed the bridge from the reviewed prototype (WLC PR #1's report server) — with ADR-0004's
+      Host/Origin/token hardening and the manifest replacing ad-hoc workspace discovery.

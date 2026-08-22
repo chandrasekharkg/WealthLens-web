@@ -1,0 +1,6 @@
+family.toml
+__pycache__/
+*.egg-info/
+.venv/
+node_modules/
+frontend/dist/

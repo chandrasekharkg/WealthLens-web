@@ -1,0 +1,53 @@
+# Family aggregation
+
+One view over N family members' holdings, while every member keeps their own separate encrypted WLC store.
+This capability is the reason WLW exists — and its constraint is the reason it can be trusted.
+
+## ADDED Requirements
+
+### Requirement: Aggregation is read-time composition, never storage
+
+The system SHALL compose family views by querying each entity's store read-only at request time and
+combining the results in memory. It SHALL NOT create, persist, or maintain any combined store, table,
+export, or materialized view of more than one entity's data.
+
+#### Scenario: The family view leaves no artifact
+- **WHEN** a family net-worth view is rendered and the bridge process then exits
+- **THEN** no file anywhere contains more than one entity's financial data
+
+### Requirement: Every aggregated figure stays attributable
+
+Each row and total in a family view SHALL carry the entity it came from, and a combined figure SHALL be
+decomposable into per-entity parts in the UI. "Whose is this?" is always answerable.
+
+#### Scenario: A combined holding is decomposable
+- **WHEN** two entities hold the same instrument and the family view shows a combined position
+- **THEN** the view can expand it into the per-entity positions, each labelled with its entity
+
+### Requirement: The family manifest defines the family — nothing else does
+
+Membership of the family view SHALL come only from `family.toml`: entities, their workspace paths, display
+labels. The system SHALL NOT auto-include a discovered workspace without it being declared in the manifest.
+
+#### Scenario: A workspace on disk is not automatically family
+- **WHEN** a `*-WealthLens-data` workspace exists beside declared ones but is absent from the manifest
+- **THEN** no view includes it, and setup MAY offer it as a candidate to add — offering is not including
+
+### Requirement: Partial availability degrades honestly
+
+If one entity's store is missing, locked by another process, or fails to open, family views SHALL render
+the remaining entities and state plainly which entity is missing and why — never a silently smaller total.
+
+#### Scenario: One store is unavailable
+- **WHEN** an entity's store cannot be opened at request time
+- **THEN** the family total is labelled as excluding that entity, with the reason, rather than presented
+  as the family's whole position
+
+### Requirement: Provenance signals survive aggregation
+
+Per-entity `basis`, staleness (as-of dates), and footing signals from WLC SHALL flow through to family
+views. A family total whose parts have mixed bases or divergent as-of dates SHALL say so.
+
+#### Scenario: Mixed-freshness family total
+- **WHEN** one entity's holdings are as of last month and another's are as of yesterday
+- **THEN** the family view surfaces both as-of dates rather than implying a single point in time
