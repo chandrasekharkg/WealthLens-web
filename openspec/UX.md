@@ -125,6 +125,12 @@ the thing no current tool gives them.
 **Health** — this workspace's integrity report, continuity chain (chained / breaks / coverage gaps),
 units coverage, per-source counts. The detail behind Overview's badge.
 
+**Manual facts** — the guided authoring surface for `manual/*.yaml` (manual-facts spec): the facts no
+document can parse — unlisted equity, let-out property, a hand-reconciled corporate action, or a stopgap
+value awaiting its real statement. Lists existing entries with their fidelity tier and supersession state;
+"+ Record a fact" opens a form in WLC's own ITR-2 vocabulary. **These are corpus, not settings** — the tab
+says so, and any change marks the workspace as having un-applied corpus changes.
+
 **Operations** — the verbs for *this* workspace: Import · Verify · Fetch prices/instruments/FX ·
 Rebuild & check → Promote. One at a time (the per-workspace job model, ADR-0005), with progress.
 
@@ -168,7 +174,23 @@ Drag onto Collateral (or anywhere in the workspace) → file lands in the inbox 
 Promote is unreachable without a completed check; the delta is shown, not summarized away; confirmation
 is typed. A backup is stated as fact because WLC makes one.
 
-**D. Unsupported statement → contribution** (UC-C4)
+**D. Recording a fact no document can supply** (manual-facts spec)
+```
+ Workspace ▸ Manual facts ▸ [ + Record a fact ]
+   ① What kind?      Unlisted equity · House property · Corporate action · Other (table+key)
+      ⓘ "Could a document supply this? Importing the statement is always better."   [ Import instead ]
+   ② The fields       — labelled as ITR-2 labels them (HeldUnlistedEqShrPrYr / ScheduleHP …)
+   ③ How certain?     ○ Authoritative — a parser must never overwrite this
+                      ● Stopgap — a placeholder; a real document will supersede it
+                      ○ Reference — kept to verify the rebuild
+   ④ Evidence         attach the AGM notice / valuation / screenshot this came from
+   → validated against the live schema BEFORE writing → manual/<name>.yaml
+   → banner: "Corpus changed — import or rebuild to apply."      [ Import now ]
+```
+Stopgap entries stay visibly provisional in the list, and show as superseded once a higher-fidelity
+parsed source covers the same fact — the fidelity ladder made visible rather than buried in YAML.
+
+**E. Unsupported statement → contribution** (UC-C4)
 An `unrecognized` import row offers **[Diagnose]** → runs `wealthlens diagnose` → renders the masked
 report with a plain-language preamble ("this describes the layout only — no amounts, names or account
 numbers") and **[Copy for a GitHub issue]**. The contributor funnel, in the product.
@@ -183,4 +205,6 @@ numbers") and **[Copy for a GitHub issue]**. The contributor funnel, in the prod
    entity?
 4. **How much of Workspace detail does a P1 household member ever see?** Possibly none — a case for
    role-lite view modes well before phase-2 auth exists.
-5. **Anything in the shell that his own users have already asked for and this pass misses.**
+5. **Manual facts**: is per-workspace (assumed here, since the YAML is corpus in that workspace) the
+   right home, or do users think of "my unlisted shares" as a family-level thing to record once?
+6. **Anything in the shell that his own users have already asked for and this pass misses.**

@@ -54,6 +54,7 @@ follows from one sentence:
 - Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
   [report-views](openspec/specs/report-views/spec.md) ·
+  [manual-facts](openspec/specs/manual-facts/spec.md) ·
   [bridge-api](openspec/specs/bridge-api/spec.md)
 - Manifest format — [family.example.toml](family.example.toml)
 

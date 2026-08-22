@@ -15,9 +15,12 @@ the durable line instead.
 WLW's write powers are exactly three, and each is a hand-off to WLC rather than an act of custody:
 
 1. **Deposit inputs.** Uploads land in a workspace's `statements/` inbox — extension-allowlisted, size
-   capped, never overwriting (WLC's non-clobber naming). Passwords land in that workspace's WLC config by
-   WLC's own conventions, transit once over loopback, and are never echoed, logged, or retained by WLW.
-   Depositing is not custody: nothing enters a store until WLC's import gates pass it.
+   capped, never overwriting (WLC's non-clobber naming). Guided manual-fact authoring writes
+   `manual/*.yaml` in WLC's documented shape, schema-validated before the write (manual-facts spec) —
+   these are corpus artifacts, replayed on every rebuild, exactly like a statement. Passwords land in that
+   workspace's WLC config by WLC's own conventions, transit once over loopback, and are never echoed,
+   logged, or retained by WLW. Depositing is not custody: nothing enters a store until WLC's gates pass
+   it — which is why every deposit surface must state that the corpus changed and the store is behind.
 2. **Run WLC's verbs.** `import`, `rebuild --check`, `verify`, `diagnose`, `fetch-*` — always as
    subprocesses of the real CLI (list-args, stdin closed, timeouts), so every WLC gate (oracles,
    provenance, footing, PII hooks) applies unchanged. WLW never re-implements a verb's logic, and adds no

@@ -42,6 +42,12 @@ rescued by an IDE assistant mid-import) — WLW exists to make that person self-
   A locked file flows to A4; an unrecognized one flows to C4.
 - **B3. See the money**: per-entity and family views (report-views spec), with basis/as-of honesty.
 
+- **B4. Record a fact no document can supply**: unlisted shares, a let-out property's rent, a
+  hand-reconciled corporate action, or a stopgap value awaiting its real statement → a guided form writes
+  `manual/*.yaml` in WLC's ITR-2 vocabulary (manual-facts spec). Constraint: this is CORPUS, so it is
+  replayed on every rebuild and the UI must say the store is behind until re-applied. Documents are
+  always offered first; manual entry is the exception, not the shortcut.
+
 ## UC-C — Operations in the browser (P2)
 
 The principle: **WLW surfaces WLC's verbs; it never re-implements them.** Each is a subprocess of the
