@@ -15,10 +15,16 @@ import by `wealthlens import --json`. WLW SHALL NOT create stores, write schema,
 - **THEN** the workspace is produced by WLC's init flow, and WLW's only write is the manifest entry
   declaring it
 
-### Requirement: The manifest is the only file WLW writes
+### Requirement: The manifest is the only file WLW OWNS
 
-Guided setup SHALL persist its outcome exclusively to `family.toml`. The manifest SHALL contain no
-financial data, no passwords, and no store keys — paths, labels, and presentation preferences only.
+`family.toml` is the only file whose content WLW authors on its own behalf; guided setup SHALL persist its
+outcome exclusively there. The manifest SHALL contain no financial data, no passwords, and no store keys —
+paths, labels, and presentation preferences only.
+
+> Everything else WLW writes, it writes **into a WLC workspace by WLC's convention**, not as its own state:
+> an uploaded file into the inbox, a value into that workspace's `config.toml` or secret file
+> (identity-and-settings), a `manual/*.yaml` fact. Those are deposits, and the enumerated set lives in
+> bridge-api. WLW keeps no state of its own beyond the manifest (ADR-0002).
 
 #### Scenario: Manifest stays clean
 - **WHEN** any setup flow completes

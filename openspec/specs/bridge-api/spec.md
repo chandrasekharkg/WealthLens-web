@@ -5,15 +5,26 @@ manifest and the one sanctioned import trigger. Security posture per ADR-0004.
 
 ## ADDED Requirements
 
-### Requirement: Read-only by construction
+### Requirement: No endpoint writes a store, and the side-effecting set is closed
 
-The bridge SHALL open every WLC store read-only. No endpoint SHALL execute writes against a store; the
-sole side-effecting endpoint is the import trigger, which runs `wealthlens import --json` as a subprocess
-(list-args, stdin closed, timeout) against exactly one named, manifest-declared workspace.
+The bridge SHALL open every WLC store read-only, and no endpoint SHALL execute a write against a store.
+Side effects are limited to a **closed, enumerated set**, each a hand-off to WLC rather than an act of
+custody (ADR-0005): depositing an upload into a workspace inbox; writing a value into that workspace's WLC
+configuration by WLC's own convention (setup-and-config, identity-and-settings); running a WLC verb as a
+subprocess (list-args, stdin closed, timeout) against exactly one named, manifest-declared workspace; and
+writing WLW's own manifest. Anything outside that list is a defect.
+
+> Earlier drafts called the bridge "read-only, with import as the sole side effect". That was never true of
+> the design — uploads, password writes and other verbs all have effects. The honest invariant is the one
+> above: **no store writes**, and a list short enough to audit.
 
 #### Scenario: Import against "all" is refused
 - **WHEN** the import endpoint is called without a single named entity
 - **THEN** it refuses — there is no "import into all" (each import is one workspace's own gates)
+
+#### Scenario: A new side effect appears
+- **WHEN** an endpoint is added that writes anywhere
+- **THEN** it either belongs to the enumerated set or the spec changes first — the list is the contract
 
 ### Requirement: Localhost hardening (phase 1)
 
@@ -70,6 +81,29 @@ happened.
 #### Scenario: A rebuild outlives its viewer
 - **WHEN** a rebuild is started and the browser tab is closed, then reopened
 - **THEN** the job's status and, once finished, its full result are still available in Activity
+
+### Requirement: One mutating verb per workspace, with read handles released
+
+The job model SHALL serialize mutation per workspace: at most one verb runs against a workspace at a time,
+a second request for a busy workspace is refused or queued (never run concurrently), and the bridge SHALL
+close its own read handles on that workspace for the verb's duration. This is DuckDB's read/write attach
+conflict made structural — WLC learned it the hard way, and a UI that polls a dashboard while a rebuild
+runs is exactly the shape that provokes it.
+
+> Promoted here from ADR-0005's prose deliberately: a decision nothing tests is a decision that erodes.
+
+#### Scenario: A second verb is requested while one runs
+- **WHEN** a rebuild is running for an entity and an import is requested for the same entity
+- **THEN** the second does not start concurrently, and the caller is told why
+
+#### Scenario: A dashboard is open while a verb runs
+- **WHEN** a verb starts against a workspace the bridge is currently reading
+- **THEN** the bridge releases its handles first, and views over that workspace report it as busy rather
+  than failing to open
+
+#### Scenario: Different workspaces are unaffected
+- **WHEN** one entity's workspace is busy
+- **THEN** verbs and reads against other entities' workspaces proceed normally
 
 ### Requirement: The API schema is generated, not hand-maintained
 

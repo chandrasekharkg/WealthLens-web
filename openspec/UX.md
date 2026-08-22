@@ -142,6 +142,10 @@ Every verb run: what, which workspace, when, duration, outcome, and the full out
 dismissed. Long-running jobs stream here. This exists because subprocess output is evidence, and because
 a user who walks away must be able to find out what happened.
 
+> **Identity & config live in screen 4, not here** (identity-and-settings spec): PAN and holder name
+> belong to one workspace, and there is no household-wide identity. Screen 6 holds only WLW's own
+> presentation preferences.
+
 ### 6. Settings — global only
 
 App preferences (theme, currency display, number format), manifest file location + *reveal*, versions
