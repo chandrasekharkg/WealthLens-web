@@ -48,6 +48,13 @@ rescued by an IDE assistant mid-import) — WLW exists to make that person self-
   replayed on every rebuild and the UI must say the store is behind until re-applied. Documents are
   always offered first; manual entry is the exception, not the shortcut.
 
+- **B5. Get a table into a spreadsheet**: export any table the app renders — the whole filtered set, with
+  its provenance header and its currencies intact (export-and-print spec). The escape hatch every user
+  eventually wants, and the one that must not quietly export only page 1.
+- **B6. Print a copy**: produce a paper or PDF copy of a report page via the browser's own print, laid out
+  for paper and stamped with scope, as-of and any active warning — the artifact most likely to be handed
+  to an accountant or a family member.
+
 ## UC-C — Operations in the browser (P2)
 
 The principle: **WLW surfaces WLC's verbs; it never re-implements them.** Each is a subprocess of the

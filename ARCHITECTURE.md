@@ -34,7 +34,8 @@ follows from one sentence:
 4. **Keys never reach the browser; localhost hardened; LAN is ADR-gated** — Host/Origin checks + session
    token now; any bind beyond loopback requires the phase-2 ADR with a real auth model.
    → [ADR-0004](openspec/decisions/0004-bridge-and-security-posture.md) ·
-   [bridge-api](openspec/specs/bridge-api/spec.md)
+   [bridge-api](openspec/specs/bridge-api/spec.md) ·
+  [export-and-print](openspec/specs/export-and-print/spec.md)
 5. **Testability is architecture** — components are dumb, logic is pure functions, browser tests are
    capped at a handful of guard flows. A conservative tool that is easy to enhance beats a
    feature-rich one nobody can maintain. → [ADR-0010](openspec/decisions/0010-testability-first.md)
@@ -60,7 +61,8 @@ follows from one sentence:
   [0009 distribution: native first, container phased](openspec/decisions/0009-distribution-and-deployment.md) ·
   [0010 testability first](openspec/decisions/0010-testability-first.md) ·
   [0011 extension model](openspec/decisions/0011-extension-model.md) ·
-  [0012 evolution](openspec/decisions/0012-evolution.md)
+  [0012 evolution](openspec/decisions/0012-evolution.md) ·
+  [0013 egress: export & print](openspec/decisions/0013-egress.md)
 - Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
   [report-views](openspec/specs/report-views/spec.md) ·

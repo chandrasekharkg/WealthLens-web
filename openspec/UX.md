@@ -87,7 +87,9 @@ Additions:
 - **Freshness/warning strip** at the top when the current scope includes a stale or unverified entity —
   the number is still shown, never suppressed, with the caveat attached.
 - **Drill-down**: a combined family row expands into its per-entity parts (family-aggregation spec).
-- Export (CSV) per view — the escape hatch to a spreadsheet, which real users will want.
+- **Export and print** on every view (export-and-print spec, ADR-0013): CSV of the whole filtered
+  set, and a print layout designed for paper. Both stamp scope, as-of, currency, filters and any
+  active warning onto the artifact, so a number that leaves the app takes its caveats with it.
 
 ### 3. Family — the manifest, as a screen
 
