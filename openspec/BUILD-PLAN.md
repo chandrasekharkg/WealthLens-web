@@ -76,6 +76,9 @@ running — including the case where one store is missing.
 **Done when:** E2E #2 (cross-site POST refused) goes green, and a rebuild running against one workspace
 provably does not block reads of another.
 
+*Status: done except E2E #2, which needs the app shell to fire the request at (Phase 3). The refusal itself
+is asserted in pytest today.*
+
 ## Phase 3 — The frontend spine
 
 Still not screens. This is the layer every screen then costs almost nothing to add.

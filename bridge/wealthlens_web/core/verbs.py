@@ -64,7 +64,17 @@ class Job:
     message: str | None = None
     result: dict = dataclasses.field(default_factory=dict)
     exit_code: int | None = None
-    log: str = ""
+    # The verb's narration, line by line as it arrives. A list rather than a string because a viewer
+    # watching the stream needs to ask "what is new since line N?" without re-reading the whole thing.
+    log_lines: list[str] = dataclasses.field(default_factory=list)
+
+    @property
+    def log(self) -> str:
+        return "\n".join(self.log_lines)
+
+    @property
+    def is_finished(self) -> bool:
+        return self.state is JobState.FINISHED
 
     @property
     def changed_something(self) -> bool:
@@ -161,17 +171,26 @@ class Runner:
         # anything on a command line is visible in the process table to every user on the machine.
         env = {**os.environ, "WEALTHLENS_DATA": str(job.workspace)}
         proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, text=True, env=env)
+                                stderr=subprocess.PIPE, text=True, bufsize=1, env=env)
         with self._guard:
             self._pids.add(proc.pid)
+
+        # stdout is drained on its own thread so a chatty verb cannot fill the pipe and deadlock while we
+        # are reading stderr — the classic subprocess hang, and a rebuild narrates for minutes.
+        collected: list[str] = []
+        pump = threading.Thread(target=lambda: collected.append(proc.stdout.read()), daemon=True)
+        pump.start()
         try:
-            out, err = proc.communicate(timeout=self._timeout)
+            for line in proc.stderr:                  # narration, live, in the order it happened
+                job.log_lines.append(line.rstrip("\n"))
+            proc.wait(timeout=self._timeout)
         finally:
             with self._guard:
                 self._pids.discard(proc.pid)
+        pump.join(timeout=10)
+        out = collected[0] if collected else ""
 
         job.exit_code = proc.returncode
-        job.log = err or ""
         try:
             envelope = json.loads(out)
         except json.JSONDecodeError:

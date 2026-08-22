@@ -71,6 +71,23 @@ ADRs silently invalidating earlier statements that were left standing.)
 Every claim about **what WLC does** must be verified against WLC's source before it is written down. Several
 specs have already been wrong about verbs, columns and guarantees that did not exist. Check, then write.
 
+## 3b. The API contract is generated, never hand-written
+
+The frontend's types come from the bridge's own OpenAPI document. Two gates keep the chain honest:
+
+- a **pytest** asserts the committed `frontend/src/api/openapi.json` matches the live app;
+- **CI** regenerates `src/api/types.ts` and fails if it differs from what is committed.
+
+So after changing an endpoint or a response model:
+
+```bash
+python bridge/scripts/export_schema.py    # app  → openapi.json
+cd frontend && npm run types              # json → types.ts
+```
+
+Both files are committed. A contract change the UI has not adopted then fails a check, rather than
+rendering `undefined` in somebody's dashboard.
+
 ## 4. The three browser tests, and no more
 
 `frontend/e2e/` holds exactly three Playwright specs, each present because a **wrong** outcome is

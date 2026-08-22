@@ -13,9 +13,10 @@ import dataclasses
 import pathlib
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from wealthlens_web import engine as _engine
+from wealthlens_web.api import models
 from wealthlens_web.api.security import LocalOnly, new_token
 from wealthlens_web.core import aggregate, manifest, verbs, workspaces
 
@@ -41,7 +42,7 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
 
     # ── what is installed, and what each store is at ─────────────────────────────────────────────────
 
-    @app.get("/api/version")
+    @app.get("/api/version", response_model=models.Version)
     def version() -> dict:
         """Engine presence and per-store versions, read at request time — never remembered (ADR-0017)."""
         eng = _engine.preflight()
@@ -62,7 +63,7 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
 
     # ── reads, at a stated granularity ───────────────────────────────────────────────────────────────
 
-    @app.get("/api/networth")
+    @app.get("/api/networth", response_model=models.NetWorth)
     def networth(on: str | None = Query(default=None)) -> dict:
         m = _manifest()
         try:
@@ -78,11 +79,11 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             "entities": [_entity_total(e) for e in got.entities],
         }
 
-    @app.get("/api/positions")
+    @app.get("/api/positions", response_model=models.Positions)
     def positions(on: str | None = Query(default=None)) -> dict:
         return _rows(aggregate.positions(_manifest(), on=on, our_pids=app.state.runner.our_pids))
 
-    @app.get("/api/transactions")
+    @app.get("/api/transactions", response_model=models.Transactions)
     def transactions(since: str | None = Query(default=None),
                      until: str | None = Query(default=None)) -> dict:
         return _rows(aggregate.transactions(_manifest(), since=since, until=until,
@@ -90,7 +91,7 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
 
     # ── the one side-effecting surface ───────────────────────────────────────────────────────────────
 
-    @app.post("/api/jobs")
+    @app.post("/api/jobs", response_model=models.Job, status_code=202)
     def start_job(body: dict) -> JSONResponse:
         """Run a WLC verb against exactly one named, manifest-declared workspace.
 
@@ -117,17 +118,53 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             raise HTTPException(status_code=400, detail={"error": "verb", "reason": str(e)}) from None
         return JSONResponse(_job(job), status_code=202)
 
-    @app.get("/api/jobs/{job_id}")
+    @app.get("/api/jobs/{job_id}/stream")
+    def job_stream(job_id: str) -> StreamingResponse:
+        """Watch a running verb as server-sent events.
+
+        The stream carries the verb's own narration as OPAQUE lines. Only `import` publishes structure
+        mid-run, so parsing prose into a progress bar would mean inventing a contract that does not exist
+        and breaking it on the next copy edit upstream. Lines now, structure when the engine offers it.
+
+        The stream is a convenience, never the record: the outcome stays retrievable from the job endpoint
+        after the stream closes, so a viewer who navigates away or reconnects still learns what happened.
+        """
+        job = app.state.runner.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail={"error": "unknown_job", "reason": _FORGOTTEN})
+        return StreamingResponse(_events(job), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.get("/api/jobs/{job_id}", response_model=models.Job)
     def job_status(job_id: str) -> dict:
         job = app.state.runner.get(job_id)
         if job is None:
             # In-memory by design (ADR-0002), so say which it is: forgotten, not never-existed.
-            raise HTTPException(status_code=404, detail={"error": "unknown_job", "reason":
-                                "no such job in this session — a restart forgets what ran, and the store "
-                                "is unaffected. Run `verify` or `rebuild --check` to see where it stands."})
+            raise HTTPException(status_code=404, detail={"error": "unknown_job", "reason": _FORGOTTEN})
         return _job(job)
 
     return app
+
+
+_FORGOTTEN = ("no such job in this session — a restart forgets what ran, and the store is unaffected. "
+              "Run `verify` or `rebuild --check` to see where it stands.")
+
+
+def _events(job: verbs.Job):
+    """Yield narration as it arrives, then one final event carrying the outcome."""
+    import json as _json
+    import time
+
+    sent = 0
+    while True:
+        lines = job.log_lines[sent:]
+        for line in lines:
+            yield f"event: log\ndata: {_json.dumps(line)}\n\n"
+        sent += len(lines)
+        if job.is_finished and sent >= len(job.log_lines):
+            break
+        time.sleep(0.05)
+    yield f"event: done\ndata: {_json.dumps(_job(job))}\n\n"
 
 
 # ── serialisation ────────────────────────────────────────────────────────────────────────────────────

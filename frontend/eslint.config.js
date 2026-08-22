@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 // Linting from the first commit rather than retrofitted. The rules below are the ones that catch real
 // defects in this codebase's shape — a UI whose correctness is supposed to live in pure functions.
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "playwright-report", "test-results"] },
+  { ignores: ["dist", "node_modules", "playwright-report", "test-results", "src/api/types.ts"] },
   js.configs.recommended,
   {
     // Type-aware rules apply to the app's TypeScript only. Config files (this one included) live outside

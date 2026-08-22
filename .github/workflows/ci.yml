@@ -50,6 +50,11 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      # The second half of the drift gate. pytest asserts the committed OpenAPI document matches the live
+      # app; this asserts the generated types match the document. Together they mean a contract change the
+      # UI has not adopted fails a check rather than a household's dashboard.
+      - run: npm run types
+      - run: git diff --exit-code src/api/types.ts
 
   e2e:
     # The three sanctioned browser flows (ADR-0010). Too slow for a push hook, so this is their scheduled
