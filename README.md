@@ -53,5 +53,11 @@ architecturally significant choices are [ADRs](openspec/decisions/). Same licens
 
 ## Status
 
-**Skeleton / design stage.** The specs and ADRs below define the contract; implementation follows them.
-ADR-0003 (frontend stack) is PROPOSED and genuinely open — contributions to that discussion welcome.
+**Definition stage — specs and design settled, implementation next.** The [use cases](openspec/USE-CASES.md),
+[UX first pass](openspec/UX.md) (information architecture, screens, the four critical flows), six
+[ADRs](openspec/decisions/) and four capability specs define what gets built. The stack is React + Vite +
+TypeScript over a Python bridge ([ADR-0003](openspec/decisions/0003-frontend-stack.md)).
+
+**First reviewers wanted.** [UX.md](openspec/UX.md) ends with open questions — nav shape, where the as-of
+date belongs, how much of the machinery a non-technical household member should ever see. Opinions from
+people who actually keep a household's books are worth more here than more design from us.

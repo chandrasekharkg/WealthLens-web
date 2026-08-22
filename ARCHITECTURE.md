@@ -37,10 +37,11 @@ follows from one sentence:
 ## The design index
 
 - Use cases (the design source) — [openspec/USE-CASES.md](openspec/USE-CASES.md)
+- UX first pass (IA + screens + flows) — [openspec/UX.md](openspec/UX.md)
 - Governance & non-negotiables — [openspec/project.md](openspec/project.md)
 - ADRs — [0001 split](openspec/decisions/0001-custodian-presenter-split.md) ·
   [0002 no-database](openspec/decisions/0002-no-database.md) ·
-  [0003 frontend stack (PROPOSED)](openspec/decisions/0003-frontend-stack.md) ·
+  [0003 frontend stack](openspec/decisions/0003-frontend-stack.md) ·
   [0004 bridge & security](openspec/decisions/0004-bridge-and-security-posture.md) ·
   [0005 operations surface](openspec/decisions/0005-operations-surface.md) ·
   [0006 v1 product decisions](openspec/decisions/0006-v1-product-decisions.md)
