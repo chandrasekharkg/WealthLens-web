@@ -77,7 +77,39 @@ Each entity card shows: value contribution, verification state (integrity + cont
 coverage rolled into one honest badge), last import, store schema version, and **freshness** where the
 workspace is a copy (ADR-0006 §2). Clicking a card opens that entity's Workspace detail.
 
-### 2. Reports — Krishnus's screen, kept and extended
+### 2. Reports — a LIST of reports, each composed of sections
+
+**Feedback from first real use (2026-08-23): one flat holdings table is content-accurate and not readable.**
+113 rows of mixed cash, deposits, property and securities in one list answers "what do I own" only in the
+sense that the data is all present somewhere on the page.
+
+So Reports is a **left-hand list of reports**, and each report is a series of **sections** — one lens call
+per section, rendered with the shipped table, each with an icon for what kind of thing it holds. This is
+the shape a notebook session naturally takes, and it is the shape a reader can scan.
+
+**Why composing sections is NOT a boundary violation** — an earlier reading of ADR-0001 said otherwise and
+was wrong. Asking lens several questions and laying the answers out is *presentation*. Re-deriving figures
+lens already computes — subtotal hierarchies, coverage arithmetic — would be recomputing WLC's semantics,
+and that stays forbidden. The test is whether a number on screen came from a lens answer or from our own
+sum.
+
+Proposed reports and the call behind each section:
+
+| Report | Section | Lens call | Icon |
+|---|---|---|---|
+| **Accounts** | Cash at bank, by bank | `balances()` | 🏦 |
+| | Fixed deposits, by bank | `holdings()` → `fixed_deposit` | 🔒 |
+| | Credit cards | `holdings()` → `credit_card` | 💳 |
+| | Property | `holdings()` → `real_estate` | 🏠 |
+| **Market instruments** | Equities | `holdings()` → `listed_equity` + `performance()` | 📈 |
+| | Mutual funds | `holdings()` → `mutual_fund` + `performance()` | 📊 |
+| | Bonds & SGBs | `holdings()` → `bond` | 🧾 |
+| **Everything** | The current flat table | `positions` | — |
+
+Each market-instrument section wants an **acquisition date**, which is the one column no public lens call
+carries yet (cross-repo task).
+
+### 2b. Reports — Krishnus's original screen, kept and extended
 
 Tabs: **Net Worth · Holdings · Spending · Point-in-time**. Net Worth and Holdings are his existing
 views, unchanged in substance (basis column, profile badges, sort/filter/search, count+total footers).

@@ -119,11 +119,16 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       command rather than building the button (ADR-0012). Graduates on demand.
 - [x] WLC: **a `promote` verb** — shipped (WLC `c9fdb41`). Eight abort-first gates, backup, atomic
       `os.replace`. ADR-0006's in-UI promotion now has a verb to drive within the ADR-0005 boundary.
-- [ ] WLC: **a structured account summary on the read surface.** `account_summary.build()` computes the
-      hierarchical net-worth-by-class view (label, value, basis, indent, kind) plus per-year document
-      coverage — but only emits text and HTML, and lives outside `lens.__all__`. WLW's Reports needs those
-      ROWS. Reimplementing the hierarchy here would be exactly the "recompute WLC's semantics" the boundary
-      forbids, so the fix is upstream: return the data, keep the rendering.
+- [ ] WLC: **an acquisition date on the read surface.** A market-instruments report wants each holding's
+      purchase date, and nothing public carries one: `holdings()` has no acquisition column and
+      `performance()` gives invested/current without a date. `holding_events.event_date` has it, so this is
+      a projection rather than new arithmetic. Until it lands, that column is the one part of the report
+      that cannot be composed from public calls.
+- [ ] WLC (**lower priority — may not be needed**): a structured account summary. `account_summary.build()`
+      computes the hierarchy plus per-year document coverage but emits only text and HTML. **Sectioned
+      reports composed from lens primitives may make most of it unnecessary** — what would remain uniquely
+      upstream is the document-coverage-per-line view, which is genuinely WLC's arithmetic. Revisit after
+      the sectioned reports exist.
 - [ ] WLC (**deferred — waiting for a real user to want it**): a one-time password path for `import`,
       e.g. `--password-file <path>`, read then forgotten. Today "use it once" is unbuildable: `import`
       takes no password argument and gives up on a closed stdin (ADR-0019). Designed and understood, but
