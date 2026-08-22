@@ -11,6 +11,7 @@ license = { text = "MIT" }
 dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
+    "python-multipart>=0.0.9",   # multipart uploads: the statement deposit endpoint
 ]
 
 # WealthLens-core is NOT a hard dependency here, deliberately.
@@ -56,3 +57,10 @@ ignore = [
 
 # `ruff format` is available and useful, but NOT enforced in CI: this codebase uses deliberate column
 # alignment in comments and tables that a formatter would flatten. Run it if you like; the linter is the gate.
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's parameter idiom IS a call in a default (`file: UploadFile = File(...)`), and it is not the
+# mutable-default trap B008 exists to catch — the objects are declarations, not shared state. Configured
+# rather than silenced per-line, so the exemption is one decision instead of a scattering of noqa comments.
+extend-immutable-calls = ["fastapi.Body", "fastapi.Depends", "fastapi.File", "fastapi.Form",
+                          "fastapi.Header", "fastapi.Path", "fastapi.Query"]

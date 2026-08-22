@@ -122,6 +122,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload
+         * @description Deposit a statement into one entity's inbox — and do nothing else with it.
+         *
+         *     No parsing, no store write, no look inside. Importing is a separate, explicit act with WLC's gates
+         *     in front of it (ADR-0005).
+         */
+        post: operations["upload_api_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/version": {
         parameters: {
             query?: never;
@@ -152,6 +175,15 @@ export interface components {
          * @enum {string}
          */
         Availability: "ok" | "no_engine" | "missing" | "busy" | "schema_skew" | "unreadable";
+        /** Body_upload_api_upload_post */
+        Body_upload_api_upload_post: {
+            /** Entity */
+            entity: string;
+            /** File */
+            file: string;
+            /** Workspace */
+            workspace?: string | null;
+        };
         /** ClassTotal */
         ClassTotal: {
             /** Asset Class */
@@ -162,6 +194,23 @@ export interface components {
              */
             basis?: string | null;
             value: components["schemas"]["Money"];
+        };
+        /**
+         * Deposit
+         * @description Where an uploaded statement landed. A deposit, not an import — nothing was parsed.
+         */
+        Deposit: {
+            /** Entity Id */
+            entity_id: string;
+            /** Filename */
+            filename: string;
+            /** Inbox */
+            inbox: string;
+            /**
+             * Renamed From
+             * @description Set when a name collided: both files are kept, never overwritten
+             */
+            renamed_from?: string | null;
         };
         /** EngineInfo */
         EngineInfo: {
@@ -685,6 +734,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Transactions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_api_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_api_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deposit"];
                 };
             };
             /** @description Validation Error */

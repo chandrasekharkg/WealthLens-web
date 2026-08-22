@@ -14,6 +14,36 @@
         "title": "Availability",
         "type": "string"
       },
+      "Body_upload_api_upload_post": {
+        "properties": {
+          "entity": {
+            "title": "Entity",
+            "type": "string"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "workspace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace"
+          }
+        },
+        "required": [
+          "entity",
+          "file"
+        ],
+        "title": "Body_upload_api_upload_post",
+        "type": "object"
+      },
       "ClassTotal": {
         "properties": {
           "asset_class": {
@@ -41,6 +71,42 @@
           "value"
         ],
         "title": "ClassTotal",
+        "type": "object"
+      },
+      "Deposit": {
+        "description": "Where an uploaded statement landed. A deposit, not an import \u2014 nothing was parsed.",
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "inbox": {
+            "title": "Inbox",
+            "type": "string"
+          },
+          "renamed_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when a name collided: both files are kept, never overwritten",
+            "title": "Renamed From"
+          }
+        },
+        "required": [
+          "filename",
+          "entity_id",
+          "inbox"
+        ],
+        "title": "Deposit",
         "type": "object"
       },
       "EngineInfo": {
@@ -1222,6 +1288,45 @@
           }
         },
         "summary": "Transactions"
+      }
+    },
+    "/api/upload": {
+      "post": {
+        "description": "Deposit a statement into one entity's inbox \u2014 and do nothing else with it.\n\nNo parsing, no store write, no look inside. Importing is a separate, explicit act with WLC's gates\nin front of it (ADR-0005).",
+        "operationId": "upload_api_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Deposit"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload"
       }
     },
     "/api/version": {

@@ -138,6 +138,16 @@ class Transactions(BaseModel):
     rows: list[TransactionRow] = []
 
 
+class Deposit(BaseModel):
+    """Where an uploaded statement landed. A deposit, not an import — nothing was parsed."""
+
+    filename: str
+    renamed_from: str | None = Field(
+        default=None, description="Set when a name collided: both files are kept, never overwritten")
+    entity_id: str
+    inbox: str
+
+
 class EngineInfo(BaseModel):
     present: bool
     schema_version: str | None = None

@@ -12,13 +12,13 @@ from __future__ import annotations
 import dataclasses
 import pathlib
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from wealthlens_web import engine as _engine
 from wealthlens_web.api import models
 from wealthlens_web.api.security import LocalOnly, new_token
-from wealthlens_web.core import aggregate, manifest, provenance, verbs, workspaces
+from wealthlens_web.core import aggregate, inbox, manifest, provenance, verbs, workspaces
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7788
@@ -95,6 +95,40 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
 
     # ── the one side-effecting surface ───────────────────────────────────────────────────────────────
 
+    def _target_workspace(m: manifest.Manifest, entity_id: str, named: str | None) -> pathlib.Path:
+        """The one workspace a side effect may touch, checked against what the manifest declared."""
+        try:
+            entity = m.entity(entity_id)
+        except manifest.ManifestError as e:
+            # Naming an entity the household has not declared is the caller's mistake, not a server fault —
+            # and the manifest already knows which ids WOULD have worked, so the answer says so.
+            raise HTTPException(status_code=404, detail={"error": "entity", "reason": str(e)}) from None
+        if entity.has_several_workspaces and not named:
+            raise HTTPException(status_code=400, detail={"error": "workspace", "reason":
+                                f"{entity_id} declares several workspaces; name which one"})
+        target = pathlib.Path(named) if named else entity.workspaces[0]
+        if target.resolve() not in {p.resolve() for p in entity.workspaces}:
+            raise HTTPException(status_code=400, detail={"error": "workspace", "reason":
+                                "that workspace is not declared for this entity"})
+        return target
+
+    @app.post("/api/upload", response_model=models.Deposit, status_code=201)
+    async def upload(entity: str = Form(...), file: UploadFile = File(...),
+                     workspace: str | None = Form(default=None)) -> dict:
+        """Deposit a statement into one entity's inbox — and do nothing else with it.
+
+        No parsing, no store write, no look inside. Importing is a separate, explicit act with WLC's gates
+        in front of it (ADR-0005).
+        """
+        target = _target_workspace(_manifest(), entity, workspace)
+        try:
+            landed = inbox.deposit(target, file.filename or "", await file.read())
+        except inbox.RejectedUpload as e:
+            raise HTTPException(status_code=400,
+                                detail={"error": "upload", "reason": str(e), "rule": e.reason}) from None
+        return {"filename": landed.name, "renamed_from": landed.renamed_from,
+                "entity_id": entity, "inbox": inbox.INBOX}
+
     @app.post("/api/jobs", response_model=models.Job, status_code=202)
     def start_job(body: dict) -> JSONResponse:
         """Run a WLC verb against exactly one named, manifest-declared workspace.
@@ -108,14 +142,7 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         if not entity_id:
             raise HTTPException(status_code=400, detail={"error": "entity", "reason":
                                 "name exactly one entity — there is no import-into-all"})
-        entity = m.entity(entity_id)
-        if entity.has_several_workspaces and not body.get("workspace"):
-            raise HTTPException(status_code=400, detail={"error": "workspace", "reason":
-                                f"{entity_id} declares several workspaces; name which one"})
-        target = pathlib.Path(body["workspace"]) if body.get("workspace") else entity.workspaces[0]
-        if target.resolve() not in {p.resolve() for p in entity.workspaces}:
-            raise HTTPException(status_code=400, detail={"error": "workspace", "reason":
-                                "that workspace is not declared for this entity"})
+        target = _target_workspace(m, entity_id, body.get("workspace"))
         try:
             job = app.state.runner.submit(verb, entity_id=entity_id, workspace=target)
         except verbs.VerbNotAllowed as e:
