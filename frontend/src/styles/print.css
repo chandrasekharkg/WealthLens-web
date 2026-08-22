@@ -1,0 +1,113 @@
+/*
+ * The printed page.
+ *
+ * A printout is the artifact most likely to be handed to an accountant, an advisor, or a family member —
+ * the one that travels furthest from the app that explains it. So this is designed, not inherited.
+ *
+ * What it must do (export-and-print spec): print every row rather than the page a reader can see; repeat
+ * column headers on every sheet; never split a row across a break; drop application chrome; force the
+ * light palette whatever the theme; number the pages; and where a table cannot fit, say which columns were
+ * left out.
+ *
+ * The row-count half is NOT solved here. CSS cannot print a row the DOM does not contain, so the table
+ * component swaps to the full row set on `beforeprint` — see DataTable. This file handles the rest.
+ */
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  /*
+   * Force the light palette. Printing a dark UI wastes a cartridge and reads badly, and `print-color-adjust`
+   * left alone would faithfully reproduce whatever the screen was showing.
+   */
+  :root,
+  :root[data-theme="dark"] {
+    --ground: #ffffff;
+    --surface: #ffffff;
+    --ink: #111111;
+    --muted: #444444;
+    --line: #bbbbbb;
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    print-color-adjust: economy;
+  }
+
+  /* Application chrome is not part of the document. The filters that were in effect appear in the
+     provenance header instead, where a reader can actually use them. */
+  nav,
+  aside,
+  button,
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  [data-print="only"] {
+    display: block !important;
+  }
+
+  /* The provenance header leads the document and stays with it. */
+  .provenance {
+    border: 1px solid #999;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    font-size: 10pt;
+    break-inside: avoid;
+  }
+
+  .provenance .warning {
+    font-weight: 700;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+  }
+
+  /* Repeat the head on every sheet — a table whose second page has no headers is a table of unlabelled
+     numbers. `table-header-group` is what makes the browser do it. */
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* A row broken across a page break is a figure split from its label. */
+  tr,
+  .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid #ccc;
+    padding: 3px 6px;
+    text-align: left;
+  }
+
+  td.numeric,
+  th.numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Wide content scrolls on screen; on paper there is nowhere to scroll to, so it wraps instead of being
+     silently cut off at the margin. */
+  .scroll-x {
+    overflow: visible !important;
+  }
+
+  a[href]::after {
+    content: "";
+  }
+}

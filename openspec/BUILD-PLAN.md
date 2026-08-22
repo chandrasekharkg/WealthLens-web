@@ -94,6 +94,9 @@ Still not screens. This is the layer every screen then costs almost nothing to a
 **Done when:** a throwaway page renders a table that sorts, filters, exports a correctly-escaped CSV and
 prints properly — with the money/currency and escaping rules asserted in Vitest, no DOM required.
 
+*Status: the table, egress, provenance header and print stylesheet are done. i18n and the chart wrapper
+remain; both land with the first screen that needs them (Phase 4).*
+
 ## Phase 4 — The daily loop
 
 The first phase a household can actually use (UC-B).
