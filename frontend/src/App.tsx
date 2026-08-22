@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { api, ApiError, type NetWorth, type Version } from "./api/client";
+import { api, ApiError, type NetWorth, type Positions, type Version } from "./api/client";
 import { defaultFormatter } from "./i18n";
+import { Import } from "./screens/Import";
 import { Overview } from "./screens/Overview";
+import { Reports } from "./screens/Reports";
 
 /**
  * The shell.
@@ -18,6 +20,8 @@ export function App() {
   const { t } = defaultFormatter;
   const [version, setVersion] = useState<Load<Version>>({ state: "loading" });
   const [netWorth, setNetWorth] = useState<Load<NetWorth>>({ state: "loading" });
+  const [positions, setPositions] = useState<Load<Positions>>({ state: "loading" });
+  const [screen, setScreen] = useState<"overview" | "reports" | "import">("overview");
 
   // The fetch itself sets state only from its callbacks — never synchronously in the effect body, which
   // would cascade a render on every mount for no benefit. The initial "loading" is the initial STATE.
@@ -27,11 +31,20 @@ export function App() {
       setVersion({ state: "ready", data: found });
       if (found.engine.present && found.engine.schema_version) {
         setNetWorth({ state: "ready", data: await api.netWorth() });
+        setPositions({ state: "ready", data: await api.positions() });
       }
     } catch (error: unknown) {
       setVersion((prev) => (prev.state === "ready" ? prev : { state: "error", error }));
       setNetWorth({ state: "error", error });
+      setPositions({ state: "error", error });
     }
+  }, []);
+
+  const showPositions = useCallback((on: string) => {
+    api
+      .positions(on || undefined)
+      .then((data) => setPositions({ state: "ready", data }))
+      .catch((error: unknown) => setPositions({ state: "error", error }));
   }, []);
 
   useEffect(() => {
@@ -64,7 +77,38 @@ export function App() {
   if (netWorth.state === "error") return <Failure error={netWorth.error} onRetry={retry} />;
   if (netWorth.state === "loading") return <p role="status">…</p>;
 
-  return <Overview data={netWorth.data} format={defaultFormatter} />;
+  const entities = netWorth.data.entities.map((e) => ({
+    id: e.entity_id,
+    label: e.label,
+    available: e.contributes,
+  }));
+
+  return (
+    <>
+      <nav aria-label={t("app.name")} data-print="hide">
+        <button type="button" onClick={() => setScreen("overview")} aria-current={screen === "overview"}>
+          {t("nav.overview")}
+        </button>
+        <button type="button" onClick={() => setScreen("reports")} aria-current={screen === "reports"}>
+          {t("nav.reports")}
+        </button>
+        <button type="button" onClick={() => setScreen("import")} aria-current={screen === "import"}>
+          {t("nav.import")}
+        </button>
+      </nav>
+
+      {screen === "overview" && <Overview data={netWorth.data} format={defaultFormatter} />}
+      {screen === "reports" &&
+        (positions.state === "ready" ? (
+          <Reports data={positions.data} format={defaultFormatter} onDateChange={showPositions} />
+        ) : (
+          <p role="status">…</p>
+        ))}
+      {screen === "import" && (
+        <Import entities={entities} format={defaultFormatter} onImported={retry} />
+      )}
+    </>
+  );
 }
 
 function Failure({ error, onRetry }: { error: unknown; onRetry: () => void }) {

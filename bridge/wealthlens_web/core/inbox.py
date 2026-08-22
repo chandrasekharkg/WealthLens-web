@@ -89,7 +89,16 @@ def deposit(workspace: pathlib.Path, filename: str, content: bytes) -> Deposited
     name = safe_name(filename)
     check_suffix(name)
 
-    inbox = pathlib.Path(workspace).resolve() / INBOX
+    # The workspace must already exist. Without this, `mkdir(parents=True)` would happily build a folder
+    # tree at a path that is not a workspace at all — leaving a statement in a directory no engine will
+    # ever read, and no error to say so.
+    root = pathlib.Path(workspace)
+    if not root.is_dir():
+        raise RejectedUpload(
+            f"there is no workspace at {root}. Create it first — a statement left outside a workspace is "
+            "a file nothing will ever read.", reason="workspace")
+
+    inbox = root.resolve() / INBOX
     inbox.mkdir(parents=True, exist_ok=True)
 
     target = inbox / name

@@ -108,6 +108,17 @@ def test_an_empty_file_is_refused(tmp_path):
     assert e.value.reason == "empty"
 
 
+def test_a_workspace_that_does_not_exist_is_refused_rather_than_created(tmp_path):
+    """Found by clicking through the app: an unavailable member was selectable, and depositing would have
+    built a folder tree at a path that is not a workspace — leaving the statement somewhere no engine
+    reads, with nothing to say so."""
+    absent = tmp_path / "absent-WealthLens-data"
+    with pytest.raises(inbox.RejectedUpload) as e:
+        inbox.deposit(absent, "s.pdf", PDF)
+    assert e.value.reason == "workspace"
+    assert not absent.exists(), "nothing may be created on the refusal path"
+
+
 def test_nothing_is_parsed_and_no_store_is_written(tmp_path):
     """A deposit is not an import. The only thing that changes on disk is one file in one folder."""
     inbox.deposit(tmp_path, "statement.pdf", PDF)
