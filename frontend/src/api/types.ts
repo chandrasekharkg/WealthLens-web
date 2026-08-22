@@ -317,6 +317,7 @@ export interface components {
              * @description True when a declared entity could not be included
              */
             is_partial: boolean;
+            provenance: components["schemas"]["Provenance"];
             /** Reporting Currency */
             reporting_currency: string;
             total?: components["schemas"]["Money"] | null;
@@ -364,6 +365,7 @@ export interface components {
             granularity: "positions";
             /** Is Partial */
             is_partial: boolean;
+            provenance: components["schemas"]["Provenance"];
             /** Reporting Currency */
             reporting_currency: string;
             /**
@@ -371,6 +373,44 @@ export interface components {
              * @default []
              */
             rows: components["schemas"]["PositionRow"][];
+        };
+        /**
+         * Provenance
+         * @description What an exported or printed artifact carries so a figure survives leaving the app (ADR-0013).
+         */
+        Provenance: {
+            /**
+             * As Of
+             * @description The single date everything was computed at
+             */
+            as_of?: string | null;
+            /**
+             * Filters
+             * @default []
+             */
+            filters: string[];
+            /** Reporting Currency */
+            reporting_currency: string;
+            /** Row Count */
+            row_count?: number | null;
+            /**
+             * Scope
+             * @description Whose money this is, in words a reader outside the household can use
+             */
+            scope: string;
+            /**
+             * Stores
+             * @default []
+             */
+            stores: string[];
+            /** Title */
+            title: string;
+            /**
+             * Warnings
+             * @description What a shared date does NOT fix: exclusions, and stale evidence
+             * @default []
+             */
+            warnings: string[];
         };
         /** StoreInfo */
         StoreInfo: {
@@ -416,6 +456,7 @@ export interface components {
             granularity: "transactions";
             /** Is Partial */
             is_partial: boolean;
+            provenance: components["schemas"]["Provenance"];
             /** Reporting Currency */
             reporting_currency: string;
             /**

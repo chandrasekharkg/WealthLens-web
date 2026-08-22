@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from wealthlens_web import engine as _engine
 from wealthlens_web.api import models
 from wealthlens_web.api.security import LocalOnly, new_token
-from wealthlens_web.core import aggregate, manifest, verbs, workspaces
+from wealthlens_web.core import aggregate, manifest, provenance, verbs, workspaces
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7788
@@ -77,17 +77,21 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             "total": got.total.as_dict() if got.total else None,
             "is_partial": got.is_partial,
             "entities": [_entity_total(e) for e in got.entities],
+            "provenance": provenance.for_net_worth(got).as_dict(),
         }
 
     @app.get("/api/positions", response_model=models.Positions)
     def positions(on: str | None = Query(default=None)) -> dict:
-        return _rows(aggregate.positions(_manifest(), on=on, our_pids=app.state.runner.our_pids))
+        return _rows(aggregate.positions(_manifest(), on=on, our_pids=app.state.runner.our_pids),
+                     filters=(f"as of {on}",) if on else ())
 
     @app.get("/api/transactions", response_model=models.Transactions)
     def transactions(since: str | None = Query(default=None),
                      until: str | None = Query(default=None)) -> dict:
+        window = tuple(f for f in (f"from {since}" if since else None,
+                                   f"to {until}" if until else None) if f)
         return _rows(aggregate.transactions(_manifest(), since=since, until=until,
-                                            our_pids=app.state.runner.our_pids))
+                                            our_pids=app.state.runner.our_pids), filters=window)
 
     # ── the one side-effecting surface ───────────────────────────────────────────────────────────────
 
@@ -195,8 +199,9 @@ def _workspace(w: workspaces.WorkspaceStatus) -> dict:
     }
 
 
-def _rows(got: aggregate.FamilyRows) -> dict:
+def _rows(got: aggregate.FamilyRows, *, filters: tuple[str, ...] = ()) -> dict:
     return {
+        "provenance": provenance.for_rows(got, filters=filters).as_dict(),
         "granularity": got.granularity,
         "as_of": got.as_of,
         "reporting_currency": got.reporting_currency,

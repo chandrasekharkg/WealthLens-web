@@ -63,6 +63,20 @@ class EntityTotal(BaseModel):
     by_class: list[ClassTotal] = []
 
 
+class Provenance(BaseModel):
+    """What an exported or printed artifact carries so a figure survives leaving the app (ADR-0013)."""
+
+    title: str
+    scope: str = Field(description="Whose money this is, in words a reader outside the household can use")
+    as_of: str | None = Field(default=None, description="The single date everything was computed at")
+    reporting_currency: str
+    stores: list[str] = []
+    filters: list[str] = []
+    warnings: list[str] = Field(
+        default=[], description="What a shared date does NOT fix: exclusions, and stale evidence")
+    row_count: int | None = None
+
+
 class NetWorth(BaseModel):
     granularity: Literal["aggregate"]
     as_of: str | None = Field(default=None, description="The date the view was COMPUTED at")
@@ -70,6 +84,7 @@ class NetWorth(BaseModel):
     total: Money | None = None
     is_partial: bool = Field(description="True when a declared entity could not be included")
     entities: list[EntityTotal]
+    provenance: Provenance
 
 
 class Excluded(BaseModel):
@@ -104,6 +119,7 @@ class TransactionRow(BaseModel):
 
 
 class Positions(BaseModel):
+    provenance: Provenance
     granularity: Literal["positions"]
     as_of: str | None = None
     reporting_currency: str
@@ -113,6 +129,7 @@ class Positions(BaseModel):
 
 
 class Transactions(BaseModel):
+    provenance: Provenance
     granularity: Literal["transactions"]
     as_of: str | None = None
     reporting_currency: str

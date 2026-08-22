@@ -417,6 +417,9 @@
             "title": "Is Partial",
             "type": "boolean"
           },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "reporting_currency": {
             "title": "Reporting Currency",
             "type": "string"
@@ -436,7 +439,8 @@
           "granularity",
           "reporting_currency",
           "is_partial",
-          "entities"
+          "entities",
+          "provenance"
         ],
         "title": "NetWorth",
         "type": "object"
@@ -574,6 +578,9 @@
             "title": "Is Partial",
             "type": "boolean"
           },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "reporting_currency": {
             "title": "Reporting Currency",
             "type": "string"
@@ -588,11 +595,85 @@
           }
         },
         "required": [
+          "provenance",
           "granularity",
           "reporting_currency",
           "is_partial"
         ],
         "title": "Positions",
+        "type": "object"
+      },
+      "Provenance": {
+        "description": "What an exported or printed artifact carries so a figure survives leaving the app (ADR-0013).",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The single date everything was computed at",
+            "title": "As Of"
+          },
+          "filters": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Filters",
+            "type": "array"
+          },
+          "reporting_currency": {
+            "title": "Reporting Currency",
+            "type": "string"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count"
+          },
+          "scope": {
+            "description": "Whose money this is, in words a reader outside the household can use",
+            "title": "Scope",
+            "type": "string"
+          },
+          "stores": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Stores",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "description": "What a shared date does NOT fix: exclusions, and stale evidence",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "scope",
+          "reporting_currency"
+        ],
+        "title": "Provenance",
         "type": "object"
       },
       "StoreInfo": {
@@ -729,6 +810,9 @@
             "title": "Is Partial",
             "type": "boolean"
           },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "reporting_currency": {
             "title": "Reporting Currency",
             "type": "string"
@@ -743,6 +827,7 @@
           }
         },
         "required": [
+          "provenance",
           "granularity",
           "reporting_currency",
           "is_partial"
