@@ -133,6 +133,11 @@ Adding an entity SHALL require the user to pick the workspace, and the bridge SH
 read-only, schema version compatible) before writing the manifest entry — reporting incompatibility as a
 clear message naming the found vs required versions.
 
-#### Scenario: An incompatible store is refused with a reason
-- **WHEN** a chosen workspace's store schema is older than the bridge's pinned WLC supports
-- **THEN** setup refuses the entry and tells the user which side to upgrade — it never half-adds
+#### Scenario: A store at another schema version
+- **WHEN** a chosen workspace's schema version differs from the engine's
+- **THEN** setup names both versions and the fix — rebuild it with this engine, then promote — and MAY
+  still declare the entity, which then shows as excluded from aggregates until it is current (ADR-0017)
+
+#### Scenario: Nothing is half-added
+- **WHEN** validation fails for any reason
+- **THEN** the manifest is unchanged

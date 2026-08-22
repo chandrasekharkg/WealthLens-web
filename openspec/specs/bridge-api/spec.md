@@ -194,3 +194,13 @@ WLC version it is running against in a version endpoint.
 - **WHEN** the SPA and bridge disagree on capabilities
 - **THEN** the version endpoint reports bridge version + WLC version + pinned-supported range, enough to
   name the mismatch
+
+#### Scenario: Store skew is diagnosable by name
+- **WHEN** any declared workspace is at a different schema version than the engine
+- **THEN** the version endpoint reports the engine version alongside **each store's** version, so the skew
+  is named rather than inferred from a failed view (ADR-0017)
+
+#### Scenario: Store versions are never remembered
+- **WHEN** a store's version is reported
+- **THEN** it was read from that store at request time — no version is cached in the manifest, because a
+  remembered version goes stale (ADR-0002)

@@ -39,6 +39,21 @@ never a blank page, a stack trace, or a dashboard that silently shows nothing.
 - **WHEN** the installed WLC is older or newer than the supported range
 - **THEN** the screen names the found version, the supported range, and which side to change
 
+### Requirement: Upgrades move engine-first, and a schema bump is a fleet event
+
+The engine is the custodian and upgrades first; the presenter follows. Where an upgrade changes WLC's schema
+version, every workspace SHALL be rebuilt and promoted before it re-enters aggregate views (ADR-0017), and
+the UI SHALL say so plainly rather than letting family views quietly narrow.
+
+#### Scenario: WLC is upgraded across a schema change
+- **WHEN** the engine's schema version changes
+- **THEN** the app states that each workspace needs a rebuild and promote, lists which still need it, and
+  keeps aggregating the ones that are current
+
+#### Scenario: Another machine runs a different WLW
+- **WHEN** household members run different WLW versions
+- **THEN** nothing is required of them — only the reading engine and the stores it reads must agree
+
 ### Requirement: The store key never crosses the bridge
 
 No endpoint SHALL return the contents of a workspace's key file, and no page SHALL hold it. Where the user

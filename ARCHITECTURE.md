@@ -68,7 +68,8 @@ follows from one sentence:
   [0013 egress: export & print](openspec/decisions/0013-egress.md) ·
   [0014 installation & launch](openspec/decisions/0014-installation-and-launch.md) ·
   [0015 store-key custody](openspec/decisions/0015-store-key-custody.md) ·
-  [0016 currency & point-in-time](openspec/decisions/0016-currency-and-point-in-time.md)
+  [0016 currency & point-in-time](openspec/decisions/0016-currency-and-point-in-time.md) ·
+  [0017 fleet uniformity](openspec/decisions/0017-fleet-uniformity.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
@@ -93,6 +94,10 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       command rather than building the button (ADR-0012). Graduates on demand.
 - [x] WLC: **a `promote` verb** — shipped (WLC `c9fdb41`). Eight abort-first gates, backup, atomic
       `os.replace`. ADR-0006's in-UI promotion now has a verb to drive within the ADR-0005 boundary.
+- [ ] WLC: **decide `schema.migrate()`'s fate** — it exists but is called from nowhere (no CLI path, no
+      test), so a store never upgrades in place and rebuild+promote is the only route. Either wire it as an
+      optimisation of that route (never an alternative — ADR-0017), or retire it; a function nothing calls
+      reads as a capability the system has and doesn't.
 - [ ] WLC: **a configured store default currency**. `currency` exists on accounts/instruments/facts but
       only as a column default of `'INR'` — an entity's default should be configuration, not a schema
       constant (ADR-0016).

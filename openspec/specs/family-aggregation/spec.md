@@ -54,6 +54,31 @@ the remaining entities and state plainly which entity is missing and why — nev
 - **THEN** the family total is labelled as excluding that entity, with the reason, rather than presented
   as the family's whole position
 
+### Requirement: An aggregate is uniform by construction
+
+Aggregation SHALL read every store with **one** engine — the bridge's installed WLC (ADR-0017) — and SHALL
+include only stores at that engine's schema version. A store at any other version SHALL be excluded and
+named, with the total labelled partial, in exactly the same shape as an unreachable store.
+
+> The risk in mixed versions is not failure to read; it is coherence. Parts built under different engine
+> semantics mean subtly different things, and a total assembled from them cannot be explained anywhere. The
+> aggregated set is therefore uniform by construction rather than by hope.
+
+#### Scenario: One workspace was built by an older engine
+- **WHEN** a family view is requested and one store's schema version differs from the engine's
+- **THEN** that entity is excluded and named with both versions, the total is labelled partial, and the
+  remaining entities aggregate normally
+
+#### Scenario: The excluded workspace is still legible
+- **WHEN** a version-skewed workspace is opened
+- **THEN** its identity, path, schema version and collateral are shown — only money figures are withheld,
+  because only those would be incoherent
+
+#### Scenario: Bringing it back
+- **WHEN** a user asks how to include an excluded workspace
+- **THEN** the UI names the path: rebuild it with this engine, then promote — the replay that WLC's
+  `promote` gate already requires
+
 ### Requirement: Per-workspace freshness is surfaced
 
 Because a declared workspace may be a synced copy from another machine (ADR-0006), family views SHALL
