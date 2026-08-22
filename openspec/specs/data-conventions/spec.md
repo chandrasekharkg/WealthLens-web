@@ -53,16 +53,27 @@ table SHALL be the reporting-currency figure and SHALL name that currency — or
 - **WHEN** rows in several currencies are listed
 - **THEN** each row shows its own currency, and the footer total is stated in the reporting currency
 
-### Requirement: Conversion uses a rate at the view's date, or the figure is refused
+### Requirement: A conversion discloses the age of the rate it used
 
-Where conversion is required, the rate SHALL be the one for the view's point-in-time date. If no rate
-exists for that date, the view SHALL say so and offer to fetch rates — it SHALL NOT substitute today's
-rate, the nearest rate, or any unstated approximation.
+Where conversion is required, the rate SHALL be the newest one **on or before** the view's date, and the
+view SHALL be able to show **which date that rate came from**. A conversion SHALL NOT use a rate from after
+the view's date, and SHALL NOT fall back to a default rate when none exists.
 
-#### Scenario: A rate is missing for the chosen date
-- **WHEN** a converted total is requested and no FX rate exists for that date
-- **THEN** the total is withheld with the reason and the fetch is offered, rather than an approximate
-  number being shown as exact
+> **This requirement previously demanded refusal of any non-exact rate. That was wrong**, and checking the
+> engine is what showed it: valuing at a point in time correctly means the last rate on or before that date,
+> because markets close and weekends exist. Demanding an exact-date rate would refuse a correct figure most
+> days of the year. The real defect is doing it *silently* — a rate from three years ago and a rate from
+> yesterday produce equally confident-looking numbers. WLC reports `fx_as_of` alongside `price_as_of` for
+> exactly this, so the UI shows the age rather than inferring it.
+
+#### Scenario: A converted figure whose rate is stale
+- **WHEN** the newest applicable rate is materially older than the view's date
+- **THEN** the view shows the rate's date beside the figure, so a reader can judge it
+
+#### Scenario: No rate exists at all
+- **WHEN** nothing can convert a holding to the reporting currency
+- **THEN** it is not converted at a default rate; it appears with the value its own source stated, labelled
+  with the basis WLC gave it, and it is never silently omitted from a total
 
 ### Requirement: A reporting currency WLC cannot compute is refused, not approximated
 

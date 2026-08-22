@@ -100,10 +100,16 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       newest date per evidence kind; `lens.latest_evidence()` reduces it to one. Document evidence is split
       from fetched market data, so a store with three-month-old statements and this morning's prices reports
       as stale rather than current.
-- [ ] WLC: **currency + native amount on lens rows** — no lens function returns a currency, and
-      `position_snapshots` has no currency column, so ADR-0012's free-landing test cannot pass yet.
-- [ ] WLC: **FX honesty** — conversion uses the nearest earlier rate and *drops* an instrument when no rate
-      exists, which silently under-reports. data-conventions requires refusal with a reason instead.
+- [x] WLC: **currency on lens rows** — shipped (WLC `2e521d6`, schema 3.10). `position_snapshots` gained a
+      `currency` column and `holdings()` reports one on every row. A *native amount* alongside the converted
+      one is still absent, but no parser produces foreign holdings yet, so it lands with the first one that
+      does rather than being invented ahead of a real statement.
+- [x] WLC: **FX disclosure** — shipped. `price_at()` reports `quote_currency`, `price_as_of` and `fx_as_of`.
+      The reported "silent drop" turned out not to exist: an unconvertible quote is omitted from the ledger
+      price tier deliberately (never converted at 1.0) and the position is still valued by its statement or
+      its cost. Verified in the engine and now pinned by a test.
+- [ ] **Fleet event pending:** WLC's schema is now 3.10. Existing stores read 3.9 and need a rebuild +
+      promote before an aggregator will include them (ADR-0017).
 - [ ] WLC: **a machine-readable job contract** — only `import` has `--json`; rebuild/verify/promote emit
       prose, and `import --json` exits non-zero whenever any file merely needs attention.
 - [ ] WLC (**not v1-blocking**): a retraction verb (`wealthlens forget <source_id>`).
