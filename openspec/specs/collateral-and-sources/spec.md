@@ -73,7 +73,8 @@ reimplementation.
 > is no single command to teach. What v1 teaches instead is the sequence WLC genuinely supports, which is
 > the corpus invariant doing the work: move the document into `_quarantine/` (which `rebuild` and `import`
 > skip entirely), `wealthlens rebuild` to replay the remaining corpus into a fresh store alongside the
-> current one, review the tally, then promote.
+> current one, review the tally, then `wealthlens promote` — which re-checks and refuses rather than
+> warning, so the taught sequence carries the same gates the app would.
 >
 > That is not a workaround — retraction *is* `store = replay(corpus)` with one document removed, and the
 > taught sequence is more honest than a one-shot delete because the user sees the difference before

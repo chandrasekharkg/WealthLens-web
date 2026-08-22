@@ -30,7 +30,7 @@ already exists.
 | P8 | Mixed-scope provenance header | **Resolved** — aggregate views are point-in-time at one chosen date, so there is one date (ADR-0016) |
 | P9 | Foreign currency | **Decided** — three-level currency resolution, one reporting figure (ADR-0016); two WLC tasks raised |
 | P10 | Activity durability across restart | **Resolved** — forget state, surface the lock, classify the holder, verify with `rebuild --check` (bridge-api) |
-| P12 | Promotion has no WLC verb | **Open, blocking Phase 5** — ADR-0006 decided promotion ships in the UI, but WLC has no `promote`; performing it in WLW would be the store write WLW forbids |
+| P12 | Promotion has no WLC verb | **Resolved upstream** — WLC now ships `wealthlens promote`, gated and atomic (WLC `c9fdb41`) |
 | P11 | The set of keys a family holds | **Resolved** — backup state per workspace in the manifest (ADR-0015) |
 
 The findings below are the original write-up, kept as the record of what the gate caught.
@@ -151,5 +151,10 @@ rename, never a copy that can half-finish), refusing to run unless the rebuild i
 check, and reporting what it replaced. That is a better home for the abort-first doctrine than a runbook —
 the gate becomes executable instead of remembered.
 
-Until it lands, promotion is **taught** (ADR-0012), and E2E #1 asserts the guard around the taught
-sequence rather than an in-app action.
+**Resolved.** WLC now ships `wealthlens promote` (commit `c9fdb41`): eight abort-first gates, a backup, and
+an atomic `os.replace`. WLW drives it as a subprocess like every other verb, so ADR-0006's in-UI promotion
+has something to call and the ADR-0001/0005 boundary is intact. E2E #1 asserts the guard in front of that
+verb.
+
+Its schema gate found a latent WLC bug on its first run — fresh stores stamped 3.8 while structurally being
+3.9 — which is a small argument for gates that refuse over gates that warn.

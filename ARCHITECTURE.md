@@ -91,10 +91,8 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
 - [ ] WLC (**not v1-blocking**): a retraction verb (`wealthlens forget <source_id>`).
       `capture_io.delete_source()` exists as a function with no CLI surface — until then WLW *teaches* the
       command rather than building the button (ADR-0012). Graduates on demand.
-- [ ] WLC: **a `promote` verb** — atomic (rename, not a copy that can half-finish), refusing to run unless
-      the rebuild it promotes passed `--check`, reporting what it replaced. Promotion is currently a
-      hand-run file swap, so ADR-0006's in-UI promotion has nothing to drive (UX-VALIDATION P12). This
-      makes WLC's abort-first doctrine executable rather than remembered.
+- [x] WLC: **a `promote` verb** — shipped (WLC `c9fdb41`). Eight abort-first gates, backup, atomic
+      `os.replace`. ADR-0006's in-UI promotion now has a verb to drive within the ADR-0005 boundary.
 - [ ] WLC: **a configured store default currency**. `currency` exists on accounts/instruments/facts but
       only as a column default of `'INR'` — an entity's default should be configuration, not a schema
       constant (ADR-0016).
