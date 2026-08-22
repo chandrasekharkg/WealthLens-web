@@ -59,7 +59,8 @@ follows from one sentence:
   [0008 MCP exposure (designed, deferred, gated)](openspec/decisions/0008-mcp-exposure.md) ·
   [0009 distribution: native first, container phased](openspec/decisions/0009-distribution-and-deployment.md) ·
   [0010 testability first](openspec/decisions/0010-testability-first.md) ·
-  [0011 extension model](openspec/decisions/0011-extension-model.md)
+  [0011 extension model](openspec/decisions/0011-extension-model.md) ·
+  [0012 evolution](openspec/decisions/0012-evolution.md)
 - Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
   [report-views](openspec/specs/report-views/spec.md) ·
@@ -78,8 +79,10 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
 
 - [ ] WLC: promote `lens.py`'s read functions onto the semver-stable API surface (EXTENDING.md) — the
       contract this repo builds against.
-- [ ] WLC: add a **retraction verb** (`wealthlens forget <source_id>`) — `capture_io.delete_source()`
-      exists as a function with no CLI surface, so WLW cannot drive it within the ADR-0005 boundary
-      (collateral-and-sources spec).
+- [ ] WLC (**not v1-blocking**): a retraction verb (`wealthlens forget <source_id>`).
+      `capture_io.delete_source()` exists as a function with no CLI surface — until then WLW *teaches* the
+      command rather than building the button (ADR-0012). Graduates on demand.
+- [ ] WLC (roadmap): foreign-held accounts. WLW's standing free-landing test — if displaying one needs
+      more than a locale string, WLW's data conventions are wrong (ADR-0012 part 2).
 - [ ] Seed the bridge from the reviewed prototype (WLC PR #1's report server) — with ADR-0004's
       Host/Origin/token hardening and the manifest replacing ad-hoc workspace discovery.

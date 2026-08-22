@@ -62,16 +62,24 @@ confirmation naming the document, in the same guarded shape as promotion (ADR-00
 - **WHEN** the collateral view offers retraction
 - **THEN** it applies to one named source at a time; there is no "remove all failed" sweep
 
-### Requirement: Retraction goes through WLC, like every other write
+### Requirement: Retraction goes through WLC — and in v1 it is TAUGHT, not built
 
 Retraction SHALL be performed by a WLC verb invoked as a subprocess (ADR-0005), never by WLW writing to a
-store. Until WLC exposes such a verb, the UI SHALL surface the capability as unavailable with the reason —
-it SHALL NOT reach into the store to implement it locally.
+store. **Where no such verb exists, the UI SHALL show the user the exact steps to perform it in WLC**
+(ADR-0012) — a copyable command with the source identified — rather than a disabled control or a local
+reimplementation.
 
-> Cross-repo dependency: `capture_io.delete_source()` exists in WLC as a function but has **no CLI verb**.
-> WLC must add one (e.g. `wealthlens forget <source_id>`, with its own confirmation and a report of rows
-> removed) before this capability can ship here.
+> **v1 position:** `capture_io.delete_source()` exists in WLC as a function with no CLI verb, and few
+> households need retraction early. So v1 teaches it. **Graduation trigger:** when WLC gains a retraction
+> verb, or when enough users ask, the taught command becomes the guarded in-app action specified above —
+> the requirements below are written now so that graduation changes the mechanism, not the safeguards.
 
-#### Scenario: The verb is missing
-- **WHEN** the installed WLC has no retraction verb
-- **THEN** the action is shown disabled with an explanation, and nothing in WLW attempts a direct write
+#### Scenario: No retraction verb is installed
+- **WHEN** a user asks to remove a source and the installed WLC cannot be driven to do it
+- **THEN** the UI shows the precise steps to run in WLC, naming the source, and nothing in WLW writes to
+  the store
+
+#### Scenario: The taught command is correct by construction
+- **WHEN** the steps are displayed
+- **THEN** they name WLC's own verb and the real source identifier, so following them cannot diverge from
+  what the app would have done

@@ -47,6 +47,21 @@ than carrying an empty field indistinguishable from a missing one.
 - **THEN** its identifier field reads as "not applicable" rather than blank, and filters on ISIN neither
   hide it accidentally nor match it accidentally
 
+### Requirement: A foreign-held account displays without a special case
+
+These conventions SHALL be sufficient that an account held abroad — a different currency and jurisdiction —
+renders correctly with no code path specific to it. This is the standing test of whether the conventions
+are strong enough (ADR-0012).
+
+#### Scenario: A foreign current account appears
+- **WHEN** WLC models an account whose currency and jurisdiction differ from the reporting ones
+- **THEN** its balances show in their own currency, aggregate only via the reporting-currency figure, and
+  format per locale — with no branch anywhere that names that currency or country
+
+#### Scenario: A special case would be needed
+- **WHEN** displaying such an account would require code specific to it
+- **THEN** that is a defect in these conventions, and the fix belongs here — not in a per-currency branch
+
 ### Requirement: Every user-visible string is translatable
 
 The UI SHALL render text through a message catalog, with no user-visible string literals in components.
