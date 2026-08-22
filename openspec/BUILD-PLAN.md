@@ -34,17 +34,20 @@ Platform priority is evidence-led (ADR-0009's rule): start where the users are.
 Nothing here is a feature. It exists so that ADR-0010 is enforced by the repo rather than remembered by
 contributors.
 
-- `bridge/` packaging (`pyproject.toml`), pytest, `wealthlens` as a library dependency with a pinned
-  supported range.
+- `bridge/` packaging (`pyproject.toml`), pytest, ruff. `wealthlens` is an **optional** dependency, not a
+  hard one — it is not on PyPI and a hard dependency breaks every contributor's `pip install -e .`; the
+  supported range is over WLC's **schema** version (its package version does not track it) and is enforced
+  by preflight.
 - `frontend/` packaging: Vite + React + TypeScript (ADR-0003), Vitest, React Testing Library, Playwright.
 - CI running both suites on every push.
 - The **schema → types** generation step and its drift test (bridge-api): a contract change the UI has not
   adopted must fail the build.
-- The three sanctioned E2E specs (ADR-0010) committed as **failing stubs**, so the cap is visible and the
-  fourth one has to argue with something.
+- The three sanctioned E2E specs (ADR-0010) committed as **skipped stubs** carrying their justifications,
+  so the cap is visible in the repo without a permanently red suite that everyone learns to ignore.
+- Linters (ruff, eslint) and the personal-data hooks, from the first commit rather than retrofitted.
 
-**Done when:** an empty app builds, both suites run green in CI, and adding a fourth E2E test requires
-deleting a comment that says not to.
+**Done when:** an empty app builds, both unit suites run green, the local hooks gate a push, and adding a
+fourth E2E test requires deleting a comment that says not to.
 
 ## Phase 1 — `core/`: the read layer, with no HTTP
 
@@ -80,8 +83,9 @@ Still not screens. This is the layer every screen then costs almost nothing to a
 - Types generated from the schema; the drift test wired.
 - i18n catalog + locale-aware money/date formatters (data-conventions), including Indian digit grouping.
 - The shipped **Table** over TanStack headless, and the **Chart** wrapper over Recharts.
-- The **provenance header** and the **egress** pure functions — export and print land *here*, with the
-  components (ADR-0013), not as a feature later. Building them into the spine is what makes them free for
+- The **provenance header** composed in `core/` (ADR-0018) and the **egress** functions — export and print
+  land *here*, with the components (ADR-0013), not as a feature later. Cell escaping stays in TypeScript:
+  it is genuinely presentational and belongs beside the writer. Building them into the spine is what makes them free for
   every view, including extension-declared tables.
 
 **Done when:** a throwaway page renders a table that sorts, filters, exports a correctly-escaped CSV and

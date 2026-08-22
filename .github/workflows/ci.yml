@@ -1,10 +1,20 @@
 name: CI
 
-# Both suites, every push. ADR-0010's whole argument is that the test burden must stay small enough that
-# nobody is tempted to skip it — which only holds if it actually runs.
+# ONCE A DAY, not per push — deliberately.
+#
+# This is a small, local-first project with a finite CI quota, and the enforcement that actually protects
+# the repo runs on the contributor's machine: .githooks/pre-commit (personal-data scan) and
+# .githooks/pre-push (scan + ruff + eslint + tsc + both unit suites). Burning cloud minutes to re-run what
+# already ran locally buys very little.
+#
+# What the daily run IS for: the checks too slow for a push hook (E2E), a clean-machine install (catching
+# "works because it's already on my laptop"), and drift that nobody's push would surface.
+#
+# Run it on demand any time from the Actions tab (workflow_dispatch).
 on:
-  push:
-  pull_request:
+  schedule:
+    - cron: "0 21 * * *"      # 02:30 IST — after the working day, before the next one
+  workflow_dispatch:
 
 jobs:
   bridge:
@@ -40,3 +50,22 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+
+  e2e:
+    # The three sanctioned browser flows (ADR-0010). Too slow for a push hook, so this is their scheduled
+    # home — but they are runnable locally at any time with `npm run e2e`, and should be, before touching
+    # a guarded flow. This job is the backstop, not the first place anyone finds out.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e

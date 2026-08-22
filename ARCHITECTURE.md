@@ -50,6 +50,7 @@ follows from one sentence:
 
 - **Build plan (what we build, in what order)** — [openspec/BUILD-PLAN.md](openspec/BUILD-PLAN.md)
 - **UX validation findings (11 open questions)** — [openspec/UX-VALIDATION.md](openspec/UX-VALIDATION.md)
+- **Rules of the game (read first)** — [AGENTS.md](AGENTS.md)
 - Use cases (the design source) — [openspec/USE-CASES.md](openspec/USE-CASES.md)
 - UX first pass (IA + screens + flows) — [openspec/UX.md](openspec/UX.md)
 - Governance & non-negotiables — [openspec/project.md](openspec/project.md)
@@ -69,7 +70,8 @@ follows from one sentence:
   [0014 installation & launch](openspec/decisions/0014-installation-and-launch.md) ·
   [0015 store-key custody](openspec/decisions/0015-store-key-custody.md) ·
   [0016 currency & point-in-time](openspec/decisions/0016-currency-and-point-in-time.md) ·
-  [0017 fleet uniformity](openspec/decisions/0017-fleet-uniformity.md)
+  [0017 fleet uniformity](openspec/decisions/0017-fleet-uniformity.md) ·
+  [0018 backend-first testing](openspec/decisions/0018-backend-first-testing.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·

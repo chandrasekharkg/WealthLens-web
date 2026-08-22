@@ -16,6 +16,11 @@ family view over stores that remain strictly separate underneath.
 
 ## Working on this repo
 
+**Read [AGENTS.md](AGENTS.md) first** — it is the developer and agent guide: the testability rule, the
+regression rule, the boundary rules, and how the local gates work.
+
+### Setup
+
 ```bash
 python -m venv .venv && .venv/bin/pip install -e "bridge[dev]"   # bridge: fastapi, pytest, ruff
 cd frontend && npm install                                        # frontend: vite, vitest, eslint
@@ -28,9 +33,19 @@ Two gates run locally, and CI runs the same checks:
   a real value pasted into an *example* (a docstring, a spec, a fixture), not a committed statement. It
   reports `file:line` and which pattern matched, never the matched text. Deliberately synthetic data:
   put `pii-ok` on the line.
-- **pre-push** — the same scan over the pushed range, then `ruff`, `eslint`, `tsc` and both test suites.
+- **pre-push** — the same scan over the pushed range, then `ruff`, `eslint`, `tsc` and both unit suites.
   Each step skips loudly if its toolchain is absent, so a frontend-only contributor is not blocked by a
   missing Python venv.
+
+The three end-to-end browser tests are **not** in the hooks — too slow for every push. Run them on demand:
+
+```bash
+cd frontend && npm run e2e:install   # once
+npm run e2e
+```
+
+**GitHub CI runs once a day**, not per push (and on demand from the Actions tab). The local hooks are the
+real gate; the scheduled run adds what a hook cannot afford — the E2E flows and a clean-machine install.
 
 ## What it does
 

@@ -10,7 +10,9 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e:install": "playwright install --with-deps chromium",
+    "check": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
     "react": "^18.3.1",
