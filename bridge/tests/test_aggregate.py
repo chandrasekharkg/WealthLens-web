@@ -6,6 +6,7 @@ for the wrong person. A number that is quietly smaller is the defect this whole 
 """
 from __future__ import annotations
 
+import dataclasses
 from decimal import Decimal
 
 import pytest
@@ -207,3 +208,63 @@ def test_nothing_to_add_is_not_zero():
 def test_money_without_a_currency_cannot_be_constructed():
     with pytest.raises(ValueError, match="without a currency"):
         money.Money(Decimal("1"), "")
+
+
+# ── granularity ──────────────────────────────────────────────────────────────────────────────────────
+
+def test_an_aggregate_answer_has_nowhere_to_put_a_position(make_workspace):
+    """Enforced by the TYPE, not by a caller remembering to narrow: the aggregate result simply has no
+    field an instrument row could travel in."""
+    a = make_workspace("alpha", {"A Share": 1000})
+    got = aggregate.net_worth(_manifest(_entity("alpha", a)), on="2026-07-31")
+    fields = {f.name for f in dataclasses.fields(got)}
+    assert "rows" not in fields and "positions" not in fields
+    assert not hasattr(got, "rows")
+
+
+def test_positions_are_instrument_level_and_stay_attributable(make_workspace):
+    a = make_workspace("alpha", {"A Share": 1000})
+    b = make_workspace("beta", {"B Share": 2500, "C Share": 500})
+    got = aggregate.positions(_manifest(_entity("alpha", a), _entity("beta", b)), on="2026-07-31")
+
+    assert got.granularity is aggregate.Granularity.POSITIONS
+    rows = got.rows()
+    assert len(rows) == 3
+    assert {r["entity_id"] for r in rows} == {"alpha", "beta"}, "every row says whose it is"
+    assert all(r["value"].currency == "INR" for r in rows)
+
+
+def test_a_position_without_a_market_identifier_says_so(make_workspace):
+    """A blank ISIN is the thing data-conventions forbids: a filter would both hide it and match it."""
+    a = make_workspace("alpha", {"A Share": 1000})
+    rows = aggregate.positions(_manifest(_entity("alpha", a)), on="2026-07-31").rows()
+    kinds = {r["identifier"]["kind"] for r in rows}
+    assert kinds <= {"isin", "none"}
+    assert all("value" in r["identifier"] or r["identifier"]["kind"] == "none" for r in rows)
+
+
+def test_transactions_are_the_finest_granularity_and_carry_signed_money(make_workspace):
+    a = make_workspace("alpha", {"A Share": 1000}, as_of="2026-05-31")
+    got = aggregate.transactions(_manifest(_entity("alpha", a)), since="2026-01-01", until="2026-12-31")
+    assert got.granularity is aggregate.Granularity.TRANSACTIONS
+    rows = got.rows()
+    assert rows and all(r["amount"].currency == "INR" for r in rows)
+    assert all("entity_id" in r for r in rows)
+
+
+def test_an_unreadable_entity_is_excluded_at_every_granularity(make_workspace, tmp_path):
+    """The honesty rules are not a property of the net-worth call — they hold wherever data is read."""
+    a = make_workspace("alpha", {"A Share": 1000})
+    m = _manifest(_entity("alpha", a), _entity("ghost", tmp_path / "nowhere-WealthLens-data"))
+    for got in (aggregate.positions(m, on="2026-07-31"),
+                aggregate.transactions(m, since="2026-01-01", until="2026-12-31")):
+        assert got.is_partial
+        assert [e.entity_id for e in got.excluded] == ["ghost"]
+        assert all(r["entity_id"] != "ghost" for r in got.rows())
+
+
+def test_an_owner_mismatch_excludes_rows_too_rather_than_showing_an_empty_list(make_workspace):
+    dad = make_workspace("dad", {"A Property": 5000}, owner="dad")
+    got = aggregate.positions(_manifest(_entity("dad", dad)), on="2026-07-31")
+    assert got.is_partial and got.rows() == []
+    assert "valued at zero" in got.excluded[0].owner_warning

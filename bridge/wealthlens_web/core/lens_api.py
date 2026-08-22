@@ -43,3 +43,61 @@ def owner_entities(con) -> list[str]:
     from wealthlens import lens
     df = lens.owners(con=con)
     return [] if df.empty else [str(v) for v in df["owner_entity_id"].tolist()]
+
+
+# ── identifiers ──────────────────────────────────────────────────────────────────────────────────────
+# data-conventions: an instrument with no market identifier must SAY so. lens emits NULL for cash, for a
+# deposit, for a property — and a NULL that a caller has to interpret is exactly the blank the rule forbids,
+# because a filter on ISIN would then both hide it and match it by accident. So the kind is explicit.
+
+NO_IDENTIFIER = {"kind": "none"}
+
+
+def _identifier(isin) -> dict:
+    text = "" if isin is None else str(isin).strip()
+    if not text or text.lower() in {"nan", "none"}:
+        return NO_IDENTIFIER
+    return {"kind": "isin", "value": text}
+
+
+def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
+    """Instrument-level holdings. One row per position, each carrying how it was valued and how current
+    the evidence behind it is."""
+    from wealthlens import lens
+    df = lens.holdings(on=on, owner=owner, con=con)
+    out = []
+    for _, r in df.iterrows():
+        row_ccy = str(r["currency"]) if "currency" in df.columns and r["currency"] else currency
+        out.append({
+            "name": r["name"],
+            "asset_class": r["asset_class"],
+            "account_id": r["account_id"],
+            "quantity": (None if r["quantity"] is None or _isnan(r["quantity"]) else float(r["quantity"])),
+            "value": Money(_dec(r["value_inr"]), row_ccy),
+            "identifier": _identifier(r.get("isin")),
+            "as_of": str(r["as_of"])[:10],
+            "basis": r["basis"],
+        })
+    return out
+
+
+def transactions(con, *, since: str | None, until: str | None, currency: str) -> list[dict]:
+    """Ledger-level rows. The finest granularity, and the one scoped exposure exists to gate."""
+    from wealthlens import lens
+    df = lens.transactions(since=since, until=until, con=con)
+    return [{
+        "date": str(r["value_date"])[:10],
+        "bank": r["bank"],
+        "account_id": r["account_id"],
+        "narration": r["narration"],
+        # Signed: negative left the household. The sign is the fact, so it is not split into a type column.
+        "amount": Money(_dec(r["signed_amount"]), currency),
+        "balance": Money(_dec(r["current_balance"]), currency),
+    } for _, r in df.iterrows()]
+
+
+def _isnan(v) -> bool:
+    try:
+        return v != v
+    except Exception:       # a non-numeric is simply not NaN
+        return False

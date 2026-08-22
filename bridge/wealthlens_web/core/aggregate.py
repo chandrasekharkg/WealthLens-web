@@ -159,3 +159,100 @@ def _why_excluded(statuses: tuple[WorkspaceStatus, ...]) -> str:
             detail = next((s.detail for s in statuses if s.availability is availability and s.detail), None)
             return f"{sentence}" + (f" ({detail})" if detail else "")
     return "unavailable"
+
+
+# ── finer granularities ──────────────────────────────────────────────────────────────────────────────
+# Granularity is enforced by the TYPE returned, not by a caller remembering to narrow. An aggregate answer
+# has nowhere to put an instrument row, so "an aggregate request cannot leak positions" is true by
+# construction rather than by discipline (bridge-api).
+
+@dataclasses.dataclass(frozen=True)
+class EntityRows:
+    """One entity's rows at a finer granularity, with the same availability honesty as a total."""
+
+    entity_id: str
+    label: str
+    rows: tuple[dict, ...] = ()
+    evidence_as_of: str | None = None
+    excluded_reason: str | None = None
+    owner_warning: str | None = None
+
+    @property
+    def contributes(self) -> bool:
+        return self.excluded_reason is None
+
+
+@dataclasses.dataclass(frozen=True)
+class FamilyRows:
+    granularity: Granularity
+    as_of: str | None
+    reporting_currency: str
+    entities: tuple[EntityRows, ...]
+
+    @property
+    def excluded(self) -> tuple[EntityRows, ...]:
+        return tuple(e for e in self.entities if not e.contributes)
+
+    @property
+    def is_partial(self) -> bool:
+        return bool(self.excluded)
+
+    def rows(self) -> list[dict]:
+        """Every contributing entity's rows, each tagged with whose it is — attribution survives the merge."""
+        return [{**row, "entity_id": e.entity_id, "entity_label": e.label}
+                for e in self.entities if e.contributes for row in e.rows]
+
+
+def positions(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] = frozenset()) -> FamilyRows:
+    """Instrument-level holdings across the family."""
+    return _rows(m, Granularity.POSITIONS, on=on, our_pids=our_pids,
+                 fetch=lambda con, entity: lens_api.positions(
+                     con, on=on, owner=entity.owner, currency=m.reporting_currency))
+
+
+def transactions(m: Manifest, *, since: str | None = None, until: str | None = None,
+                 our_pids: frozenset[int] = frozenset()) -> FamilyRows:
+    """Ledger-level rows across the family — the finest granularity there is."""
+    return _rows(m, Granularity.TRANSACTIONS, on=until, our_pids=our_pids,
+                 fetch=lambda con, entity: lens_api.transactions(
+                     con, since=since, until=until, currency=m.reporting_currency))
+
+
+def _rows(m: Manifest, granularity: Granularity, *, on: str | None,
+          our_pids: frozenset[int], fetch) -> FamilyRows:
+    if m.reporting_currency not in SUPPORTED_REPORTING_CURRENCIES:
+        raise UnsupportedReportingCurrency(
+            f"this engine can report in {', '.join(sorted(SUPPORTED_REPORTING_CURRENCIES))}, not "
+            f"{m.reporting_currency}.")
+
+    from wealthlens import workspace as wl_workspace
+
+    views = []
+    for entity in m.entities:
+        statuses = tuple(workspaces.check_entity(entity, our_pids=our_pids))
+        readable = [s for s in statuses if s.is_readable]
+        if not readable:
+            views.append(EntityRows(entity.id, entity.label, excluded_reason=_why_excluded(statuses)))
+            continue
+
+        rows, evidence, warning = [], [], None
+        for status in readable:
+            with wl_workspace.resolve(status.path).open() as con:
+                declared = lens_api.owner_entities(con)
+                if declared and entity.owner not in declared:
+                    warning = (
+                        f"{status.label} attributes ownership to {', '.join(sorted(declared))}, but this "
+                        f"entity is configured as {entity.owner!r}; its rows would be valued at zero.")
+                    continue
+                rows.extend(fetch(con, entity))
+                evidence.append(lens_api.evidence_as_of(con))
+
+        if warning and not rows:
+            views.append(EntityRows(entity.id, entity.label, excluded_reason="ownership is misconfigured",
+                                    owner_warning=warning))
+            continue
+        dated = [d for d in evidence if d]
+        views.append(EntityRows(entity.id, entity.label, rows=tuple(rows),
+                                evidence_as_of=min(dated) if dated else None, owner_warning=warning))
+
+    return FamilyRows(granularity, on, m.reporting_currency, tuple(views))
