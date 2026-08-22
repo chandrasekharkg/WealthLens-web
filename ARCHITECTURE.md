@@ -8,14 +8,18 @@ follows from one sentence:
 > WLC stores — plus one manifest file naming the family.
 
 ```
-  family.toml            bridge/ (Python)                    frontend/ (SPA)
-  ───────────            ────────────────                    ───────────────
-  entities + paths  ──►  opens each store READ-ONLY   ──►    setup flows
-  labels, prefs          via wealthlens lens.py              per-entity reports
-  (no secrets,           aggregates IN MEMORY per request    family views
-   no data)              serves the SPA + JSON API           (talks only to the bridge)
-                         └─ one side effect: subprocess
-                            `wealthlens import --json`
+  family.toml            bridge/ (Python, FastAPI)           frontend/ (React+Vite+TS)
+  ───────────            ─────────────────────────           ─────────────────────────
+  entities + paths  ──►  core/  workspaces · lens access ──►  setup · workspaces · family
+  labels, prefs                 aggregation · freshness       reports · operations
+  (no secrets,                  per-workspace job queue       (talks only to the bridge)
+   no data)                     (framework-free, reusable)
+                         api/   typed routes · SSE progress
+                                Host/Origin/token guards
+                                serves the built SPA
+                         └─ verbs = subprocesses of the real WLC CLI
+                            (import · rebuild · verify · diagnose · fetch-*)
+                         mcp/   future, ADR-0008 — second consumer of core/, off by default
 ```
 
 ## Five load-bearing principles
@@ -44,7 +48,9 @@ follows from one sentence:
   [0003 frontend stack](openspec/decisions/0003-frontend-stack.md) ·
   [0004 bridge & security](openspec/decisions/0004-bridge-and-security-posture.md) ·
   [0005 operations surface](openspec/decisions/0005-operations-surface.md) ·
-  [0006 v1 product decisions](openspec/decisions/0006-v1-product-decisions.md)
+  [0006 v1 product decisions](openspec/decisions/0006-v1-product-decisions.md) ·
+  [0007 bridge = FastAPI over a reusable core](openspec/decisions/0007-bridge-framework-fastapi.md) ·
+  [0008 MCP exposure (designed, deferred, gated)](openspec/decisions/0008-mcp-exposure.md)
 - Capability specs — [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
   [report-views](openspec/specs/report-views/spec.md) ·
