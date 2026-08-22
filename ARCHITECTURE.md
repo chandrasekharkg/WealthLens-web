@@ -49,6 +49,7 @@ follows from one sentence:
 ## The design index
 
 - **Build plan (what we build, in what order)** — [openspec/BUILD-PLAN.md](openspec/BUILD-PLAN.md)
+- **UX validation findings (11 open questions)** — [openspec/UX-VALIDATION.md](openspec/UX-VALIDATION.md)
 - Use cases (the design source) — [openspec/USE-CASES.md](openspec/USE-CASES.md)
 - UX first pass (IA + screens + flows) — [openspec/UX.md](openspec/UX.md)
 - Governance & non-negotiables — [openspec/project.md](openspec/project.md)

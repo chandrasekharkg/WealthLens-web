@@ -9,6 +9,22 @@ pyramid nobody builds.
 
 ---
 
+## Phase 00 — The cold start (added by the UX validation gate)
+
+The walkthrough found that everything before "a store exists with data in it" is thin: every use case was
+written starting from a workspace that already exists. Four blocking findings (UX-VALIDATION P1–P4), two of
+them decisions rather than omissions:
+
+- **How the app is installed and launched**, and therefore who puts WLC and a Python runtime on the machine
+  (P1 — needs a decision, then an ADR; it may add a packaging phase).
+- **What the user sees when WLC is missing or version-skewed** (P2) — the first failure a real user can hit.
+- **How the store key is handed to a human who must not lose it** (P3) — currently in direct conflict with
+  "keys never reach the browser", and multiplied by one key per workspace.
+- **Retraction's taught command names a verb that does not exist** (P4) — ADR-0012's principle holds, its
+  worked example does not.
+
+Nothing below moves. This phase goes first because P1 can change what Phase 0 packages.
+
 ## Phase 0 — Make the pyramid real
 
 Nothing here is a feature. It exists so that ADR-0010 is enforced by the repo rather than remembered by

@@ -1,0 +1,644 @@
+<title>WealthLens Cold Start</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#F5F6F6; --surface:#FFFFFF; --surface-2:#EFF1F1; --surface-3:#E6EAE9;
+  --ink:#12201E; --ink-2:#3D4B49; --muted:#5F6D6B; --faint:#8A9694;
+  --line:#DBE0DF; --line-2:#C7CFCE;
+  --accent:#0F6B62; --accent-ink:#FFFFFF; --accent-soft:#E2EFED;
+  --warn:#8F5B06; --warn-soft:#FBF0DC; --warn-line:#E4C68A;
+  --crit:#9B2C2C; --crit-soft:#FAE9E7; --crit-line:#E6B5B0;
+  --ok:#2C6B44; --ok-soft:#E4F0E7; --ok-line:#A9CDB5;
+  --pin:#7A3E9D; --pin-soft:#F2E9F7; --pin-line:#D3B8E2;
+  --shadow:0 1px 2px rgba(18,32,30,.06), 0 8px 24px -12px rgba(18,32,30,.18);
+  --radius:7px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1413; --surface:#151D1C; --surface-2:#1B2524; --surface-3:#222D2B;
+    --ink:#E8EDEC; --ink-2:#C3CFCD; --muted:#94A3A0; --faint:#6E7C7A;
+    --line:#26312F; --line-2:#334140;
+    --accent:#4FB3A6; --accent-ink:#08201D; --accent-soft:#16302D;
+    --warn:#D9A03F; --warn-soft:#2C2417; --warn-line:#4D3D1D;
+    --crit:#E08A83; --crit-soft:#2E1B1A; --crit-line:#4E2C29;
+    --ok:#79BE8E; --ok-soft:#182A1F; --ok-line:#2C4634;
+    --pin:#C9A0E0; --pin-soft:#251A2C; --pin-line:#42304C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1413; --surface:#151D1C; --surface-2:#1B2524; --surface-3:#222D2B;
+  --ink:#E8EDEC; --ink-2:#C3CFCD; --muted:#94A3A0; --faint:#6E7C7A;
+  --line:#26312F; --line-2:#334140;
+  --accent:#4FB3A6; --accent-ink:#08201D; --accent-soft:#16302D;
+  --warn:#D9A03F; --warn-soft:#2C2417; --warn-line:#4D3D1D;
+  --crit:#E08A83; --crit-soft:#2E1B1A; --crit-line:#4E2C29;
+  --ok:#79BE8E; --ok-soft:#182A1F; --ok-line:#2C4634;
+  --pin:#C9A0E0; --pin-soft:#251A2C; --pin-line:#42304C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px; margin:0 auto; padding:36px 24px 80px}
+
+/* ---------- page header ---------- */
+.masthead{display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end; justify-content:space-between; margin-bottom:8px}
+.eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:600}
+h1{font-family:"Newsreader",Georgia,serif; font-weight:500; font-size:clamp(30px,4.4vw,44px); line-height:1.08; margin:6px 0 0; text-wrap:balance; letter-spacing:-.01em}
+.dek{color:var(--muted); max-width:62ch; margin:12px 0 0}
+.controls{display:flex; gap:8px; flex-shrink:0}
+.btn{
+  font:inherit; font-size:13px; font-weight:500; cursor:pointer;
+  background:var(--surface); color:var(--ink-2); border:1px solid var(--line-2);
+  padding:7px 13px; border-radius:var(--radius);
+}
+.btn:hover{border-color:var(--accent); color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.btn[aria-pressed="true"]{background:var(--pin-soft); border-color:var(--pin-line); color:var(--pin)}
+
+/* ---------- journey rail ---------- */
+.rail{
+  display:flex; gap:6px; margin:28px 0 20px; padding-bottom:10px;
+  overflow-x:auto; scrollbar-width:thin;
+}
+.step{
+  flex:0 0 auto; display:flex; gap:9px; align-items:baseline;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:8px 13px; cursor:pointer; font:inherit; font-size:13px; color:var(--muted);
+  white-space:nowrap; transition:border-color .12s, color .12s;
+}
+.step:hover{border-color:var(--line-2); color:var(--ink-2)}
+.step:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.step .n{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--faint)}
+.step[aria-current="true"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
+.step[aria-current="true"] .n{color:var(--accent-ink); opacity:.7}
+.step.has-pin::after{content:""; width:6px; height:6px; border-radius:50%; background:var(--pin); align-self:center}
+
+/* ---------- browser frame ---------- */
+.browser{background:var(--surface); border:1px solid var(--line-2); border-radius:10px; box-shadow:var(--shadow); overflow:hidden}
+.chrome{display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--surface-2); border-bottom:1px solid var(--line)}
+.dots{display:flex; gap:6px}
+.dots i{width:10px; height:10px; border-radius:50%; background:var(--line-2); display:block}
+.url{
+  flex:1; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted);
+  background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:4px 12px;
+}
+.url b{color:var(--ink-2); font-weight:500}
+.lock{color:var(--ok); font-size:11px; font-weight:600; letter-spacing:.04em}
+
+/* ---------- app shell ---------- */
+.app{display:grid; grid-template-columns:186px 1fr; min-height:492px}
+@media (max-width:720px){ .app{grid-template-columns:1fr} .nav{display:none} }
+.nav{border-right:1px solid var(--line); background:var(--surface-2); padding:16px 10px; display:flex; flex-direction:column; gap:2px}
+.brand{font-family:"Newsreader",Georgia,serif; font-size:17px; font-weight:600; padding:2px 10px 14px; color:var(--ink); letter-spacing:-.01em}
+.nav a{
+  display:flex; justify-content:space-between; align-items:center; gap:8px;
+  padding:7px 10px; border-radius:5px; font-size:13.5px; color:var(--muted); text-decoration:none;
+}
+.nav a.on{background:var(--surface); color:var(--ink); font-weight:600; box-shadow:inset 0 0 0 1px var(--line)}
+.nav a .dot{width:6px; height:6px; border-radius:50%; background:var(--warn)}
+.nav .sep{height:1px; background:var(--line); margin:10px 6px}
+.nav .grouplbl{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); padding:4px 10px; font-weight:600}
+
+.pane{padding:0; display:flex; flex-direction:column; min-width:0}
+.ctxbar{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;
+  padding:11px 20px; border-bottom:1px solid var(--line); background:var(--surface);
+}
+.pill{
+  display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-2);
+  background:var(--surface-2); border:1px solid var(--line); border-radius:20px; padding:4px 11px;
+}
+.pill .k{color:var(--faint); font-size:11px; letter-spacing:.06em; text-transform:uppercase}
+.body{padding:22px 24px; display:flex; flex-direction:column; gap:18px; flex:1}
+
+/* ---------- generic content bits ---------- */
+h2.screen{font-family:"Newsreader",Georgia,serif; font-weight:500; font-size:24px; margin:0; letter-spacing:-.01em}
+.sub{color:var(--muted); font-size:13.5px; margin:5px 0 0; max-width:66ch}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px}
+.card.q{background:var(--surface-2)}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px}
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:12px}
+.lbl{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); font-weight:600}
+.big{font-family:"IBM Plex Mono",monospace; font-size:23px; font-weight:500; letter-spacing:-.02em; margin-top:6px; font-variant-numeric:tabular-nums}
+.mono{font-family:"IBM Plex Mono",monospace; font-size:12.5px}
+.muted{color:var(--muted)}
+.tiny{font-size:12px}
+
+.chip{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:2.5px 8px; border-radius:4px; border:1px solid}
+.chip.ok{background:var(--ok-soft); border-color:var(--ok-line); color:var(--ok)}
+.chip.warn{background:var(--warn-soft); border-color:var(--warn-line); color:var(--warn)}
+.chip.crit{background:var(--crit-soft); border-color:var(--crit-line); color:var(--crit)}
+.chip.neutral{background:var(--surface-2); border-color:var(--line-2); color:var(--muted)}
+
+.strip{display:flex; gap:11px; align-items:flex-start; padding:12px 14px; border-radius:var(--radius); border:1px solid; font-size:13.5px}
+.strip.warn{background:var(--warn-soft); border-color:var(--warn-line); color:var(--warn)}
+.strip.crit{background:var(--crit-soft); border-color:var(--crit-line); color:var(--crit)}
+.strip.ok{background:var(--ok-soft); border-color:var(--ok-line); color:var(--ok)}
+.strip.info{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+.strip b{font-weight:700}
+
+.tblwrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius)}
+table{border-collapse:collapse; width:100%; font-size:13px}
+th{
+  text-align:left; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint);
+  font-weight:600; padding:9px 12px; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap;
+}
+td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+td.id{font-family:"IBM Plex Mono",monospace; color:var(--muted); font-size:12px}
+
+.field{display:flex; flex-direction:column; gap:5px}
+.field .fl{font-size:12.5px; font-weight:600; color:var(--ink-2)}
+.field .fh{font-size:11.5px; color:var(--faint)}
+.input{
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:5px;
+  padding:8px 11px; font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--ink);
+}
+.input.ph{color:var(--faint)}
+.actions{display:flex; gap:9px; flex-wrap:wrap; align-items:center}
+.fake{
+  font:inherit; font-size:13px; font-weight:600; padding:8px 15px; border-radius:5px; cursor:default;
+  background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent);
+}
+.fake.ghost{background:transparent; color:var(--ink-2); border-color:var(--line-2); font-weight:500}
+.fake.danger{background:var(--crit); border-color:var(--crit); color:#fff}
+.fake.off{background:var(--surface-2); color:var(--faint); border-color:var(--line); font-weight:500}
+
+.cmd{
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; background:var(--surface-3);
+  border:1px solid var(--line-2); border-radius:5px; padding:9px 12px; color:var(--ink-2);
+  display:flex; justify-content:space-between; gap:12px; align-items:center; overflow-x:auto;
+}
+.cmd .cp{color:var(--accent); font-weight:600; font-size:11px; white-space:nowrap; letter-spacing:.05em}
+
+/* ---------- pins ---------- */
+.pin{
+  display:inline-flex; align-items:center; justify-content:center; min-width:19px; height:19px;
+  border-radius:50%; background:var(--pin); color:#fff; font-size:11px; font-weight:700;
+  font-family:"IBM Plex Mono",monospace; vertical-align:middle; margin-left:6px; flex-shrink:0;
+}
+.pinbox{
+  border:1px dashed var(--pin-line); background:var(--pin-soft); color:var(--pin);
+  border-radius:var(--radius); padding:11px 14px; font-size:13px; display:flex; gap:10px; align-items:flex-start;
+}
+.pinbox b{font-weight:700}
+body:not(.pins) .pin, body:not(.pins) .pinbox{display:none}
+
+/* ---------- notes under the frame ---------- */
+.notes{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px}
+@media (max-width:720px){ .notes{grid-template-columns:1fr} }
+.note{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:15px 17px}
+.note h3{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin:0 0 9px; font-weight:600}
+.note ul{margin:0; padding-left:17px; color:var(--ink-2); font-size:13.5px}
+.note li{margin-bottom:6px}
+.note li:last-child{margin-bottom:0}
+.ref{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--accent)}
+.note.holes{border-color:var(--pin-line); background:var(--pin-soft)}
+.note.holes h3{color:var(--pin)}
+.note.holes ul{color:var(--ink-2)}
+.note.holes strong{color:var(--pin)}
+
+footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--line); color:var(--faint); font-size:12.5px}
+.hidden{display:none !important}
+@media (prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important} }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">WealthLens-web · UX validation gate</div>
+      <h1>How a household starts, screen by screen</h1>
+      <p class="dek">A click-through of the cold start — from “nothing installed” to “a number I trust” — built to
+        find what the specs don’t answer yet. Ten steps, drawn from the use cases and ADRs. Purple pins mark the
+        holes this walkthrough exposed.</p>
+    </div>
+    <div class="controls">
+      <button class="btn" id="pinToggle" aria-pressed="true">Open questions · on</button>
+      <button class="btn" id="themeToggle">Theme</button>
+    </div>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="Journey steps"></nav>
+
+  <div class="browser">
+    <div class="chrome">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url" id="url"><b>127.0.0.1:7788</b>/setup</div>
+      <span class="lock">LOCAL ONLY</span>
+    </div>
+    <div id="screen"></div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h3>What happens here</h3><ul id="nWhat"></ul></div>
+    <div class="note holes"><h3>Open questions</h3><ul id="nHoles"></ul></div>
+  </div>
+
+  <footer>
+    Mockup for design validation — not a build. Figures, names and identifiers are fabricated.
+    Specs: <span class="ref">openspec/specs/</span> · Decisions: <span class="ref">openspec/decisions/</span>
+  </footer>
+</div>
+
+<script>
+const SHELL = (active, ctx, body) => {
+  const items = [
+    ["Overview","overview"],["Reports","reports"],["Family","family"],
+    ["Workspaces","workspaces"],["Activity","activity"],["Settings","settings"]
+  ];
+  const nav = items.map(([l,k]) =>
+    `<a href="#" class="${active===k?'on':''}" onclick="return false">${l}${k==='workspaces'&&active!=='workspaces'?'<span class="dot"></span>':''}</a>`
+  ).join("");
+  return `<div class="app">
+    <aside class="nav">
+      <div class="brand">WealthLens</div>${nav}
+      <div class="sep"></div>
+      <div class="grouplbl">Extensions</div>
+      <a href="#" onclick="return false">Rent tracker <span class="chip neutral" style="font-size:9.5px;padding:1px 5px">yours</span></a>
+    </aside>
+    <div class="pane">${ctx}<div class="body">${body}</div></div>
+  </div>`;
+};
+
+const CTX = (scope="Family · 4 members", asof="as of 31 Jul 2026") => `<div class="ctxbar">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="pill"><span class="k">Scope</span> ${scope}</span>
+    <span class="pill"><span class="k">Date</span> ${asof}</span>
+  </div>
+  <div style="display:flex;gap:8px"><span class="chip ok">bridge ✓ WLC 3.9</span></div>
+</div>`;
+
+const BARE = body => `<div class="app" style="grid-template-columns:1fr">
+  <div class="pane"><div class="body" style="padding:34px 30px">${body}</div></div></div>`;
+
+const STEPS = [
+/* 1 ── LAUNCH ─────────────────────────────────────────────────────────── */
+{
+  n:"Launch", url:"—  nothing open yet", pins:true,
+  screen: BARE(`
+    <h2 class="screen">Step zero has no screen — and that is the problem <span class="pin">1</span></h2>
+    <p class="sub">Every use case begins after a browser is already showing WealthLens. Nothing in the specs says
+      how it gets there, or who put Python and WealthLens-core on the machine. Three candidate answers, none decided:</p>
+    <div class="grid3">
+      <div class="card"><div class="lbl">Candidate A</div>
+        <p style="margin:8px 0 0;font-weight:600">An app you double-click</p>
+        <p class="tiny muted" style="margin:6px 0 0">Bundles Python + WLC + the bridge. The only option a
+          non-technical household can actually use — and the one that makes WLW own the install.</p></div>
+      <div class="card"><div class="lbl">Candidate B</div>
+        <p style="margin:8px 0 0;font-weight:600">A command they type</p>
+        <div class="cmd" style="margin-top:8px"><span>wealthlens-web</span></div>
+        <p class="tiny muted" style="margin:6px 0 0">Assumes WLC already installed. Contradicts the reason WLW
+          exists (ADR-0006 §1).</p></div>
+      <div class="card"><div class="lbl">Candidate C</div>
+        <p style="margin:8px 0 0;font-weight:600">Always running</p>
+        <p class="tiny muted" style="margin:6px 0 0">A login item serving 127.0.0.1. Convenient; a persistent
+          local service is a security posture nobody has specified.</p></div>
+    </div>
+    <div class="pinbox"><span class="pin">1</span><div><b>Who installs WealthLens-core?</b> ADR-0009 chose
+      “native first”, but not what native <i>contains</i>. If WLW assumes WLC is present, the household that
+      needs WLW most can never reach step 2.</div></div>
+    <div class="pinbox"><span class="pin">2</span><div><b>And if it isn’t installed, or is the wrong version?</b>
+      The bridge has a version endpoint (bridge-api), but no screen is specified for “WLC missing / too old”.
+      That state is the <i>first</i> thing a real user can hit.</div></div>`),
+  what:["The user has statements and a laptop. Nothing else is assumed.",
+        "This is the only step with no specification behind it at all."],
+  holes:["<strong>P1</strong> — installation ownership is undecided; it gates every other screen.",
+         "<strong>P2</strong> — no design for “WLC absent or version-skewed”, the most likely first failure."]
+},
+/* 2 ── FIRST RUN ──────────────────────────────────────────────────────── */
+{
+  n:"First run", url:"/setup",
+  screen: BARE(`
+    <div style="max-width:560px">
+      <div class="eyebrow">First run</div>
+      <h2 class="screen" style="margin-top:6px">No family declared yet</h2>
+      <p class="sub">WealthLens keeps each person’s money in their own encrypted store. Start with one — you can
+        add the rest whenever you like.</p>
+      <div class="grid2" style="margin-top:18px">
+        <div class="card"><p style="margin:0;font-weight:600">Create a new workspace</p>
+          <p class="tiny muted" style="margin:6px 0 12px">For a person whose statements have never been imported.</p>
+          <span class="fake">Create</span></div>
+        <div class="card"><p style="margin:0;font-weight:600">Connect an existing one</p>
+          <p class="tiny muted" style="margin:6px 0 12px">Already used the command line, or copied a folder from
+            another machine.</p><span class="fake ghost">Choose a folder…</span></div>
+      </div>
+      <div class="card q" style="margin-top:14px">
+        <div class="lbl">Found on this machine</div>
+        <p class="tiny muted" style="margin:6px 0 10px">Two folders look like workspaces. Offering is not including —
+          nothing joins your family view until you say so.</p>
+        <div class="mono muted">~/WealthLens/me-WealthLens-data<br>~/WealthLens/dad-WealthLens-data</div>
+      </div>
+      <div class="pinbox" style="margin-top:14px"><span class="pin">3</span><div><b>Every empty state is unspecified.</b>
+        This screen, an inbox with no files, a store with no holdings, an Activity log with no jobs — the first
+        thing every user sees is the state no spec describes.</div></div>
+    </div>`),
+  what:["Guided setup offers create-or-connect; discovery may <i>offer</i> a workspace but never auto-includes it. <span class='ref'>family-aggregation</span>",
+        "The manifest <span class='ref'>family.toml</span> is written only once the user confirms. <span class='ref'>setup-and-config</span>"],
+  holes:["<strong>P3</strong> — no empty-state design anywhere in the spec set, though it is the universal first screen."]
+},
+/* 3 ── CREATE ─────────────────────────────────────────────────────────── */
+{
+  n:"Create workspace", url:"/setup/create",
+  screen: BARE(`
+    <div style="max-width:560px">
+      <div class="eyebrow">Step 1 of 3</div>
+      <h2 class="screen" style="margin-top:6px">Whose money is this?</h2>
+      <p class="sub">These are the same three things the command line asks. You can change any of them later
+        in this workspace’s settings.</p>
+      <div style="display:flex;flex-direction:column;gap:15px;margin-top:18px">
+        <div class="field"><span class="fl">Short name for the folder</span>
+          <span class="input">dad</span>
+          <span class="fh">Creates ~/WealthLens/dad-WealthLens-data</span></div>
+        <div class="field"><span class="fl">Name as it appears on statements</span>
+          <span class="input">Kolluri</span>
+          <span class="fh">Surname alone is enough — it is used to strip your own name out of transaction text.</span></div>
+        <div class="field"><span class="fl">PAN</span>
+          <span class="input ph">••••••••••</span>
+          <span class="fh">Unlocks CAS and many statements. Stored in its own file on this machine, never in the
+            config file, never shown again. <span class="ref">identity-and-settings</span></span></div>
+      </div>
+      <div class="actions" style="margin-top:20px"><span class="fake">Create workspace</span>
+        <span class="tiny muted">Runs <span class="mono">wealthlens init</span> — WealthLens-core does the work.</span></div>
+    </div>`),
+  what:["WLW never creates a store itself: it drives WLC’s own <span class='ref'>init</span> as a subprocess. <span class='ref'>ADR-0005</span>",
+        "PAN is written to its own file with restrictive permissions and referenced from config, not inlined. <span class='ref'>identity-and-settings</span>"],
+  holes:["None new — this path is now fully specified."]
+},
+/* 4 ── THE KEY ────────────────────────────────────────────────────────── */
+{
+  n:"The key", url:"/setup/key", pins:true,
+  screen: BARE(`
+    <div style="max-width:600px">
+      <div class="eyebrow">Step 2 of 3</div>
+      <h2 class="screen" style="margin-top:6px">Save this key somewhere safe <span class="pin">4</span></h2>
+      <div class="strip crit" style="margin-top:14px"><div><b>This is the only key to your data.</b> WealthLens
+        encrypts your store with it. Nobody — not us, not you — can open the store without it. There is no reset.</div></div>
+      <div class="card" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:14px">
+        <span class="mono" style="letter-spacing:.08em">•••• •••• •••• •••• •••• •••• •••• ••••</span>
+        <span class="fake ghost">Copy to clipboard</span>
+      </div>
+      <label style="display:flex;gap:9px;align-items:flex-start;margin-top:14px;font-size:13.5px;color:var(--ink-2)">
+        <input type="checkbox" checked style="margin-top:3px;accent-color:var(--accent)">
+        <span>I have saved this key in my password manager.</span></label>
+      <div class="actions" style="margin-top:16px"><span class="fake">Continue</span>
+        <span class="fake off">Skip</span></div>
+      <div class="pinbox" style="margin-top:16px"><span class="pin">4</span><div><b>This screen contradicts a
+        non-negotiable.</b> “Keys never reach the browser” (project.md) — yet a household that loses
+        <span class="mono">store.key</span> loses everything, and the CLI’s answer is to print it and say BACK
+        THIS UP. Either the browser shows the key, or the UI must walk the user to the file without ever
+        holding its contents. Undecided, and it is the single most destructive moment in the product.</div></div>
+      <div class="pinbox"><span class="pin">5</span><div><b>Four people, four keys.</b> Each workspace has its
+        own. A family of four repeats this ceremony four times and must retain four separate secrets — a burden
+        nothing in the design acknowledges.</div></div>
+    </div>`),
+  what:["WLC generates <span class='ref'>store.key</span> during init and prints a back-it-up warning.",
+        "In a browser, that warning either gets a real ceremony or gets clicked past."],
+  holes:["<strong>P4</strong> — key custody vs. “keys never reach the browser”: a direct conflict, undecided.",
+         "<strong>P5</strong> — per-workspace keys multiply the ceremony across a family; no design covers the set."]
+},
+/* 5 ── INBOX ──────────────────────────────────────────────────────────── */
+{
+  n:"Inbox", url:"/entity/dad/inbox", pins:true,
+  screen: SHELL("workspaces", CTX("Dad", "no data yet"), `
+    <div><h2 class="screen">Drop your statements here</h2>
+      <p class="sub">PDFs from your bank, depository, broker or card issuer. Nothing is parsed until you say import.</p></div>
+    <div class="card" style="border-style:dashed;border-color:var(--line-2);text-align:center;padding:34px 18px">
+      <p style="margin:0;font-weight:600;color:var(--muted)">Drag files here, or choose them</p>
+      <p class="tiny muted" style="margin:6px 0 0">PDF, XLS, XLSX, HTML, CSV · up to 40 MB each · nothing is ever overwritten</p>
+    </div>
+    <div class="card q">
+      <div class="lbl">Where do I get these? <span class="pin">6</span></div>
+      <p class="tiny muted" style="margin:7px 0 0">You download them yourself, from each institution’s own site —
+        NSDL or CDSL for the consolidated demat statement, net-banking for accounts and cards, your broker’s portal
+        for contract notes. WealthLens never connects to your bank.</p>
+    </div>
+    <div class="pinbox"><span class="pin">6</span><div><b>The hardest step for a real household isn’t in the
+      product.</b> Acquiring twelve months of statements from six portals is where onboarding actually stalls —
+      and no spec even acknowledges it. At minimum this empty state must teach it; at most, it argues for a
+      companion tool.</div></div>`),
+  what:["Upload deposits into the entity’s <span class='ref'>statements/</span> inbox and nowhere else, with an allowlist, a size cap and non-clobber naming. <span class='ref'>setup-and-config</span>",
+        "Deposit only — parsing and custody stay behind WLC’s import gates. <span class='ref'>ADR-0005</span>"],
+  holes:["<strong>P6</strong> — statement acquisition is the real onboarding bottleneck and is entirely outside the design."]
+},
+/* 6 ── IMPORT ─────────────────────────────────────────────────────────── */
+{
+  n:"Import verdict", url:"/entity/dad/import", pins:true,
+  screen: SHELL("workspaces", CTX("Dad", "as of 31 Jul 2026"), `
+    <div><h2 class="screen">Import finished — 9 files, 3 need you</h2>
+      <p class="sub">This is WealthLens-core’s own verdict, shown exactly as it reported it.</p></div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>File</th><th>What it is</th><th>Outcome</th><th class="num">Rows</th><th>Next</th></tr></thead>
+      <tbody>
+        <tr><td class="id">NSDL-eCAS-JUL2026.pdf</td><td>Depository CAS</td><td><span class="chip ok">Imported</span></td><td class="num">1,043</td><td class="tiny muted">—</td></tr>
+        <tr><td class="id">hdfc-stmt-jul.pdf</td><td>Bank statement</td><td><span class="chip ok">Imported</span></td><td class="num">218</td><td class="tiny muted">—</td></tr>
+        <tr><td class="id">sbi-jul-2026.pdf</td><td>Bank statement</td><td><span class="chip warn">Locked</span></td><td class="num">—</td><td><span class="fake ghost" style="padding:4px 10px;font-size:12px">Supply password</span></td></tr>
+        <tr><td class="id">axis-cc-jul.pdf</td><td>Card statement</td><td><span class="chip warn">Footing break</span></td><td class="num">96</td><td class="tiny muted">Imported, flagged</td></tr>
+        <tr><td class="id">scan-2026-07.pdf</td><td>Not recognised</td><td><span class="chip crit">Unrecognised</span></td><td class="num">—</td><td><span class="fake ghost" style="padding:4px 10px;font-size:12px">Diagnose</span></td></tr>
+      </tbody></table></div>
+    <div class="strip warn"><div><b>One file’s totals don’t foot.</b> Its rows are loaded, and every view that
+      includes them will say so until the condition clears. <span class="ref">report-views</span></div></div>
+    <div class="pinbox"><span class="pin">7</span><div><b>Which password is this?</b> WLC’s config holds
+      <i>named</i> passwords tried in series. When the user types one here, does it become a new named entry, get
+      reused across files, or attach to this file alone? “By WLC’s convention” doesn’t answer it, and the wrong
+      choice quietly builds a password list nobody can maintain.</div></div>`),
+  what:["Per-file outcomes are rendered verbatim — no file’s warning may be dropped. <span class='ref'>report-views</span>",
+        "Locked flows to the password loop; unrecognised flows to diagnose. <span class='ref'>UC-B2</span>"],
+  holes:["<strong>P7</strong> — password naming and scope on entry is unspecified; it shapes a file the user lives with."]
+},
+/* 7 ── OVERVIEW ───────────────────────────────────────────────────────── */
+{
+  n:"Overview", url:"/", pins:true,
+  screen: SHELL("overview", CTX(), `
+    <div><h2 class="screen">Is this picture trustworthy right now?</h2></div>
+    <div class="strip warn"><div><b>Two things need attention.</b> Sister’s workspace was last updated 9 days ago
+      (a synced copy). One card statement has a footing break.</div></div>
+    <div class="grid3">
+      <div class="card"><div class="lbl">Family net worth</div><div class="big">₹—.—— Cr</div>
+        <p class="tiny muted" style="margin:6px 0 0">4 members · mixed as-of <span class="chip warn" style="font-size:10px">see parts</span></p></div>
+      <div class="card"><div class="lbl">Verified</div><div class="big" style="color:var(--ok)">3 / 4</div>
+        <p class="tiny muted" style="margin:6px 0 0">stores rebuilt = replayed corpus</p></div>
+      <div class="card"><div class="lbl">Inbox</div><div class="big">3</div>
+        <p class="tiny muted" style="margin:6px 0 0">files awaiting you</p></div>
+    </div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Member</th><th>Store as of</th><th>Freshness</th><th>Basis</th><th class="num">Share</th></tr></thead>
+      <tbody>
+        <tr><td>Me</td><td class="id">31 Jul 2026</td><td><span class="chip ok">current</span></td><td class="tiny">market</td><td class="num">—</td></tr>
+        <tr><td>Dad</td><td class="id">31 Jul 2026</td><td><span class="chip ok">current</span></td><td class="tiny">market</td><td class="num">—</td></tr>
+        <tr><td>Sister</td><td class="id">22 Jul 2026</td><td><span class="chip warn">9 days old</span></td><td class="tiny">market</td><td class="num">—</td></tr>
+        <tr><td>Mum</td><td class="id">—</td><td><span class="chip crit">can’t open</span></td><td class="tiny muted">store busy</td><td class="num">—</td></tr>
+      </tbody></table></div>
+    <div class="strip crit"><div><b>This total excludes Mum</b> — her store could not be opened (a rebuild is
+      running against it). It is not the family’s whole position. <span class="ref">family-aggregation</span></div></div>`),
+  what:["Partial availability degrades honestly — the total is labelled as excluding an entity, never silently smaller.",
+        "Per-workspace freshness is surfaced so a synced copy is visible as lagging. <span class='ref'>family-aggregation</span>"],
+  holes:["None new — this is the best-specified screen in the set."]
+},
+/* 8 ── REPORTS ────────────────────────────────────────────────────────── */
+{
+  n:"Reports & egress", url:"/reports/holdings", pins:true,
+  screen: SHELL("reports", CTX(), `
+    <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-end">
+      <div><h2 class="screen">Holdings</h2>
+        <p class="sub">248 rows · filtered to equity and funds · sorted by value</p></div>
+      <div class="actions"><span class="fake ghost">Export CSV</span><span class="fake ghost">Print</span></div>
+    </div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Instrument</th><th>ISIN</th><th>Whose</th><th class="num">Units</th><th class="num">Value</th><th>Basis</th></tr></thead>
+      <tbody>
+        <tr><td>An equity holding</td><td class="id">INE0•••••••</td><td>Dad</td><td class="num">—</td><td class="num">₹ —</td><td class="tiny">market</td></tr>
+        <tr><td>A mutual fund</td><td class="id">INF0•••••••</td><td>Me</td><td class="num">—</td><td class="num">₹ —</td><td class="tiny">NAV</td></tr>
+        <tr><td>A fixed deposit</td><td class="id muted">not applicable</td><td>Mum</td><td class="num">—</td><td class="num">₹ —</td><td class="tiny">stated</td></tr>
+        <tr><td>A savings account (UK)</td><td class="id muted">not applicable</td><td>Sister</td><td class="num">—</td><td class="num">£ —</td><td class="tiny">stated</td></tr>
+      </tbody></table></div>
+    <div class="card q">
+      <div class="lbl">What the exported file carries <span class="pin">8</span></div>
+      <div class="mono muted" style="margin-top:8px;line-height:1.7">
+        WealthLens — Holdings<br>
+        Scope: Family (4 members) · As of: 31 Jul 2026 · Reporting currency: INR<br>
+        Filters: class in (equity, fund) · Store: 4 workspaces, schema 3.9<br>
+        Warning: excludes Mum (store unavailable); Sister’s data is 9 days old<br>
+        Generated: 22 Aug 2026 18:40 · 248 of 248 rows
+      </div>
+    </div>
+    <div class="pinbox"><span class="pin">8</span><div><b>Whose “as of” goes in the header?</b> The spec says the
+      artifact carries <i>the</i> as-of date — but a family export has four, and one member is missing entirely.
+      A single date in that header would be the exact dishonesty the design forbids. The header needs a
+      mixed-scope form, and it doesn’t have one.</div></div>
+    <div class="pinbox"><span class="pin">9</span><div><b>A foreign-currency row is already visible here.</b>
+      ADR-0012 calls that the standing test — worth confirming the table, the CSV and the print layout all
+      pass it before the first release, not after.</div></div>`),
+  what:["Export and print are properties of the shipped table, not per-view features. <span class='ref'>ADR-0013</span>",
+        "Both carry a provenance header and both cover the whole filtered set, never the visible page."],
+  holes:["<strong>P8</strong> — the provenance header has no mixed-scope form (many as-of dates, an excluded member).",
+         "<strong>P9</strong> — the foreign-currency case appears in v1 views; test it in all three surfaces early."]
+},
+/* 9 ── WORKSPACE ──────────────────────────────────────────────────────── */
+{
+  n:"Collateral", url:"/entity/dad/collateral", pins:true,
+  screen: SHELL("workspaces", CTX("Dad", "as of 31 Jul 2026"), `
+    <div><h2 class="screen">What this store was built from</h2>
+      <p class="sub">Every document, what became of it, and which password opens it.</p></div>
+    <div class="card" style="display:flex;gap:26px;flex-wrap:wrap">
+      <div><div class="lbl">Workspace</div><div class="mono" style="margin-top:4px">~/WealthLens/dad-WealthLens-data</div></div>
+      <div><div class="lbl">Schema</div><div class="mono" style="margin-top:4px">3.9</div></div>
+      <div><div class="lbl">Store</div><div class="mono" style="margin-top:4px">wealth_v3.duckdb · <span style="color:var(--accent)">reveal</span></div></div>
+    </div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Document</th><th>Opens with</th><th>Outcome</th><th class="num">Rows</th><th></th></tr></thead>
+      <tbody>
+        <tr><td class="id">NSDL-eCAS-JUL2026.pdf</td><td><span class="chip neutral">PAN</span></td><td><span class="chip ok">Imported</span></td><td class="num">1,043</td><td><span class="tiny" style="color:var(--accent);font-weight:600">Copy password</span></td></tr>
+        <tr><td class="id">hdfc-stmt-jul.pdf</td><td><span class="chip neutral">hdfc</span></td><td><span class="chip ok">Imported</span></td><td class="num">218</td><td><span class="tiny" style="color:var(--accent);font-weight:600">Copy password</span></td></tr>
+        <tr><td class="id">scan-2026-07.pdf</td><td><span class="chip neutral">none recorded</span></td><td><span class="chip crit">Unrecognised</span></td><td class="num">—</td><td><span class="tiny muted">Diagnose</span></td></tr>
+      </tbody></table></div>
+    <div class="card q">
+      <div class="lbl">Remove everything one document contributed</div>
+      <p class="tiny muted" style="margin:7px 0 10px">WealthLens-web can’t do this yet — it doesn’t write to your
+        store. Run this in WealthLens-core and the rows go with it: <span class="ref">ADR-0012</span></p>
+      <div class="cmd"><span>wealthlens forget src:nsdl:2026-07:dad</span><span class="cp">COPY</span></div>
+    </div>
+    <div class="pinbox"><span class="pin">10</span><div><b>The taught command names a verb that does not exist.</b>
+      <span class="mono">forget</span> is unimplemented in WLC — teaching a command that fails is worse than a
+      disabled button. Either the verb ships, or v1 teaches the real sequence (rebuild without the file), or this
+      panel doesn’t appear at all.</div></div>`),
+  what:["The password ring shows which named password opens each file — the reference, never the value. <span class='ref'>collateral-and-sources</span>",
+        "Revealing a value is deliberate, goes straight to the clipboard, and is never rendered. "],
+  holes:["<strong>P10</strong> — “teach the command” assumed a command exists; for retraction it doesn’t yet."]
+},
+/* 10 ── SETTINGS ──────────────────────────────────────────────────────── */
+{
+  n:"Settings", url:"/entity/dad/settings", pins:true,
+  screen: SHELL("workspaces", CTX("Dad", "as of 31 Jul 2026"), `
+    <div><h2 class="screen">Dad’s settings</h2>
+      <p class="sub">Everything first-run asked, changeable now. These belong to this workspace alone —
+        each person has their own. <span class="ref">identity-and-settings</span></p></div>
+    <div class="grid2">
+      <div class="field"><span class="fl">Name on statements</span><span class="input">Kolluri</span></div>
+      <div class="field"><span class="fl">PAN</span>
+        <span class="input" style="display:flex;justify-content:space-between;align-items:center">
+          <span class="ph">•••••••••• set</span><span class="tiny" style="color:var(--accent);font-weight:600">COPY</span></span>
+        <span class="fh">Stored in its own file. Never shown, never returned by a listing.</span></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Statement passwords</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px">
+        <span class="chip neutral">hdfc</span><span class="chip neutral">sbi · 2 values</span>
+        <span class="chip neutral">icici</span><span class="fake ghost" style="padding:3px 9px;font-size:11.5px">Add</span></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Tidy the inbox after import</div>
+      <p class="tiny muted" style="margin:7px 0 0">Files that parsed move into folders by institution. Files that
+        didn’t stay put, so the inbox drains to “what’s left to handle”. <b>On</b></p>
+    </div>
+    <div class="strip info"><div>Saving changes one line of <span class="mono">config.toml</span>. Your comments,
+      ordering and password pointers are preserved exactly. <span class="ref">identity-and-settings</span></div></div>
+    <div class="pinbox"><span class="pin">11</span><div><b>Activity is memory-only.</b> Job history lives in the
+      bridge process (ADR-0002/0005), so restarting the app empties it — while bridge-api promises a finished
+      job is “still available in Activity”. Both can be true, but the UI has to say which, and no screen does.</div></div>`),
+  what:["Nothing is write-once at bootstrap; the field list derives from WLC’s own config contract.",
+        "Edits preserve comments, key order and reference syntax — a save touches one line."],
+  holes:["<strong>P11</strong> — Activity’s durability across a restart is promised in one doc and denied in another."]
+}
+];
+
+/* ---------- wiring ---------- */
+const rail = document.getElementById("rail");
+const screenEl = document.getElementById("screen");
+const urlEl = document.getElementById("url");
+const nWhat = document.getElementById("nWhat");
+const nHoles = document.getElementById("nHoles");
+let cur = 0;
+
+STEPS.forEach((s,i)=>{
+  const b = document.createElement("button");
+  b.className = "step" + (s.pins ? " has-pin" : "");
+  b.type = "button";
+  b.innerHTML = `<span class="n">${String(i+1).padStart(2,"0")}</span>${s.n}`;
+  b.addEventListener("click", ()=>go(i));
+  rail.appendChild(b);
+});
+
+function go(i){
+  cur = i;
+  const s = STEPS[i];
+  screenEl.innerHTML = s.screen;
+  urlEl.innerHTML = s.url.startsWith("—") ? `<span class="muted">${s.url}</span>`
+                                          : `<b>127.0.0.1:7788</b>${s.url}`;
+  nWhat.innerHTML = s.what.map(t=>`<li>${t}</li>`).join("");
+  nHoles.innerHTML = s.holes.map(t=>`<li>${t}</li>`).join("");
+  [...rail.children].forEach((el,j)=>el.setAttribute("aria-current", j===i ? "true" : "false"));
+  [...rail.children][i].scrollIntoView({block:"nearest", inline:"nearest"});
+}
+
+document.body.classList.add("pins");
+const pinBtn = document.getElementById("pinToggle");
+pinBtn.addEventListener("click", ()=>{
+  const on = document.body.classList.toggle("pins");
+  pinBtn.setAttribute("aria-pressed", on);
+  pinBtn.textContent = "Open questions · " + (on ? "on" : "off");
+});
+
+document.getElementById("themeToggle").addEventListener("click", ()=>{
+  const r = document.documentElement;
+  const dark = r.getAttribute("data-theme") === "dark"
+    || (!r.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+  r.setAttribute("data-theme", dark ? "light" : "dark");
+});
+
+document.addEventListener("keydown", e=>{
+  if(e.key === "ArrowRight" && cur < STEPS.length-1) go(cur+1);
+  if(e.key === "ArrowLeft" && cur > 0) go(cur-1);
+});
+
+go(0);
+</script>
