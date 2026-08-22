@@ -10,6 +10,6 @@ import { test } from "@playwright/test";
  * Marked fixme until the flow exists: the placeholder keeps the cap visible in the repo without a red
  * suite that everyone learns to ignore.
  */
-test.fixme("A cross-site POST is refused (ADR-0004)", async () => {
+test.fixme("A cross-site POST is refused (ADR-0004)", () => {
   throw new Error("not implemented — see BUILD-PLAN.md");
 });

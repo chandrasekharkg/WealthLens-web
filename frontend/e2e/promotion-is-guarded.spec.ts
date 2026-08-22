@@ -10,6 +10,6 @@ import { test } from "@playwright/test";
  * Marked fixme until the flow exists: the placeholder keeps the cap visible in the repo without a red
  * suite that everyone learns to ignore.
  */
-test.fixme("Promotion is unreachable without its completed check (ADR-0005/0006)", async () => {
+test.fixme("Promotion is unreachable without its completed check (ADR-0005/0006)", () => {
   throw new Error("not implemented — see BUILD-PLAN.md");
 });

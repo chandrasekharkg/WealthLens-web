@@ -34,7 +34,7 @@ describe("formatMoney", () => {
   it("groups by the locale, not by a developer's assumption", () => {
     const inLakhs = formatMoney({ amount: 100000, currency: "INR" }, "en-IN");
     const inThousands = formatMoney({ amount: 100000, currency: "INR" }, "en-US");
-    expect(inLakhs).toContain("1,00,000");
+    expect(inLakhs).toContain("1,00,000"); // pii-ok — a formatting fixture, not anyone's money
     expect(inThousands).toContain("100,000");
   });
 
@@ -48,6 +48,6 @@ describe("identifiers", () => {
   it("states 'no identifier' rather than leaving it blank", () => {
     expect(isIdentified(NO_IDENTIFIER)).toBe(false);
     expect(isIdentified("")).toBe(false);
-    expect(isIdentified("INE000000000")).toBe(true);
+    expect(isIdentified("INE000000000")).toBe(true); // pii-ok — a shaped placeholder, not a real ISIN
   });
 });

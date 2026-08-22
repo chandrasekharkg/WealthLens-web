@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Local CI: the personal-data net, then linters, then both test suites — before anything leaves the machine.
+# Enable once:  git config core.hooksPath .githooks
+# Bypass a one-off:  git push --no-verify
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 0
+ZERO="0000000000000000000000000000000000000000"   # git's all-zero sha (new/deleted ref)   pii-ok
+
+# ── 1. personal-data scan over the pushed range ──────────────────────────────────────────────────────
+RANGES=()
+while read -r _lref lsha _rref rsha; do
+  [ -z "${lsha:-}" ] && continue
+  [ "$lsha" = "$ZERO" ] && continue
+  if [ "${rsha:-$ZERO}" != "$ZERO" ]; then RANGES+=("$rsha..$lsha")
+  elif git rev-parse --verify -q origin/main >/dev/null; then RANGES+=("origin/main..$lsha")
+  else RANGES+=("$lsha"); fi
+done
+if [ ${#RANGES[@]} -eq 0 ]; then
+  if   git rev-parse --verify -q '@{u}'      >/dev/null; then RANGES=("@{u}..HEAD")
+  elif git rev-parse --verify -q origin/main >/dev/null; then RANGES=("origin/main..HEAD")
+  else RANGES=("HEAD"); fi
+fi
+for r in "${RANGES[@]}"; do
+  if ! .githooks/pii-scan "$r"; then
+    echo "  To bypass the whole hook for a one-off:  git push --no-verify" >&2
+    exit 1
+  fi
+done
+echo "✓ pre-push: no personal-data patterns in the pushed lines."
+
+# ── 2. linters + tests ───────────────────────────────────────────────────────────────────────────────
+# Each step SKIPS (loudly) rather than blocking when its toolchain isn't installed: a contributor who has
+# only touched the frontend shouldn't be stopped by a missing Python venv. CI runs everything regardless.
+fail=0
+PY=""
+for cand in "${VIRTUAL_ENV:-}/bin/python" ".venv/bin/python" "$(command -v python3 2>/dev/null)"; do
+  if [ -n "$cand" ] && [ -x "$cand" ] && "$cand" -c "import pytest, wealthlens_web" >/dev/null 2>&1; then
+    # ABSOLUTE, deliberately: the pytest step runs inside `cd bridge`, where a relative ".venv/bin/python"
+    # no longer resolves — and the failure looks exactly like a failing test suite.
+    PY="$(cd "$(dirname "$cand")" && pwd)/$(basename "$cand")"; break
+  fi
+done
+if [ -z "$PY" ]; then
+  echo "pre-push ⚠  no Python with pytest + wealthlens_web — SKIPPING bridge checks (see README)." >&2
+else
+  echo "pre-push · ruff…";   "$PY" -m ruff check bridge/ || fail=1
+  echo "pre-push · pytest…"; (cd bridge && "$PY" -m pytest -q) || fail=1
+fi
+
+if [ -d frontend/node_modules ]; then
+  echo "pre-push · eslint + tsc + vitest…"
+  (cd frontend && npm run lint --silent && npm run typecheck --silent && npm test --silent) || fail=1
+else
+  echo "pre-push ⚠  frontend/node_modules missing — SKIPPING frontend checks (npm install in frontend/)." >&2
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "" >&2
+  echo "✗ pre-push: checks failed — push blocked. Fix them, or bypass: git push --no-verify" >&2
+  exit 1
+fi
+echo "✓ pre-push: linters and tests pass — pushing."

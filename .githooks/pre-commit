@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Personal-data scan BEFORE the commit exists — the cheapest moment to catch a pasted real value, because
+# nothing has entered history yet. Fast by design (staged diff only); the slow checks live in pre-push.
+# Enable once:  git config core.hooksPath .githooks
+# Bypass a one-off:  git commit --no-verify
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 0
+if ! .githooks/pii-scan --staged; then
+  echo "  To bypass for a one-off:  git commit --no-verify" >&2
+  exit 1
+fi
+echo "✓ pre-commit: no personal-data patterns in the staged lines."

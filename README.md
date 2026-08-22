@@ -14,6 +14,24 @@ family view over stores that remain strictly separate underneath.
 > durable artifact: the **family manifest** (`family.toml` — which workspaces exist, whose they are, and
 > how to present them).
 
+## Working on this repo
+
+```bash
+python -m venv .venv && .venv/bin/pip install -e "bridge[dev]"   # bridge: fastapi, pytest, ruff
+cd frontend && npm install                                        # frontend: vite, vitest, eslint
+git config core.hooksPath .githooks                               # enable the local gates
+```
+
+Two gates run locally, and CI runs the same checks:
+
+- **pre-commit** — a personal-data scan of the staged lines. This repo is public, and the realistic leak is
+  a real value pasted into an *example* (a docstring, a spec, a fixture), not a committed statement. It
+  reports `file:line` and which pattern matched, never the matched text. Deliberately synthetic data:
+  put `pii-ok` on the line.
+- **pre-push** — the same scan over the pushed range, then `ruff`, `eslint`, `tsc` and both test suites.
+  Each step skips loudly if its toolchain is absent, so a frontend-only contributor is not blocked by a
+  missing Python venv.
+
 ## What it does
 
 - **Setup, guided.** First-run flows for creating/connecting a WLC workspace, passwords/config seeding,

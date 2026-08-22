@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import builtins
 
-import pytest
-
 from wealthlens_web import engine
 
 

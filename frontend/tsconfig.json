@@ -11,7 +11,7 @@
     "noUnusedParameters": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "node"]
   },
-  "include": ["src", "e2e"]
+  "include": ["src", "e2e", "*.config.ts", "eslint.config.js"]
 }

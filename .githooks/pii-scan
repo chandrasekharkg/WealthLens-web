@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Shared personal-data scanner for this repo's hooks. Same patterns and same discipline as
+# WealthLens-core's: one scanner, two moments (before a commit, and again before a push).
+#
+#   .githooks/pii-scan --staged        scan what is about to be committed
+#   .githooks/pii-scan <range>...      scan added lines in git ranges
+#
+# WHY BOTH: pre-commit is where a mistake is cheapest to fix (nothing is in history yet). pre-push is the
+# net for commits made by a tool that skipped the hook, or with --no-verify.
+#
+# This repo is PUBLIC. The realistic leak is not a committed statement — .gitignore catches those — it is a
+# REAL value pasted into an *illustrative example*: a docstring, a spec, a fixture, a mockup.
+#
+# Only ADDED lines are scanned, so already-committed legitimate content never blocks a future commit.
+# Deliberate synthetic data: put  pii-ok  on the line and the scanner skips it.
+# We report file:line and WHICH pattern matched — never the matched text, which would echo the value into
+# the terminal and shell history.
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 0
+
+# Keep these high-signal. A noisy gate gets bypassed habitually, which is worse than no gate.
+PII_PATTERNS=(
+  "PAN|[A-Z]{5}[0-9]{4}[A-Z]"
+  "long-digit-run (account/client/folio id)|[0-9]{9,}"
+  "indian-grouped-amount|[0-9]{1,2},[0-9]{2},[0-9]{3}(\.[0-9]{2})?"
+)
+FORBIDDEN_FILES='\.(pdf|PDF|duckdb|key|pass)$'
+# Machine-generated and incapable of carrying personal data; scanning them is pure noise.
+EXCLUDE_PATHS='(package-lock\.json|node_modules/)'
+
+added_lines() {                       # emit  path:line:content  for added lines
+  git diff -U0 "$@" -- 2>/dev/null | awk '
+    /^\+\+\+ /                   { f = substr($0, 7); next }
+    /^@@/                        { match($0, /\+[0-9]+/); ln = substr($0, RSTART + 1, RLENGTH - 1) + 0; next }
+    /^\+/ && f != "" && f != "/dev/null" { print f ":" ln ":" substr($0, 2); ln++ }
+  '
+}
+
+if [ "${1:-}" = "--staged" ]; then
+  DIFF_ARGS=(--cached); NAME_ARGS=(--cached)
+else
+  DIFF_ARGS=("$@");     NAME_ARGS=("$@")
+fi
+
+hits=0
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  echo "  ✗ $f  [forbidden file type — never commit source documents or stores]" >&2
+  hits=$((hits + 1))
+done < <(git diff --name-only --diff-filter=A "${NAME_ARGS[@]}" -- 2>/dev/null \
+         | grep -E "$FORBIDDEN_FILES" | grep -Ev "$EXCLUDE_PATHS" || true)
+
+scanned="$(added_lines "${DIFF_ARGS[@]}" | grep -Ev "^($EXCLUDE_PATHS)" | grep -v 'pii-ok' || true)"
+if [ -n "$scanned" ]; then
+  for entry in "${PII_PATTERNS[@]}"; do
+    name="${entry%%|*}"; re="${entry#*|}"
+    while IFS= read -r line; do
+      [ -z "$line" ] && continue
+      loc="${line%%:*}"; rest="${line#*:}"; lno="${rest%%:*}"
+      echo "  ✗ $loc:$lno  [$name]" >&2
+      hits=$((hits + 1))
+    done < <(printf '%s\n' "$scanned" | grep -E ":[0-9]+:.*${re}" || true)
+  done
+fi
+
+if [ "$hits" -gt 0 ]; then
+  {
+    echo ""
+    echo "✗ $hits possible personal-data leak(s) — blocked."
+    echo "  This repo is public. Check each location above (the matched text is deliberately NOT printed,"
+    echo "  so it doesn't land in your scrollback)."
+    echo "  If the value is genuinely synthetic, add  pii-ok  to that line and retry."
+  } >&2
+  exit 1
+fi
+exit 0

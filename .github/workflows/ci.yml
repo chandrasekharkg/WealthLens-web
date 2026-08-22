@@ -18,6 +18,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
+      - run: ruff check .
       # WealthLens-core is deliberately absent here: it is not on PyPI, and the bridge must behave
       # correctly without it (a missing engine is a STATE the UI renders — cold-start spec). Tests that
       # genuinely need a store skip themselves; the preflight tests assert the absent path on purpose.
@@ -36,5 +37,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run typecheck
       - run: npm test

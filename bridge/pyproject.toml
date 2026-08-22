@@ -20,7 +20,7 @@ dependencies = [
 # every CI run. Instead: the bridge imports it at runtime, preflight reports its absence as a first-class
 # state with a fix (cold-start spec), and the tests that need it skip when it is missing.
 [project.optional-dependencies]
-dev = ["pytest>=8", "httpx>=0.27"]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6"]
 
 [tool.setuptools.packages.find]
 include = ["wealthlens_web*"]
@@ -28,3 +28,31 @@ include = ["wealthlens_web*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = ["error::DeprecationWarning:wealthlens_web.*"]
+
+# ── lint ─────────────────────────────────────────────────────────────────────────────────────────────
+# Linting from the first commit rather than retrofitted: a rule introduced later has to be argued for
+# against existing code, while a rule present from the start is just how the repo is written.
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes — the real bug-finders (undefined names, unused imports)
+    "I",        # import order
+    "UP",       # pyupgrade — keep to modern syntax as the floor rises
+    "B",        # bugbear — mutable defaults, shadowed loop vars, the quiet ones
+    "SIM",      # simplify
+    "RUF",      # ruff's own
+]
+ignore = [
+    "E501",     # line length is enforced by the formatter's judgement, not a hard error on a comment
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests reach into module internals and shadow names deliberately; that is what a test is for.
+"tests/*" = ["B011", "SIM117"]
+
+# `ruff format` is available and useful, but NOT enforced in CI: this codebase uses deliberate column
+# alignment in comments and tables that a formatter would flatten. Run it if you like; the linter is the gate.
