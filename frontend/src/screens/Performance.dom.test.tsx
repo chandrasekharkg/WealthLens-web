@@ -5,21 +5,27 @@ import { formatter } from "../i18n";
 import { Performance } from "./Performance";
 
 const money = (a: string) => ({ amount: a, currency: "INR" });
+// The shape the BRIDGE returns: every figure the charts show is pre-computed (share, stack base/top, total,
+// axis ticks). The bridge's arithmetic is tested in pytest; this stubs its output to test the RENDERING.
+// Synthetic round numbers, not a real portfolio. Real estate is absent from the series (the bridge excludes
+// it from the growth stack) but present, positive, in the breakup.
 const PERF = {
   reporting_currency: "INR",
+  total: money("120.00"),
   breakup: [
-    { asset_class: "mutual_fund", value: money("46588992.06") },
-    { asset_class: "savings", value: money("26336903.11") },
-    { asset_class: "real_estate", value: money("22800000.00") },
-    { asset_class: "credit_card", value: money("-313192.89") },   // a liability — excluded from the donut
+    { asset_class: "mutual_fund", value: money("60.00"), share: 50 },
+    { asset_class: "savings", value: money("30.00"), share: 25 },
+    { asset_class: "real_estate", value: money("30.00"), share: 25 },
+    { asset_class: "credit_card", value: money("-10.00"), share: 0 },   // a liability — excluded from the donut
   ],
   series: [
-    { date: "2026-07-31", asset_class: "mutual_fund", value: money("45499069.22") },
-    { date: "2026-08-31", asset_class: "mutual_fund", value: money("46588992.06") },
-    { date: "2026-07-31", asset_class: "savings", value: money("26336903.11") },
-    { date: "2026-08-31", asset_class: "savings", value: money("26336903.11") },
-    { date: "2026-08-31", asset_class: "real_estate", value: money("22800000.00") },
+    { date: "2026-07-31", asset_class: "mutual_fund", value: money("55.00"), base: money("0.00"), top: money("55.00") },
+    { date: "2026-07-31", asset_class: "savings", value: money("30.00"), base: money("55.00"), top: money("85.00") },
+    { date: "2026-08-31", asset_class: "mutual_fund", value: money("60.00"), base: money("0.00"), top: money("60.00") },
+    { date: "2026-08-31", asset_class: "savings", value: money("30.00"), base: money("60.00"), top: money("90.00") },
   ],
+  axis_max: money("90.00"),
+  axis_ticks: [money("0.00"), money("45.00"), money("90.00")],
 };
 
 afterEach(() => vi.unstubAllGlobals());

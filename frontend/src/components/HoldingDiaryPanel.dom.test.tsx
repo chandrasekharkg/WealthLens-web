@@ -23,6 +23,7 @@ const DIARY = {
     { date: "2026-05-31", line_kind: "balance", role: null, action: null,
       description: "ALPHA", debit: null, credit: null, closing: 100, pledged: 20, locked: null, free: 80, booked: false },
   ],
+  provenance: { title: "ALPHA LTD", scope: "Me", reporting_currency: "INR", row_count: 3 },
 };
 
 afterEach(() => vi.unstubAllGlobals());

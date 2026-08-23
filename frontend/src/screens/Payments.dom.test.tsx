@@ -27,6 +27,7 @@ const BILL = {
     { date: "2026-01-05", description: "COFFEE SHOP", amount: money("-300.00"), direction: "spend" },
     { date: "2026-01-10", description: "GROCERY", amount: money("-200.00"), direction: "spend" },
   ],
+  provenance: { title: "axis statement", scope: "Me", reporting_currency: "INR", row_count: 2 },
 };
 
 function stub() {

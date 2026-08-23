@@ -95,6 +95,14 @@ def for_net_worth(got: FamilyNetWorth) -> Provenance:
     )
 
 
+def for_drilldown(*, title: str, scope: str, reporting_currency: str, as_of: str | None = None,
+                  row_count: int | None = None, stores: tuple[str, ...] = ()) -> Provenance:
+    """A single-store, single-subject drill-down (a card statement, a person's transfers, a holding's diary).
+    The reporting currency is a bridge decision like everywhere else — the UI must not pick it off row[0]."""
+    return Provenance(title=title, scope=scope, as_of=as_of, reporting_currency=reporting_currency,
+                      stores=stores, row_count=row_count)
+
+
 def for_rows(got: FamilyRows, *, filters: tuple[str, ...] = ()) -> Provenance:
     return Provenance(
         title=got.granularity.value.capitalize(),

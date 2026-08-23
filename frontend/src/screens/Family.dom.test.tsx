@@ -22,6 +22,7 @@ const AVI = {
     { date: "2026-06-21", bank: "kotak", narration: "UPI/Avi Kolluri/1/UPI", amount: money("5000.00") }, // pii-ok
     { date: "2023-05-21", bank: "icici", narration: "AVI KOLLURI SCHOOL FEE", amount: money("3000.00") }, // pii-ok
   ],
+  provenance: { title: "Transfers to avi", scope: "Me", reporting_currency: "INR", row_count: 2 },
 };
 
 function stub() {

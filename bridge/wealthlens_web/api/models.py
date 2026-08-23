@@ -57,6 +57,7 @@ class EntityTotal(BaseModel):
     evidence_as_of: str | None = Field(
         default=None, description="Newest DOCUMENT evidence — not the date the view was computed at")
     contributes: bool
+    status: Literal["ok", "stale", "excluded"] = "ok"
     excluded_reason: str | None = None
     owner_warning: str | None = None
     workspaces: list[WorkspaceInfo] = []
@@ -83,6 +84,7 @@ class NetWorth(BaseModel):
     reporting_currency: str
     total: Money | None = None
     is_partial: bool = Field(description="True when a declared entity could not be included")
+    stale_count: int = Field(default=0, description="Included entities answering from stale evidence")
     entities: list[EntityTotal]
     provenance: Provenance
 
@@ -209,6 +211,7 @@ class CardStatement(BaseModel):
     previous_balance: Money | None = None
     new_balance: Money | None = None
     transactions: list[CardStatementLine] = []
+    provenance: Provenance
 
 
 class CardBillPaymentRow(BaseModel):
@@ -288,6 +291,7 @@ class HoldingDiary(BaseModel):
     performance: HoldingPerformance | None = None
     lineage: list[LineageEdge] = []
     lines: list[DiaryLine] = []
+    provenance: Provenance
 
 
 class PerformanceBucket(BaseModel):
@@ -295,22 +299,29 @@ class PerformanceBucket(BaseModel):
 
     asset_class: str
     value: Money
+    share: float = Field(default=0, description="Percent of the positive-bucket total; computed in the bridge")
 
 
 class PerformancePoint(BaseModel):
-    """One (month, asset-class) value on the growth series."""
+    """One (month, asset-class) value on the growth series, with its PRE-SUMMED stack position."""
 
     date: str | None = None
     asset_class: str
     value: Money
+    base: Money | None = Field(default=None, description="Cumulative stack floor below this band")
+    top: Money | None = Field(default=None, description="Cumulative stack ceiling incl. this band")
 
 
 class Performance(BaseModel):
-    """The portfolio, for the charts: the current value breakup and the monthly value series per class."""
+    """The portfolio, for the charts: the current value breakup and the monthly value series per class.
+    Every figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI."""
 
     reporting_currency: str
+    total: Money | None = Field(default=None, description="Portfolio total = sum of positive buckets")
     breakup: list[PerformanceBucket] = []
     series: list[PerformancePoint] = []
+    axis_max: Money | None = Field(default=None, description="Growth-chart Y-axis maximum")
+    axis_ticks: list[Money] = Field(default=[], description="Growth-chart Y-axis tick values (money labels)")
 
 
 class FamilyMemberRow(BaseModel):
@@ -350,6 +361,7 @@ class FamilyTransfers(BaseModel):
     entity_id: str
     person: str
     transfers: list[TransferRow] = []
+    provenance: Provenance
 
 
 class Deposit(BaseModel):

@@ -174,18 +174,13 @@ def _password_with_config(sha, hints, provider, parser_pw) -> Password:
 
 def documents(con, workspace: pathlib.Path) -> list[Document]:
     """Every source registered in this store, newest capture first."""
-    from wealthlens import lens
+    from wealthlens_web.core import lens_api
 
     hints = _hints(workspace)
     parser_pw = _parser_passwords(workspace)
-    rows = lens.sql(
-        "SELECT source_id, source_type, provider, payload_ref, row_count, captured_at, "
-        "       period_start, period_end, content_sha256, detail "
-        "FROM sources ORDER BY captured_at DESC NULLS LAST, source_id",
-        con=con,
-    )
+    rows = lens_api.sources(con)
     out = []
-    for _, row in rows.iterrows():
+    for row in rows:
         detail = row["detail"]
         if isinstance(detail, str):
             try:

@@ -301,6 +301,9 @@
               }
             ]
           },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "statement_date": {
             "anyOf": [
               {
@@ -323,7 +326,8 @@
         },
         "required": [
           "entity_id",
-          "issuer"
+          "issuer",
+          "provenance"
         ],
         "title": "CardStatement",
         "type": "object"
@@ -913,6 +917,16 @@
             ],
             "title": "Owner Warning"
           },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale",
+              "excluded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
           "total": {
             "anyOf": [
               {
@@ -1137,6 +1151,9 @@
             "title": "Person",
             "type": "string"
           },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "transfers": {
             "default": [],
             "items": {
@@ -1148,7 +1165,8 @@
         },
         "required": [
           "entity_id",
-          "person"
+          "person",
+          "provenance"
         ],
         "title": "FamilyTransfers",
         "type": "object"
@@ -1237,11 +1255,15 @@
                 "type": "null"
               }
             ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
           }
         },
         "required": [
           "entity_id",
-          "instrument"
+          "instrument",
+          "provenance"
         ],
         "title": "HoldingDiary",
         "type": "object"
@@ -1613,6 +1635,12 @@
             "title": "Reporting Currency",
             "type": "string"
           },
+          "stale_count": {
+            "default": 0,
+            "description": "Included entities answering from stale evidence",
+            "title": "Stale Count",
+            "type": "integer"
+          },
           "total": {
             "anyOf": [
               {
@@ -1690,8 +1718,28 @@
         "type": "object"
       },
       "Performance": {
-        "description": "The portfolio, for the charts: the current value breakup and the monthly value series per class.",
+        "description": "The portfolio, for the charts: the current value breakup and the monthly value series per class.\nEvery figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI.",
         "properties": {
+          "axis_max": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Growth-chart Y-axis maximum"
+          },
+          "axis_ticks": {
+            "default": [],
+            "description": "Growth-chart Y-axis tick values (money labels)",
+            "items": {
+              "$ref": "#/components/schemas/Money"
+            },
+            "title": "Axis Ticks",
+            "type": "array"
+          },
           "breakup": {
             "default": [],
             "items": {
@@ -1711,6 +1759,17 @@
             },
             "title": "Series",
             "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Portfolio total = sum of positive buckets"
           }
         },
         "required": [
@@ -1726,6 +1785,12 @@
             "title": "Asset Class",
             "type": "string"
           },
+          "share": {
+            "default": 0,
+            "description": "Percent of the positive-bucket total; computed in the bridge",
+            "title": "Share",
+            "type": "number"
+          },
           "value": {
             "$ref": "#/components/schemas/Money"
           }
@@ -1738,11 +1803,22 @@
         "type": "object"
       },
       "PerformancePoint": {
-        "description": "One (month, asset-class) value on the growth series.",
+        "description": "One (month, asset-class) value on the growth series, with its PRE-SUMMED stack position.",
         "properties": {
           "asset_class": {
             "title": "Asset Class",
             "type": "string"
+          },
+          "base": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cumulative stack floor below this band"
           },
           "date": {
             "anyOf": [
@@ -1754,6 +1830,17 @@
               }
             ],
             "title": "Date"
+          },
+          "top": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cumulative stack ceiling incl. this band"
           },
           "value": {
             "$ref": "#/components/schemas/Money"

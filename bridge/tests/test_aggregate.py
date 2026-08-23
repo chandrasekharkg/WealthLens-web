@@ -285,3 +285,46 @@ def test_positions_carry_the_full_stored_projection(make_workspace):
     assert r["jurisdiction"] == "IN"                    # instruments.jurisdiction default flows through
     # a snapshot-only store has no acquiring events, so the acquisition columns are honestly NULL
     assert r["first_acquired_on"] is None and r["lots"] is None
+
+
+# ── freshness and the charts are decided in the bridge, not the UI ──────────────────────────────────────
+
+def test_status_and_stale_count_are_decided_by_the_bridge(make_workspace, tmp_path):
+    """Deciding whether a store answers from stale evidence is a bridge concern (it moved out of Overview.tsx).
+    Each entity carries a status, and the household stale count is reported — the UI only renders them."""
+    fresh = make_workspace("fresh", {"A": 100}, as_of="2026-07-31")
+    old = make_workspace("old", {"B": 200}, as_of="2026-02-28")
+    m = _manifest(_entity("fresh", fresh), _entity("old", old),
+                  _entity("ghost", tmp_path / "nowhere-WealthLens-data"))
+    got = aggregate.net_worth(m, on="2026-07-31")
+    by_id = {e.entity_id: e for e in got.entities}
+    assert by_id["fresh"].status(got.as_of) == "ok"
+    assert by_id["old"].status(got.as_of) == "stale"       # evidence 2026-02-28 < the view's 2026-07-31
+    assert by_id["ghost"].status(got.as_of) == "excluded"  # unreadable — excluded, and NOT counted stale
+    assert got.stale_count == 1
+
+
+def test_performance_pre_sums_the_charts(make_workspace):
+    """Every figure the charts show is computed here: the total, each share, and each band's stack edges.
+    The UI must not have to add money to draw them (mixed-currency adds are impossible via money.total)."""
+    a = make_workspace("alpha", {"A": 1000}, as_of="2026-06-30")
+    got = aggregate.performance(_manifest(_entity("alpha", a)))
+
+    # the donut total is the sum of positive buckets, and every bucket carries its share (percent)
+    assert got["total"] == money.Money(Decimal("1000.00"), "INR")
+    assert all("share" in b for b in got["breakup"])
+    assert round(sum(b["share"] for b in got["breakup"]), 0) == 100
+
+    # the growth series is pre-summed: base+value == top on every point, and each date's stack starts at 0
+    assert got["series"], "a single valued holding still produces a growth point"
+    by_date: dict = {}
+    for p in got["series"]:
+        assert p["top"].amount == p["base"].amount + p["value"].amount
+        by_date.setdefault(p["date"], []).append(p)
+    for points in by_date.values():
+        assert points[0]["base"].amount == Decimal("0")
+
+    # the axis ticks are money the UI prints verbatim — first is zero, last is the axis maximum
+    if got["axis_max"]:
+        assert got["axis_ticks"][0].amount == Decimal("0")
+        assert got["axis_ticks"][-1].amount == got["axis_max"].amount

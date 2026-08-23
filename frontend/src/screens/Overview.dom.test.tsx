@@ -16,6 +16,7 @@ const entity = (over: Partial<EntityTotal> & { entity_id: string; label: string 
   total: { amount: "1000.00", currency: "INR" },
   evidence_as_of: "2026-07-31",
   contributes: true,
+  status: "ok",
   excluded_reason: null,
   owner_warning: null,
   workspaces: [],
@@ -29,6 +30,7 @@ const data = (over: Partial<NetWorth> = {}): NetWorth => ({
   reporting_currency: "INR",
   total: { amount: "3500.00", currency: "INR" },
   is_partial: false,
+  stale_count: 0,
   entities: [entity({ entity_id: "me", label: "Me" }), entity({ entity_id: "dad", label: "Dad" })],
   provenance: {
     title: "Net worth",
@@ -93,10 +95,13 @@ describe("caveats come first", () => {
   });
 
   it("flags a member answering from older evidence, without excluding them", () => {
+    // The bridge decides staleness (aggregate.EntityView.status) and reports the count; the screen renders
+    // what it is told, so the fixture states both — not an evidence date the UI would have to interpret.
     show({
+      stale_count: 1,
       entities: [
         entity({ entity_id: "me", label: "Me" }),
-        entity({ entity_id: "dad", label: "Dad", evidence_as_of: "2026-02-28" }),
+        entity({ entity_id: "dad", label: "Dad", evidence_as_of: "2026-02-28", status: "stale" }),
       ],
     });
     expect(screen.getByRole("note").textContent).toContain("1 member(s) are answering from older evidence");

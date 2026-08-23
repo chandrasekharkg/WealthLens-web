@@ -22,18 +22,12 @@ export type OverviewProps = {
   readonly format: Formatter;
 };
 
-function statusOf(entity: EntityTotal, asOf: string | null | undefined): "ok" | "excluded" | "stale" {
-  if (!entity.contributes) return "excluded";
-  // `asOf` is always concrete now — the bridge resolves "no date" to the date it actually valued at, which
-  // is what makes this comparison possible at all. Without it a months-old store rendered as current.
-  if (asOf && entity.evidence_as_of && entity.evidence_as_of < asOf) return "stale";
-  return "ok";
-}
-
 export function Overview({ data, format }: OverviewProps) {
   const { t, money, date } = format;
   const excluded = data.entities.filter((e) => !e.contributes);
-  const stale = data.entities.filter((e) => statusOf(e, data.as_of) === "stale");
+  // Freshness is decided by the bridge: each entity carries a `status`, and the household's stale count
+  // arrives as `stale_count`. This screen only renders them — it does not re-derive either.
+  const staleCount = data.stale_count;
 
   const columns = useMemo<ColumnDef<EntityTotal>[]>(
     () => [
@@ -54,9 +48,9 @@ export function Overview({ data, format }: OverviewProps) {
       {
         id: "status",
         header: t("column.status"),
-        accessorFn: (e) => statusOf(e, data.as_of),
+        accessorFn: (e) => e.status,
         cell: ({ row }) => {
-          const status = statusOf(row.original, data.as_of);
+          const status = row.original.status;
           return (
             <span data-status={status}>
               {t(`status.${status}` as "status.ok")}
@@ -67,7 +61,7 @@ export function Overview({ data, format }: OverviewProps) {
         },
       },
     ],
-    [t, money, date, data.as_of],
+    [t, money, date],
   );
 
   const exportColumns = useMemo<Column<EntityTotal>[]>(
@@ -76,9 +70,9 @@ export function Overview({ data, format }: OverviewProps) {
       { header: t("column.total"), value: (e) => e.total ?? null },
       { header: `${t("column.total")} currency`, value: (e) => e.total?.currency ?? null },
       { header: t("column.evidence"), value: (e) => e.evidence_as_of ?? null },
-      { header: t("column.status"), value: (e) => statusOf(e, data.as_of) },
+      { header: t("column.status"), value: (e) => e.status },
     ],
-    [t, data.as_of],
+    [t],
   );
 
   return (
@@ -92,12 +86,12 @@ export function Overview({ data, format }: OverviewProps) {
             {t("overview.partial", { count: excluded.length, total: data.entities.length })}
           </p>
         )}
-        {stale.length > 0 && (
+        {staleCount > 0 && (
           <p role="note" data-tone="warning">
-            {t("overview.stale", { count: stale.length })}
+            {t("overview.stale", { count: staleCount })}
           </p>
         )}
-        {excluded.length === 0 && stale.length === 0 && <p data-tone="ok">{t("overview.trusted")}</p>}
+        {excluded.length === 0 && staleCount === 0 && <p data-tone="ok">{t("overview.trusted")}</p>}
       </div>
 
       {/* The figure is given the weight it has — but AFTER the caveats above, which is the whole point of

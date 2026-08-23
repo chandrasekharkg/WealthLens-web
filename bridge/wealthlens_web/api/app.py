@@ -88,7 +88,8 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             "reporting_currency": got.reporting_currency,
             "total": got.total.as_dict() if got.total else None,
             "is_partial": got.is_partial,
-            "entities": [_entity_total(e) for e in got.entities],
+            "stale_count": got.stale_count,
+            "entities": [_entity_total(e, got.as_of) for e in got.entities],
             "provenance": provenance.for_net_worth(got).as_dict(),
         }
 
@@ -146,15 +147,21 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         from wealthlens import workspace as wl_workspace
         with wl_workspace.resolve(path).open() as con:
             transfers = lens_api.transfers_to(con, person=person, currency=m.reporting_currency)
-        return {"entity_id": entity_id, "person": person, "transfers": [_row(t) for t in transfers]}
+        return {"entity_id": entity_id, "person": person, "transfers": [_row(t) for t in transfers],
+                "provenance": provenance.for_drilldown(
+                    title=f"Transfers to {person}", scope=m.entity(entity_id).label,
+                    reporting_currency=m.reporting_currency, row_count=len(transfers)).as_dict()}
 
     @app.get("/api/performance", response_model=models.Performance)
     def performance() -> dict:
         got = aggregate.performance(_manifest(), our_pids=app.state.runner.our_pids)
         return {
             "reporting_currency": got["reporting_currency"],
+            "total": got["total"].as_dict() if got["total"] else None,
             "breakup": [_row(b) for b in got["breakup"]],
             "series": [_row(p) for p in got["series"]],
+            "axis_max": got["axis_max"].as_dict() if got["axis_max"] else None,
+            "axis_ticks": [t.as_dict() for t in got["axis_ticks"]],
         }
 
     @app.get("/api/cards/{entity_id}/{issuer}/statements", response_model=models.CardStatements)
@@ -176,6 +183,9 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             st = lens_api.card_statement(con, issuer=issuer, period=period, currency=m.reporting_currency)
         st["entity_id"] = entity_id
         st["transactions"] = [_row(t) for t in st["transactions"]]
+        st["provenance"] = provenance.for_drilldown(
+            title=f"{issuer} statement", scope=m.entity(entity_id).label, as_of=st.get("statement_date"),
+            reporting_currency=m.reporting_currency, row_count=len(st["transactions"])).as_dict()
         return _row(st)
 
     @app.get("/api/holdings/{entity_id}/{instrument_id}/diary", response_model=models.HoldingDiary)
@@ -187,7 +197,10 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             diary = lens_api.holding_diary(con, instrument=instrument_id, currency=m.reporting_currency)
         if diary.get("performance"):
             diary["performance"] = _row(diary["performance"])   # its ₹ figures are Money → serialise them
-        return {"entity_id": entity_id, **diary}
+        return {"entity_id": entity_id, **diary,
+                "provenance": provenance.for_drilldown(
+                    title=diary.get("name") or instrument_id, scope=m.entity(entity_id).label,
+                    reporting_currency=m.reporting_currency, row_count=len(diary.get("lines", []))).as_dict()}
 
     # ── the custodian, made legible ──────────────────────────────────────────────────────────────────
 
@@ -404,7 +417,7 @@ def _events(job: verbs.Job):
 
 # ── serialisation ────────────────────────────────────────────────────────────────────────────────────
 
-def _entity_total(e: aggregate.EntityView) -> dict:
+def _entity_total(e: aggregate.EntityView, as_of: str | None = None) -> dict:
     return {
         "entity_id": e.entity_id,
         "label": e.label,
@@ -412,6 +425,7 @@ def _entity_total(e: aggregate.EntityView) -> dict:
         "total": e.total.as_dict() if e.total else None,
         "evidence_as_of": e.evidence_as_of,
         "contributes": e.contributes,
+        "status": e.status(as_of),
         "excluded_reason": e.excluded_reason,
         "owner_warning": e.owner_warning,
         "workspaces": [_workspace(w) for w in e.workspaces],
