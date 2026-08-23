@@ -679,7 +679,18 @@ input[type="date"] {
 }
 .collateral .folder[open] > summary::before { transform: rotate(90deg); }
 .collateral .folder-count { font-weight: 400; font-size: 0.78rem; color: var(--muted); }
-.collateral .folder table { margin: 0; }
+/*
+ * A FIXED layout with explicit proportions: the document name gets the room (it is the long one and may
+ * wrap), Rows stays a slim right-aligned number, Password holds a Copy control or a short state. Fixed beats
+ * the width:1% idiom here because a long filename under auto-layout drags the whole table narrow.
+ */
+.collateral .folder table { margin: 0; width: 100%; table-layout: fixed; }
+.collateral table th:nth-child(1),
+.collateral table td:nth-child(1) { width: 62%; overflow-wrap: anywhere; }
+.collateral table th:nth-child(2),
+.collateral table td:nth-child(2) { width: 12%; text-align: right; }
+.collateral table th:nth-child(3),
+.collateral table td:nth-child(3) { width: 26%; }
 
 /* A filename that opens something reads as a link, not a raw button. */
 .file-open {

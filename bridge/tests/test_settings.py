@@ -159,6 +159,20 @@ def test_a_workspace_with_no_config_yet_still_reads(tmp_path):
 
 # ── revealing a re-obtainable secret (ADR-0019) ──────────────────────────────────────────────────────
 
+def test_a_password_can_be_revealed_by_its_FILENAME_the_collateral_list_records(workspace):
+    """The collateral list records the .pass FILENAME that opened a document (e.g. "hdfc.pass"), not the
+    config secret name ("hdfc") — a dot the name-regex rejects. Reveal must accept the filename too, as long
+    as the config ring actually declares it, or the Copy control on the Workspace tab cannot work."""
+    (workspace / "hdfc.pass").write_text("from-the-file")
+    assert settings.reveal(workspace, "hdfc.pass") == "from-the-file"
+
+
+def test_a_filename_the_config_does_NOT_declare_is_still_refused(workspace):
+    (workspace / "stranger.pass").write_text("should never be read")
+    with pytest.raises(settings.SettingsError):
+        settings.reveal(workspace, "stranger.pass")   # not referenced by any [secrets] entry
+
+
 def test_a_named_password_can_be_revealed_by_name(workspace):
     settings.add_secret(workspace, "sbi", "a-statement-password")
     assert settings.reveal(workspace, "sbi") == "a-statement-password"

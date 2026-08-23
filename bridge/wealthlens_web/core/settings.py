@@ -123,6 +123,18 @@ def set_organize(workspace: pathlib.Path, enabled: bool) -> Settings:
     return read(workspace)
 
 
+def _declared_secret_files(doc) -> set[str]:
+    """Every file the [secrets] ring references, lists flattened. A document records the .pass FILENAME that
+    opened it (not the config key), so this is the set a recorded filename must belong to before it is read
+    — declared-by-the-config is the same safety the name path relies on, one identifier over."""
+    out: set[str] = set()
+    for value in (doc.get("secrets") or {}).values():
+        for ref in (value if isinstance(value, list) else [value]):
+            if isinstance(ref, str) and ref.startswith("@file:"):
+                out.add(ref.removeprefix("@file:"))
+    return out
+
+
 def reveal(workspace: pathlib.Path, what: str) -> str:
     """The value behind one reference — a PAN, or one named statement password.
 
@@ -139,9 +151,17 @@ def reveal(workspace: pathlib.Path, what: str) -> str:
         # name must be one this workspace actually declares, or there is nothing to reveal.
         doc = _document(workspace)
         ref = doc.get("secrets", {}).get(what)
+        # a name may be list-valued (several passwords tried in series); the first stated file is the one to
+        # reveal under that name. A document instead names a specific file directly (branch below).
+        if isinstance(ref, list):
+            ref = next((r for r in ref if isinstance(r, str) and r.startswith("@file:")), None)
         if not isinstance(ref, str) or not ref.startswith("@file:"):
             raise SettingsError(f"{what!r} is not a password configured here.", field="name")
         path = pathlib.Path(workspace) / ref.removeprefix("@file:")
+    elif what in _declared_secret_files(_document(workspace)):
+        # the collateral list records the .pass FILENAME that opened a document; accept it as long as the
+        # config ring actually declares that file — the same "must be declared" guard, keyed by file.
+        path = pathlib.Path(workspace) / what
     else:
         raise SettingsError(f"{what!r} is not something this workspace holds.", field="name")
 
