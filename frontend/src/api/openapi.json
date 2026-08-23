@@ -562,6 +562,137 @@
         "title": "Deposit",
         "type": "object"
       },
+      "DiaryLine": {
+        "description": "One line of a holding's CAS transcript. Balances are UNIT quantities, not money.",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "booked": {
+            "description": "True when this line reached the quantity ledger",
+            "title": "Booked",
+            "type": "boolean"
+          },
+          "closing": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closing"
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "debit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debit"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "free": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free"
+          },
+          "line_kind": {
+            "title": "Line Kind",
+            "type": "string"
+          },
+          "locked": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked"
+          },
+          "pledged": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pledged"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the line did/didn't move ownership",
+            "title": "Role"
+          }
+        },
+        "required": [
+          "line_kind",
+          "booked"
+        ],
+        "title": "DiaryLine",
+        "type": "object"
+      },
       "DocumentInfo": {
         "properties": {
           "captured_at": {
@@ -838,6 +969,44 @@
           "ours"
         ],
         "title": "Holder",
+        "type": "object"
+      },
+      "HoldingDiary": {
+        "description": "One holding's full transcript \u2014 every CAS line for it, in order (detailed_holding_diary).",
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "instrument": {
+            "title": "Instrument",
+            "type": "string"
+          },
+          "lines": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DiaryLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "required": [
+          "entity_id",
+          "instrument"
+        ],
+        "title": "HoldingDiary",
         "type": "object"
       },
       "Identifier": {
@@ -2141,6 +2310,70 @@
           }
         },
         "summary": "Card Statements"
+      }
+    },
+    "/api/holdings/{entity_id}/{instrument_id}/diary": {
+      "get": {
+        "operationId": "holding_diary_api_holdings__entity_id___instrument_id__diary_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "named",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Named"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldingDiary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Holding Diary"
       }
     },
     "/api/jobs": {

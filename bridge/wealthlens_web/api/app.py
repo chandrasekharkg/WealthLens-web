@@ -156,6 +156,15 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         st["transactions"] = [_row(t) for t in st["transactions"]]
         return _row(st)
 
+    @app.get("/api/holdings/{entity_id}/{instrument_id}/diary", response_model=models.HoldingDiary)
+    def holding_diary(entity_id: str, instrument_id: str, named: str | None = Query(default=None)) -> dict:
+        m = _manifest()
+        path = _target_workspace(m, entity_id, named)
+        from wealthlens import workspace as wl_workspace
+        with wl_workspace.resolve(path).open() as con:
+            diary = lens_api.holding_diary(con, instrument=instrument_id)
+        return {"entity_id": entity_id, **diary}
+
     # ── the custodian, made legible ──────────────────────────────────────────────────────────────────
 
     @app.get("/api/workspace/{entity_id}", response_model=models.WorkspaceDetail)

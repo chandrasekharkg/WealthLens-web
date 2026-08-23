@@ -233,6 +233,32 @@ class CardBillPayments(BaseModel):
     rows: list[CardBillPaymentRow] = []
 
 
+class DiaryLine(BaseModel):
+    """One line of a holding's CAS transcript. Balances are UNIT quantities, not money."""
+
+    date: str | None = None
+    line_kind: str
+    role: str | None = Field(default=None, description="Why the line did/didn't move ownership")
+    action: str | None = None
+    description: str | None = None
+    debit: float | None = None
+    credit: float | None = None
+    closing: float | None = None
+    pledged: float | None = None
+    locked: float | None = None
+    free: float | None = None
+    booked: bool = Field(description="True when this line reached the quantity ledger")
+
+
+class HoldingDiary(BaseModel):
+    """One holding's full transcript — every CAS line for it, in order (detailed_holding_diary)."""
+
+    entity_id: str
+    instrument: str
+    name: str | None = None
+    lines: list[DiaryLine] = []
+
+
 class Deposit(BaseModel):
     """Where an uploaded statement landed. A deposit, not an import — nothing was parsed."""
 

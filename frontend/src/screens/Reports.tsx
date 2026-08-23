@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type Report, type ReportSection } from "../api/client";
 import { DataTable } from "../components/DataTable";
+import { HoldingDiaryPanel } from "../components/HoldingDiaryPanel";
 import { Provenance } from "../components/Provenance";
 import type { Formatter } from "../i18n";
 import type { Column } from "../lib/csv";
@@ -57,6 +58,8 @@ export function Reports({ reportId, format }: ReportsProps) {
   const [dateField, setDateField] = useState("");
   const [asOf, setAsOf] = useState("");
   const [report, setReport] = useState<Report | null>(null);
+  // The holding whose full transcript is open below the report, or none.
+  const [diary, setDiary] = useState<{ entity: string; instrument: string; name: string } | null>(null);
 
   const load = useCallback((id: string, on: string) => {
     void api
@@ -69,7 +72,32 @@ export function Reports({ reportId, format }: ReportsProps) {
 
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
-      { id: "name", accessorKey: "name", header: t("column.instrument") },
+      {
+        id: "name",
+        accessorKey: "name",
+        header: t("column.instrument"),
+        // The name opens the holding's full CAS transcript — the diary drill-down. Only rows the store keys
+        // by instrument_id have one; the rest render as plain text.
+        cell: ({ row }) =>
+          row.original.instrument_id ? (
+            <button
+              type="button"
+              className="linklike"
+              title={t("diary.open")}
+              onClick={() =>
+                setDiary({
+                  entity: row.original.entity_id ?? "",
+                  instrument: row.original.instrument_id as string,
+                  name: row.original.name ?? (row.original.instrument_id as string),
+                })
+              }
+            >
+              {row.original.name}
+            </button>
+          ) : (
+            row.original.name
+          ),
+      },
       { id: "entity", accessorKey: "entity_label", header: t("column.whose") },
       { id: "account", accessorKey: "account_id", header: t("ops.workspace") },
       {
@@ -299,6 +327,18 @@ export function Reports({ reportId, format }: ReportsProps) {
           )}
         </section>
       ))}
+
+      {diary ? (
+        // Keyed by the holding, so opening another remounts to its loading state.
+        <HoldingDiaryPanel
+          key={`${diary.entity}/${diary.instrument}`}
+          entity={diary.entity}
+          instrument={diary.instrument}
+          name={diary.name}
+          format={format}
+          onClose={() => setDiary(null)}
+        />
+      ) : null}
     </main>
   );
 }

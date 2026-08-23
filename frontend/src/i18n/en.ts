@@ -236,6 +236,26 @@ export const en = {
   "payments.viewing": "The bill this payment cleared",
   "payments.close": "Close",
   "column.from": "From",
+
+  "diary.title": "{name} — full transcript",
+  "diary.subtitle": "Every line the depository statements carried for this holding, in order — buys and sells, pledges and their release, settlement legs, and the balance breakdown. The role says why each did or didn't move ownership.",
+  "diary.open": "Transcript",
+  "diary.none": "No depository transcript for this holding.",
+  "diary.close": "Close",
+  "diary.balanceNote": "free {free} · pledged {pledged} · locked {locked}",
+  "column.type": "Type",
+  "column.debit": "Debit",
+  "column.credit": "Credit",
+  "column.balance": "Balance",
+  "role.movement": "Movement",
+  "role.unmapped": "Unmapped",
+  "role.custody": "Custody",
+  "role.settlement_leg": "Settlement",
+  "role.unchained": "Unchained",
+  "role.undated": "Undated",
+  "role.rejected": "Rejected",
+  "kind.balance": "Balance",
+  "kind.lockin": "Lock-in",
 } as const;
 
 export type MessageKey = keyof typeof en;
