@@ -219,6 +219,7 @@ export const en = {
   "cards.spends": "Spends",
   "cards.payments": "Payments",
   "cards.empty": "This statement has no itemised transactions.",
+  "cards.fundedBy": "from {bank}",
   "column.date": "Date",
   "column.description": "Description",
   "column.amount": "Amount",
@@ -256,6 +257,17 @@ export const en = {
   "role.rejected": "Rejected",
   "kind.balance": "Balance",
   "kind.lockin": "Lock-in",
+
+  "perf.heading": "Performance",
+  "perf.invested": "Invested",
+  "perf.current": "Current",
+  "perf.gain": "Gain",
+  "perf.xirr": "XIRR",
+  "perf.approx": "approximate — cost and value sit on different ISINs after a restructure",
+  "perf.approxDates": "approximate — buy dates were inferred, not from a contract note",
+  "lineage.heading": "Identity history",
+  "lineage.edge": "{from} → {to}",
+  "diary.transcript": "Transcript",
 } as const;
 
 export type MessageKey = keyof typeof en;

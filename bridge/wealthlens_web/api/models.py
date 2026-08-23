@@ -196,6 +196,8 @@ class CardStatementLine(BaseModel):
     description: str | None = None
     amount: Money = Field(description="Signed: a purchase is negative, a payment/credit positive")
     direction: Literal["spend", "payment"]
+    funded_by_bank: str | None = Field(default=None, description="For a payment line: the bank account that funded it")
+    funded_by_date: str | None = None
 
 
 class CardStatement(BaseModel):
@@ -250,12 +252,41 @@ class DiaryLine(BaseModel):
     booked: bool = Field(description="True when this line reached the quantity ledger")
 
 
+class HoldingPerformance(BaseModel):
+    """One holding's performance summary, from its cost basis. None on the drill-down when there is none."""
+
+    invested: Money | None = None
+    current: Money | None = None
+    gain: Money | None = None
+    realised: Money | None = None
+    unrealised: Money | None = None
+    abs_return_pct: float | None = None
+    xirr_pct: float | None = Field(default=None, description="Money-weighted return")
+    corp_action: bool = Field(default=False, description="Cost & value may sit on different ISINs — approximate")
+    synthetic_dates: bool = Field(default=False, description="Buy dates were inferred — XIRR is approximate")
+
+
+class LineageEdge(BaseModel):
+    """One recorded change in a holding's identity — a merger, demerger, or ISIN change."""
+
+    date: str | None = None
+    from_isin: str | None = None
+    from_name: str | None = None
+    to_isin: str | None = None
+    to_name: str | None = None
+    action: str | None = None
+    ratio: str | None = None
+    note: str | None = None
+
+
 class HoldingDiary(BaseModel):
-    """One holding's full transcript — every CAS line for it, in order (detailed_holding_diary)."""
+    """One holding's full detail — performance, identity lineage, and the CAS transcript."""
 
     entity_id: str
     instrument: str
     name: str | None = None
+    performance: HoldingPerformance | None = None
+    lineage: list[LineageEdge] = []
     lines: list[DiaryLine] = []
 
 

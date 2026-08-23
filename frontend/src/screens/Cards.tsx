@@ -194,7 +194,21 @@ export function CardStatementBody({
   const columns = useMemo<ColumnDef<CardStatementLine>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => date(row.original.date) },
-      { id: "description", accessorKey: "description", header: t("column.description") },
+      {
+        id: "description",
+        accessorKey: "description",
+        header: t("column.description"),
+        // Close the loop: a payment line names the bank account that funded it (reverse of Bill payments).
+        cell: ({ row }) =>
+          row.original.funded_by_bank ? (
+            <>
+              {row.original.description}{" "}
+              <span className="funded-tag">← {t("cards.fundedBy", { bank: row.original.funded_by_bank })}</span>
+            </>
+          ) : (
+            row.original.description
+          ),
+      },
       {
         id: "direction",
         header: t("column.direction"),

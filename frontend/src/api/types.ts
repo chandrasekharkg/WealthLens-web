@@ -517,6 +517,13 @@ export interface components {
              * @enum {string}
              */
             direction: "spend" | "payment";
+            /**
+             * Funded By Bank
+             * @description For a payment line: the bank account that funded it
+             */
+            funded_by_bank?: string | null;
+            /** Funded By Date */
+            funded_by_date?: string | null;
         };
         /**
          * CardStatementSummary
@@ -724,7 +731,7 @@ export interface components {
         };
         /**
          * HoldingDiary
-         * @description One holding's full transcript — every CAS line for it, in order (detailed_holding_diary).
+         * @description One holding's full detail — performance, identity lineage, and the CAS transcript.
          */
         HoldingDiary: {
             /** Entity Id */
@@ -732,12 +739,48 @@ export interface components {
             /** Instrument */
             instrument: string;
             /**
+             * Lineage
+             * @default []
+             */
+            lineage: components["schemas"]["LineageEdge"][];
+            /**
              * Lines
              * @default []
              */
             lines: components["schemas"]["DiaryLine"][];
             /** Name */
             name?: string | null;
+            performance?: components["schemas"]["HoldingPerformance"] | null;
+        };
+        /**
+         * HoldingPerformance
+         * @description One holding's performance summary, from its cost basis. None on the drill-down when there is none.
+         */
+        HoldingPerformance: {
+            /** Abs Return Pct */
+            abs_return_pct?: number | null;
+            /**
+             * Corp Action
+             * @description Cost & value may sit on different ISINs — approximate
+             * @default false
+             */
+            corp_action: boolean;
+            current?: components["schemas"]["Money"] | null;
+            gain?: components["schemas"]["Money"] | null;
+            invested?: components["schemas"]["Money"] | null;
+            realised?: components["schemas"]["Money"] | null;
+            /**
+             * Synthetic Dates
+             * @description Buy dates were inferred — XIRR is approximate
+             * @default false
+             */
+            synthetic_dates: boolean;
+            unrealised?: components["schemas"]["Money"] | null;
+            /**
+             * Xirr Pct
+             * @description Money-weighted return
+             */
+            xirr_pct?: number | null;
         };
         /** Identifier */
         Identifier: {
@@ -790,6 +833,28 @@ export interface components {
          * @enum {string}
          */
         JobState: "queued" | "running" | "finished";
+        /**
+         * LineageEdge
+         * @description One recorded change in a holding's identity — a merger, demerger, or ISIN change.
+         */
+        LineageEdge: {
+            /** Action */
+            action?: string | null;
+            /** Date */
+            date?: string | null;
+            /** From Isin */
+            from_isin?: string | null;
+            /** From Name */
+            from_name?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Ratio */
+            ratio?: string | null;
+            /** To Isin */
+            to_isin?: string | null;
+            /** To Name */
+            to_name?: string | null;
+        };
         /** Money */
         Money: {
             /**

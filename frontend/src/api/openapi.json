@@ -363,6 +363,29 @@
             ],
             "title": "Direction",
             "type": "string"
+          },
+          "funded_by_bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a payment line: the bank account that funded it",
+            "title": "Funded By Bank"
+          },
+          "funded_by_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Funded By Date"
           }
         },
         "required": [
@@ -972,7 +995,7 @@
         "type": "object"
       },
       "HoldingDiary": {
-        "description": "One holding's full transcript \u2014 every CAS line for it, in order (detailed_holding_diary).",
+        "description": "One holding's full detail \u2014 performance, identity lineage, and the CAS transcript.",
         "properties": {
           "entity_id": {
             "title": "Entity Id",
@@ -981,6 +1004,14 @@
           "instrument": {
             "title": "Instrument",
             "type": "string"
+          },
+          "lineage": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LineageEdge"
+            },
+            "title": "Lineage",
+            "type": "array"
           },
           "lines": {
             "default": [],
@@ -1000,6 +1031,16 @@
               }
             ],
             "title": "Name"
+          },
+          "performance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HoldingPerformance"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1007,6 +1048,98 @@
           "instrument"
         ],
         "title": "HoldingDiary",
+        "type": "object"
+      },
+      "HoldingPerformance": {
+        "description": "One holding's performance summary, from its cost basis. None on the drill-down when there is none.",
+        "properties": {
+          "abs_return_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Abs Return Pct"
+          },
+          "corp_action": {
+            "default": false,
+            "description": "Cost & value may sit on different ISINs \u2014 approximate",
+            "title": "Corp Action",
+            "type": "boolean"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gain": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invested": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "realised": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "synthetic_dates": {
+            "default": false,
+            "description": "Buy dates were inferred \u2014 XIRR is approximate",
+            "title": "Synthetic Dates",
+            "type": "boolean"
+          },
+          "unrealised": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "xirr_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Money-weighted return",
+            "title": "Xirr Pct"
+          }
+        },
+        "title": "HoldingPerformance",
         "type": "object"
       },
       "Identifier": {
@@ -1130,6 +1263,101 @@
         ],
         "title": "JobState",
         "type": "string"
+      },
+      "LineageEdge": {
+        "description": "One recorded change in a holding's identity \u2014 a merger, demerger, or ISIN change.",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "from_isin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Isin"
+          },
+          "from_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Name"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "ratio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio"
+          },
+          "to_isin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Isin"
+          },
+          "to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Name"
+          }
+        },
+        "title": "LineageEdge",
+        "type": "object"
       },
       "Money": {
         "properties": {
