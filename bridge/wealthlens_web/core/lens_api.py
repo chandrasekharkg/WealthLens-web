@@ -180,6 +180,38 @@ def card_statement(con, *, issuer: str, period: str | None, currency: str) -> di
     }
 
 
+def _num(v) -> float | None:
+    """A store number as a float, or None for NULL/NaN. Diary balances are UNIT quantities, not money."""
+    return None if v is None or _isnan(v) else float(v)
+
+
+def _str(v) -> str | None:
+    return None if v is None or (isinstance(v, float) and _isnan(v)) else str(v)
+
+
+def holding_diary(con, *, instrument: str) -> dict:
+    """One holding's full transcript — every CAS line for it, in order, with the `role` that says why each did
+    or did not move ownership. Balances are unit quantities, not money, so they are plain numbers."""
+    from wealthlens import lens
+    df = lens.holding_diary(instrument, con=con)
+    lines = [{
+        "date": _date(r["date"]),
+        "line_kind": r["line_kind"],
+        "role": _str(r["role"]),
+        "action": _str(r["action"]),
+        "description": _str(r["description"]),
+        "debit": _num(r["debit"]),
+        "credit": _num(r["credit"]),
+        "closing": _num(r["closing"]),
+        "pledged": _num(r["pledged_bal"]),
+        "locked": _num(r["locked_bal"]),
+        "free": _num(r["free_bal"]),
+        "booked": _str(r["booked_event_id"]) is not None,
+    } for _, r in df.iterrows()]
+    name = _str(df["name"].iloc[0]) if len(df) else None
+    return {"instrument": instrument, "name": name, "lines": lines}
+
+
 def card_bill_payments(con, *, currency: str) -> list[dict]:
     """The credit-card bill payments on the bank statement — the bank→card drill-down. Each row is a bank
     debit that settled a card; `resolved` says whether the card's statement is loaded and openable, and when

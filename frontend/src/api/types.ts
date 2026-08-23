@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/holdings/{entity_id}/{instrument_id}/diary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Holding Diary */
+        get: operations["holding_diary_api_holdings__entity_id___instrument_id__diary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -580,6 +597,42 @@ export interface components {
              */
             renamed_from?: string | null;
         };
+        /**
+         * DiaryLine
+         * @description One line of a holding's CAS transcript. Balances are UNIT quantities, not money.
+         */
+        DiaryLine: {
+            /** Action */
+            action?: string | null;
+            /**
+             * Booked
+             * @description True when this line reached the quantity ledger
+             */
+            booked: boolean;
+            /** Closing */
+            closing?: number | null;
+            /** Credit */
+            credit?: number | null;
+            /** Date */
+            date?: string | null;
+            /** Debit */
+            debit?: number | null;
+            /** Description */
+            description?: string | null;
+            /** Free */
+            free?: number | null;
+            /** Line Kind */
+            line_kind: string;
+            /** Locked */
+            locked?: number | null;
+            /** Pledged */
+            pledged?: number | null;
+            /**
+             * Role
+             * @description Why the line did/didn't move ownership
+             */
+            role?: string | null;
+        };
         /** DocumentInfo */
         DocumentInfo: {
             /** Captured At */
@@ -668,6 +721,23 @@ export interface components {
             pid: number;
             /** Process */
             process: string;
+        };
+        /**
+         * HoldingDiary
+         * @description One holding's full transcript — every CAS line for it, in order (detailed_holding_diary).
+         */
+        HoldingDiary: {
+            /** Entity Id */
+            entity_id: string;
+            /** Instrument */
+            instrument: string;
+            /**
+             * Lines
+             * @default []
+             */
+            lines: components["schemas"]["DiaryLine"][];
+            /** Name */
+            name?: string | null;
         };
         /** Identifier */
         Identifier: {
@@ -1193,6 +1263,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CardStatements"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    holding_diary_api_holdings__entity_id___instrument_id__diary_get: {
+        parameters: {
+            query?: {
+                named?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                instrument_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldingDiary"];
                 };
             };
             /** @description Validation Error */

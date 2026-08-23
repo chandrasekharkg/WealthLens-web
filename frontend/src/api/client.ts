@@ -20,6 +20,8 @@ export type CardStatement = components["schemas"]["CardStatement"];
 export type CardStatementLine = components["schemas"]["CardStatementLine"];
 export type CardBillPayments = components["schemas"]["CardBillPayments"];
 export type CardBillPaymentRow = components["schemas"]["CardBillPaymentRow"];
+export type HoldingDiary = components["schemas"]["HoldingDiary"];
+export type DiaryLine = components["schemas"]["DiaryLine"];
 export type Version = components["schemas"]["Version"];
 export type Job = components["schemas"]["Job"];
 export type Deposit = components["schemas"]["Deposit"];
@@ -86,6 +88,8 @@ export const api = {
     request<CardStatements>(`/api/cards/${entity}/${issuer}/statements`),
   cardStatement: (entity: string, issuer: string, period?: string) =>
     request<CardStatement>(`/api/cards/${entity}/${issuer}/statement${query({ period })}`),
+  holdingDiary: (entity: string, instrument: string) =>
+    request<HoldingDiary>(`/api/holdings/${entity}/${instrument}/diary`),
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   jobs: () => request<Job[]>("/api/jobs"),
   workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),

@@ -808,3 +808,20 @@ input[type="date"] {
   padding-top: 1rem;
   border-top: 2px solid var(--accent-soft);
 }
+
+/* ── Holding diary (the CAS transcript drill-down) ────────────────────────────────────────────────── */
+.diary-panel .cards-subtitle { max-width: 68ch; }
+
+/* Role tags: a quiet pill per line, coloured by what the line is. */
+[data-role] {
+  font-size: 0.72rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--hover);
+  color: var(--muted);
+}
+[data-role="movement"] { background: var(--accent-soft); color: var(--accent); }
+[data-role="custody"], [data-role="settlement_leg"] { background: var(--warn-bg); color: var(--warn); }
+[data-role="unmapped"], [data-role="unchained"], [data-role="rejected"] { color: var(--debit); }
+[data-role="balance"] { background: transparent; }
