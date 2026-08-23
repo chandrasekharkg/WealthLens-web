@@ -688,11 +688,13 @@ input[type="date"] {
  */
 .collateral .folder table { margin: 0; width: 100%; table-layout: fixed; }
 .collateral table th:nth-child(1),
-.collateral table td:nth-child(1) { width: 62%; overflow-wrap: anywhere; }
+.collateral table td:nth-child(1) { width: 48%; overflow-wrap: anywhere; }   /* Document */
 .collateral table th:nth-child(2),
-.collateral table td:nth-child(2) { width: 12%; text-align: right; }
+.collateral table td:nth-child(2) { width: 20%; }                            /* Period */
 .collateral table th:nth-child(3),
-.collateral table td:nth-child(3) { width: 26%; }
+.collateral table td:nth-child(3) { width: 12%; text-align: right; }         /* Rows */
+.collateral table th:nth-child(4),
+.collateral table td:nth-child(4) { width: 20%; }                            /* Password */
 
 /* A filename that opens something reads as a link, not a raw button. */
 .file-open {
