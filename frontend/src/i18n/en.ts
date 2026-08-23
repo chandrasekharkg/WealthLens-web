@@ -59,6 +59,21 @@ export const en = {
   "column.units": "Units",
   "column.value": "Value",
   "column.basis": "Valued by",
+  "column.acquired": "First acquired",
+  "column.lastAcquired": "Last acquired",
+  "column.lots": "Lots",
+  "column.fills": "Fills",
+  "column.lastValued": "Last valued",
+  "column.disposition": "Status",
+  "column.closed": "Closed on",
+  "column.subtype": "Sub-type",
+  "column.amfi": "AMFI code",
+  "column.jurisdiction": "Jurisdiction",
+  "column.instrumentId": "Instrument id",
+  "disposition.written_off": "Written off",
+  "disposition.sold": "Sold",
+  "disposition.succeeded": "Succeeded",
+  "disposition.unknown": "Unexplained",
   "identifier.none": "not applicable",
 
   "import.title": "Import statements",
@@ -179,6 +194,7 @@ export const en = {
 
   "table.export": "Export CSV",
   "table.print": "Print",
+  "table.columns": "Columns",
   "table.showing": "Showing {shown} of {total} rows",
 } as const;
 
