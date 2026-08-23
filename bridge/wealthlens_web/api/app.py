@@ -23,6 +23,7 @@ from wealthlens_web.core import (
     aggregate,
     collateral,
     inbox,
+    lens_api,
     manifest,
     provenance,
     reports,
@@ -123,6 +124,33 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                                    f"to {until}" if until else None) if f)
         return _rows(aggregate.transactions(_manifest(), since=since, until=until,
                                             our_pids=app.state.runner.our_pids), filters=window)
+
+    # ── credit cards: the picker, then one statement drilled into ─────────────────────────────────────
+
+    @app.get("/api/cards", response_model=models.Cards)
+    def cards() -> dict:
+        return _rows(aggregate.cards(_manifest(), our_pids=app.state.runner.our_pids))
+
+    @app.get("/api/cards/{entity_id}/{issuer}/statements", response_model=models.CardStatements)
+    def card_statements(entity_id: str, issuer: str, named: str | None = Query(default=None)) -> dict:
+        m = _manifest()
+        path = _target_workspace(m, entity_id, named)
+        from wealthlens import workspace as wl_workspace
+        with wl_workspace.resolve(path).open() as con:
+            stmts = lens_api.card_statements(con, issuer=issuer, currency=m.reporting_currency)
+        return {"entity_id": entity_id, "issuer": issuer, "statements": [_row(s) for s in stmts]}
+
+    @app.get("/api/cards/{entity_id}/{issuer}/statement", response_model=models.CardStatement)
+    def card_statement(entity_id: str, issuer: str, period: str | None = Query(default=None),
+                       named: str | None = Query(default=None)) -> dict:
+        m = _manifest()
+        path = _target_workspace(m, entity_id, named)
+        from wealthlens import workspace as wl_workspace
+        with wl_workspace.resolve(path).open() as con:
+            st = lens_api.card_statement(con, issuer=issuer, period=period, currency=m.reporting_currency)
+        st["entity_id"] = entity_id
+        st["transactions"] = [_row(t) for t in st["transactions"]]
+        return _row(st)
 
     # ── the custodian, made legible ──────────────────────────────────────────────────────────────────
 

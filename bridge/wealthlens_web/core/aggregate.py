@@ -39,6 +39,7 @@ class Granularity(enum.StrEnum):
     AGGREGATE = "aggregate"
     POSITIONS = "positions"
     TRANSACTIONS = "transactions"
+    CARDS = "cards"
 
 
 class UnsupportedReportingCurrency(ValueError):
@@ -232,6 +233,13 @@ def transactions(m: Manifest, *, since: str | None = None, until: str | None = N
     return _rows(m, Granularity.TRANSACTIONS, on=resolve_date(until), our_pids=our_pids,
                  fetch=lambda con, entity: lens_api.transactions(
                      con, since=since, until=until, currency=m.reporting_currency))
+
+
+def cards(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -> FamilyRows:
+    """Every credit card across the family, each row tagged with whose store it came from. Cards are a household
+    liability rather than an owned instrument, so — unlike positions — no owner filter is applied."""
+    return _rows(m, Granularity.CARDS, on=resolve_date(None), our_pids=our_pids,
+                 fetch=lambda con, entity: lens_api.cards(con, currency=m.reporting_currency))
 
 
 def _rows(m: Manifest, granularity: Granularity, *, on: str | None,

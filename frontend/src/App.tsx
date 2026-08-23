@@ -8,6 +8,7 @@ import { Activity } from "./screens/Activity";
 import { Operations } from "./screens/Operations";
 import { Overview } from "./screens/Overview";
 import { Reports } from "./screens/Reports";
+import { Cards } from "./screens/Cards";
 import { Workspace } from "./screens/Workspace";
 
 /**
@@ -20,12 +21,13 @@ import { Workspace } from "./screens/Workspace";
 
 type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error"; error: unknown };
 
-type Screen = "overview" | "reports" | "import" | "operations" | "workspace" | "activity";
+type Screen = "overview" | "reports" | "cards" | "import" | "operations" | "workspace" | "activity";
 
 // The tab strip as data. Six near-identical buttons written out six times is six places to forget one.
 const TABS: readonly { readonly id: Screen; readonly key: MessageKey }[] = [
   { id: "overview", key: "nav.overview" },
   { id: "reports", key: "nav.reports" },
+  { id: "cards", key: "nav.cards" },
   { id: "import", key: "nav.import" },
   { id: "operations", key: "nav.operations" },
   { id: "workspace", key: "nav.workspace" },
@@ -187,6 +189,7 @@ export function App() {
 
         {screen === "overview" && <Overview data={netWorth.data} format={defaultFormatter} />}
         {screen === "reports" && <Reports reportId={reportId} format={defaultFormatter} />}
+        {screen === "cards" && <Cards format={defaultFormatter} />}
         {screen === "import" && (
           <Import entities={entities} format={defaultFormatter} onImported={refresh} />
         )}

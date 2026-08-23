@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cards */
+        get: operations["cards_api_cards_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/{entity_id}/{issuer}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Card Statement */
+        get: operations["card_statement_api_cards__entity_id___issuer__statement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/{entity_id}/{issuer}/statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Card Statements */
+        get: operations["card_statements_api_cards__entity_id___issuer__statements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -309,6 +360,121 @@ export interface components {
             file: string;
             /** Workspace */
             workspace?: string | null;
+        };
+        /**
+         * CardRow
+         * @description One credit card in the picker, tagged with whose store it came from.
+         */
+        CardRow: {
+            /** Account Id */
+            account_id: string;
+            /** Entity Id */
+            entity_id?: string | null;
+            /** Entity Label */
+            entity_label?: string | null;
+            /** Issuer */
+            issuer: string;
+            /**
+             * Last Statement
+             * @description Closing date of the newest statement
+             */
+            last_statement?: string | null;
+            /** @description The newest statement's new balance — ₹ owed */
+            outstanding?: components["schemas"]["Money"] | null;
+            /**
+             * Since
+             * @description Date of the first transaction on record
+             */
+            since?: string | null;
+            /**
+             * Statements
+             * @description How many statements are loaded for this card
+             */
+            statements: number;
+        };
+        /**
+         * CardStatement
+         * @description One card statement, itemised — the current-month view.
+         */
+        CardStatement: {
+            /** Entity Id */
+            entity_id: string;
+            /** Issuer */
+            issuer: string;
+            new_balance?: components["schemas"]["Money"] | null;
+            previous_balance?: components["schemas"]["Money"] | null;
+            /** Statement Date */
+            statement_date?: string | null;
+            /**
+             * Transactions
+             * @default []
+             */
+            transactions: components["schemas"]["CardStatementLine"][];
+        };
+        /** CardStatementLine */
+        CardStatementLine: {
+            /** @description Signed: a purchase is negative, a payment/credit positive */
+            amount: components["schemas"]["Money"];
+            /** Date */
+            date?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "spend" | "payment";
+        };
+        /**
+         * CardStatementSummary
+         * @description One statement in a card's history — the period selector, each row self-summarising.
+         */
+        CardStatementSummary: {
+            new_balance?: components["schemas"]["Money"] | null;
+            /** @description Σ credits and bill payments this period */
+            payments: components["schemas"]["Money"];
+            previous_balance?: components["schemas"]["Money"] | null;
+            /** @description Σ purchases this period */
+            spends: components["schemas"]["Money"];
+            /** Statement Date */
+            statement_date?: string | null;
+            /** Transactions */
+            transactions: number;
+        };
+        /** CardStatements */
+        CardStatements: {
+            /** Entity Id */
+            entity_id: string;
+            /** Issuer */
+            issuer: string;
+            /**
+             * Statements
+             * @default []
+             */
+            statements: components["schemas"]["CardStatementSummary"][];
+        };
+        /** Cards */
+        Cards: {
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: components["schemas"]["Excluded"][];
+            /**
+             * Granularity
+             * @constant
+             */
+            granularity: "cards";
+            /** Is Partial */
+            is_partial: boolean;
+            provenance: components["schemas"]["Provenance"];
+            /** Reporting Currency */
+            reporting_currency: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["CardRow"][];
         };
         /** ClassTotal */
         ClassTotal: {
@@ -855,6 +1021,95 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    cards_api_cards_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cards"];
+                };
+            };
+        };
+    };
+    card_statement_api_cards__entity_id___issuer__statement_get: {
+        parameters: {
+            query?: {
+                period?: string | null;
+                named?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                issuer: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardStatement"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    card_statements_api_cards__entity_id___issuer__statements_get: {
+        parameters: {
+            query?: {
+                named?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                issuer: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardStatements"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_jobs_api_jobs_get: {
         parameters: {
             query?: never;

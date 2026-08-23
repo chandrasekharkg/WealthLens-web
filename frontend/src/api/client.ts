@@ -13,6 +13,11 @@ import type { components } from "./types";
 export type NetWorth = components["schemas"]["NetWorth"];
 export type Positions = components["schemas"]["Positions"];
 export type Transactions = components["schemas"]["Transactions"];
+export type Cards = components["schemas"]["Cards"];
+export type CardRow = components["schemas"]["CardRow"];
+export type CardStatements = components["schemas"]["CardStatements"];
+export type CardStatement = components["schemas"]["CardStatement"];
+export type CardStatementLine = components["schemas"]["CardStatementLine"];
 export type Version = components["schemas"]["Version"];
 export type Job = components["schemas"]["Job"];
 export type Deposit = components["schemas"]["Deposit"];
@@ -73,6 +78,11 @@ export const api = {
   positions: (on?: string) => request<Positions>(`/api/positions${query({ on })}`),
   transactions: (since?: string, until?: string) =>
     request<Transactions>(`/api/transactions${query({ since, until })}`),
+  cards: () => request<Cards>("/api/cards"),
+  cardStatements: (entity: string, issuer: string) =>
+    request<CardStatements>(`/api/cards/${entity}/${issuer}/statements`),
+  cardStatement: (entity: string, issuer: string, period?: string) =>
+    request<CardStatement>(`/api/cards/${entity}/${issuer}/statement${query({ period })}`),
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   jobs: () => request<Job[]>("/api/jobs"),
   workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),

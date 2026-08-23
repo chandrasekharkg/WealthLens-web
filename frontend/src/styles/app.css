@@ -17,6 +17,7 @@
   --warn: #8a5a06;
   --warn-bg: #fdf3e0;
   --ok: #2c6b44;
+  --debit: #b0453a;
   color-scheme: light;
 }
 
@@ -33,6 +34,7 @@
     --warn: #d9a03f;
     --warn-bg: #2a2317;
     --ok: #79be8e;
+    --debit: #d98276;
     color-scheme: dark;
   }
 }
@@ -706,3 +708,80 @@ input[type="date"] {
 }
 .file-open:hover,
 .file-open:focus-visible { text-decoration-thickness: 2px; }
+
+/* ── Credit cards ─────────────────────────────────────────────────────────────────────────────────── */
+.cards-subtitle { color: var(--muted); margin: 0 0 1rem; }
+
+/* The picker: one tile per card, wrapping into rows, ordered by what is owed. */
+.card-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.card-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 11rem;
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.12s, background 0.12s;
+}
+.card-tile:hover { background: var(--hover); }
+.card-tile[aria-current="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.card-tile-name { font-weight: 600; }
+.card-tile-whose { font-size: 0.72rem; color: var(--muted); }
+.card-tile-amount { font-size: 1.15rem; font-variant-numeric: tabular-nums; margin-top: 0.2rem; }
+.card-tile-amount[data-owed="true"] { color: var(--debit); }
+.card-tile-meta { font-size: 0.72rem; color: var(--muted); }
+
+/* The statement: a header with the period selector, a two-figure balance summary, then the line table. */
+.statement-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.statement-head h2 { margin: 0; }
+.statement-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.statement-period select {
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.statement-summary {
+  display: flex;
+  gap: 2rem;
+  margin: 0.75rem 0 1rem;
+}
+.statement-summary dt { font-size: 0.72rem; color: var(--muted); }
+.statement-summary dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.statement-summary .statement-owed { color: var(--debit); font-weight: 600; }
+
+/* A purchase reads as a debit, a payment/credit as green — the sign, made legible at a glance. */
+[data-direction="spend"] { color: var(--debit); }
+[data-direction="payment"] { color: var(--ok); }
