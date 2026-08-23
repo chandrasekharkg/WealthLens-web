@@ -72,6 +72,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/family": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Family */
+        get: operations["family_api_family_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/family/{entity_id}/{person}/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Family Transfers */
+        get: operations["family_transfers_api_family__entity_id___person__transfers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/holdings/{entity_id}/{instrument_id}/diary": {
         parameters: {
             query?: never;
@@ -739,6 +773,76 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /** Family */
+        Family: {
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: components["schemas"]["Excluded"][];
+            /**
+             * Granularity
+             * @constant
+             */
+            granularity: "family";
+            /** Is Partial */
+            is_partial: boolean;
+            provenance: components["schemas"]["Provenance"];
+            /** Reporting Currency */
+            reporting_currency: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["FamilyMemberRow"][];
+        };
+        /**
+         * FamilyMemberRow
+         * @description One household member and the money moved to them from a store.
+         */
+        FamilyMemberRow: {
+            /**
+             * Entity Id
+             * @description The sending store
+             */
+            entity_id?: string | null;
+            /** Entity Label */
+            entity_label?: string | null;
+            /** First Transfer */
+            first_transfer?: string | null;
+            /**
+             * Holdings
+             * @description Instruments the store attributes to this member
+             * @default 0
+             */
+            holdings: number;
+            /** Last Transfer */
+            last_transfer?: string | null;
+            /** Member Id */
+            member_id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Relationship */
+            relationship?: string | null;
+            total: components["schemas"]["Money"];
+            /**
+             * Transfers
+             * @default 0
+             */
+            transfers: number;
+        };
+        /** FamilyTransfers */
+        FamilyTransfers: {
+            /** Entity Id */
+            entity_id: string;
+            /** Person */
+            person: string;
+            /**
+             * Transfers
+             * @default []
+             */
+            transfers: components["schemas"]["TransferRow"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1241,6 +1345,19 @@ export interface components {
              */
             rows: components["schemas"]["TransactionRow"][];
         };
+        /**
+         * TransferRow
+         * @description One bank transfer to a household member.
+         */
+        TransferRow: {
+            amount: components["schemas"]["Money"];
+            /** Bank */
+            bank?: string | null;
+            /** Date */
+            date?: string | null;
+            /** Narration */
+            narration?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1393,6 +1510,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CardStatements"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    family_api_family_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Family"];
+                };
+            };
+        };
+    };
+    family_transfers_api_family__entity_id___person__transfers_get: {
+        parameters: {
+            query?: {
+                named?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                person: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FamilyTransfers"];
                 };
             };
             /** @description Validation Error */

@@ -272,6 +272,35 @@ def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
     }
 
 
+def family_transfers(con, *, currency: str) -> list[dict]:
+    """Money moved to household members, per person. `member_id` is the recipient — the fan adds `entity_id`
+    for the sending store, so the two never clash."""
+    from wealthlens import lens
+    df = lens.family_transfers(con=con)
+    return [{
+        "member_id": _str(r["entity_id"]),
+        "name": _str(r["name"]),
+        "relationship": _str(r["relationship"]),
+        "transfers": int(r["transfers"]),
+        "total": Money(_dec(r["total"]), currency),
+        "first_transfer": _date(r.get("first_transfer")),
+        "last_transfer": _date(r.get("last_transfer")),
+        "holdings": int(r["holdings"]),
+    } for _, r in df.iterrows()]
+
+
+def transfers_to(con, *, person: str, currency: str) -> list[dict]:
+    """Every bank transfer to one household member — the drill behind family_transfers."""
+    from wealthlens import lens
+    df = lens.transfers_to(person, con=con)
+    return [{
+        "date": _date(r["date"]),
+        "bank": _str(r["bank"]),
+        "narration": _str(r["narration"]),
+        "amount": Money(_dec(r["amount"]), currency),
+    } for _, r in df.iterrows()]
+
+
 def card_bill_payments(con, *, currency: str) -> list[dict]:
     """The credit-card bill payments on the bank statement — the bank→card drill-down. Each row is a bank
     debit that settled a card; `resolved` says whether the card's statement is loaded and openable, and when

@@ -285,6 +285,20 @@ export const en = {
   "class.bond": "Bonds",
   "class.real_estate": "Real estate",
   "class.unlisted_equity": "Unlisted equity",
+
+  "nav.family": "Family",
+  "family.title": "Family",
+  "family.subtitle": "Money moved to the people in your household — matched by name on your bank statements. Open a person to see each transfer.",
+  "family.none": "No household members with transfers or holdings.",
+  "family.relationship": "Relationship",
+  "family.member": "Member",
+  "family.transferred": "Transferred",
+  "family.count": "{count} transfer(s)",
+  "family.holdings": "{count} holding(s)",
+  "family.view": "View transfers",
+  "family.transfersTo": "Transfers to {name}",
+  "family.close": "Close",
+  "family.since": "{from} – {to}",
 } as const;
 
 export type MessageKey = keyof typeof en;
