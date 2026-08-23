@@ -13,5 +13,16 @@ export function compactINR(value: number): string {
   return `₹${Math.round(value).toLocaleString("en-IN")}`;
 }
 
-export type Slice = { label: string; value: number; color: string };
-export type Band = { label: string; color: string; values: readonly number[] };
+// The charts are pure renderers: every money figure they show (the total, each share, the axis labels, the
+// stack edges) is decided by the bridge and arrives here already summed and formatted. These shapes carry
+// only what a shape needs to be DRAWN — a fraction to position, a ready string to print — never a Money to
+// add. See core/aggregate.performance and the "compute in core/" rule (AGENTS.md).
+
+/** One donut slice: its share drives the arc, its ready-formatted value drives the legend. */
+export type Slice = { label: string; color: string; share: number; valueText: string };
+
+/** One stacked band: per date, the floor and ceiling as fractions (0–1) of the axis maximum. */
+export type Band = { label: string; color: string; edges: readonly { base: number; top: number }[] };
+
+/** One Y-axis gridline: where to draw it (0–1) and the money label to print (already formatted). */
+export type Tick = { frac: number; label: string };

@@ -88,7 +88,8 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             "reporting_currency": got.reporting_currency,
             "total": got.total.as_dict() if got.total else None,
             "is_partial": got.is_partial,
-            "entities": [_entity_total(e) for e in got.entities],
+            "stale_count": got.stale_count,
+            "entities": [_entity_total(e, got.as_of) for e in got.entities],
             "provenance": provenance.for_net_worth(got).as_dict(),
         }
 
@@ -153,8 +154,11 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         got = aggregate.performance(_manifest(), our_pids=app.state.runner.our_pids)
         return {
             "reporting_currency": got["reporting_currency"],
+            "total": got["total"].as_dict() if got["total"] else None,
             "breakup": [_row(b) for b in got["breakup"]],
             "series": [_row(p) for p in got["series"]],
+            "axis_max": got["axis_max"].as_dict() if got["axis_max"] else None,
+            "axis_ticks": [t.as_dict() for t in got["axis_ticks"]],
         }
 
     @app.get("/api/cards/{entity_id}/{issuer}/statements", response_model=models.CardStatements)
@@ -404,7 +408,7 @@ def _events(job: verbs.Job):
 
 # ── serialisation ────────────────────────────────────────────────────────────────────────────────────
 
-def _entity_total(e: aggregate.EntityView) -> dict:
+def _entity_total(e: aggregate.EntityView, as_of: str | None = None) -> dict:
     return {
         "entity_id": e.entity_id,
         "label": e.label,
@@ -412,6 +416,7 @@ def _entity_total(e: aggregate.EntityView) -> dict:
         "total": e.total.as_dict() if e.total else None,
         "evidence_as_of": e.evidence_as_of,
         "contributes": e.contributes,
+        "status": e.status(as_of),
         "excluded_reason": e.excluded_reason,
         "owner_warning": e.owner_warning,
         "workspaces": [_workspace(w) for w in e.workspaces],

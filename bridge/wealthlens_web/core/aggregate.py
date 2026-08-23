@@ -66,6 +66,16 @@ class EntityView:
     def contributes(self) -> bool:
         return self.total is not None and self.excluded_reason is None
 
+    def status(self, as_of: str | None) -> str:
+        """ok | stale | excluded — whether this entity is trustworthy AT `as_of`. Deciding freshness is a
+        bridge concern, not the UI's: a store answering from evidence older than the date the view was
+        computed at is 'stale'. `as_of` is always concrete (resolve_date), so the comparison is real."""
+        if not self.contributes:
+            return "excluded"
+        if as_of and self.evidence_as_of and self.evidence_as_of < as_of:
+            return "stale"
+        return "ok"
+
 
 @dataclasses.dataclass(frozen=True)
 class FamilyNetWorth:
@@ -77,6 +87,11 @@ class FamilyNetWorth:
     @property
     def excluded(self) -> tuple[EntityView, ...]:
         return tuple(e for e in self.entities if not e.contributes)
+
+    @property
+    def stale_count(self) -> int:
+        """How many included entities answer from evidence older than the view's date."""
+        return sum(1 for e in self.entities if e.status(self.as_of) == "stale")
 
     @property
     def is_partial(self) -> bool:
@@ -259,6 +274,12 @@ def card_bill_payments(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -
                  fetch=lambda con, entity: lens_api.card_bill_payments(con, currency=m.reporting_currency))
 
 
+# The growth chart's stack order — bottom band first. It lives here, not in the UI, because the bridge now
+# pre-sums the stack (base/top per band), and the cumulative sum depends on this order. Real estate is
+# deliberately absent: it is a lumpy mark, not a market-valued growth series. The UI keeps only colour.
+_STACK_ORDER = ("mutual_fund", "listed_equity", "fixed_deposit", "savings", "bond", "unlisted_equity")
+
+
 def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: int = 60) -> dict:
     """The household portfolio, for the charts: the current value BREAKUP by asset class, and a monthly value
     SERIES per class. Both summed across the family's readable stores. The breakup is owner-weighted (net
@@ -285,15 +306,37 @@ def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: 
                     series[(row["date"], row["asset_class"])].append(row["value"])
 
     ccy = m.reporting_currency
+    zero = money.Money(Decimal("0"), ccy)
+
+    # ── the breakup (donut): value + the SHARE, so the UI never divides money to get a percent ──
+    breakup_vals = {k: (money.total(v) or zero) for k, v in breakup.items()}
+    donut_total = money.total([mv for mv in breakup_vals.values() if mv.amount > 0])  # positive buckets only
+    total_amt = donut_total.amount if donut_total else Decimal("0")
     breakup_rows = sorted(
-        ({"asset_class": k, "value": money.total(v) or money.Money(Decimal("0"), ccy)}
-         for k, v in breakup.items()),
-        key=lambda r: Decimal(r["value"].amount), reverse=True)
-    series_rows = sorted(
-        ({"date": d, "asset_class": c, "value": money.total(v) or money.Money(Decimal("0"), ccy)}
-         for (d, c), v in series.items()),
-        key=lambda r: (r["date"] or "", r["asset_class"]))
-    return {"reporting_currency": ccy, "breakup": breakup_rows, "series": series_rows}
+        ({"asset_class": k, "value": mv,
+          "share": float(round(100 * mv.amount / total_amt, 1)) if total_amt > 0 and mv.amount > 0 else 0.0}
+         for k, mv in breakup_vals.items()),
+        key=lambda r: r["value"].amount, reverse=True)
+
+    # ── the growth chart: the stack is PRE-SUMMED here (base/top per band) so the UI only maps value→pixel ──
+    val = {(d, c): (money.total(v) or zero) for (d, c), v in series.items()}
+    dates = sorted({d for (d, _c) in val if d})
+    stacked = [c for c in _STACK_ORDER if any((d, c) in val for d in dates)]  # only classes with any data
+    series_rows, date_total = [], {}
+    for d in dates:
+        running = Decimal("0")
+        for c in stacked:
+            v = val.get((d, c), zero).amount
+            base, running = running, running + v
+            series_rows.append({"date": d, "asset_class": c, "value": money.Money(v, ccy),
+                                "base": money.Money(base, ccy), "top": money.Money(running, ccy)})
+        date_total[d] = running
+    axis_amt = max(date_total.values(), default=Decimal("0"))
+    axis_max = money.Money(axis_amt, ccy) if axis_amt > 0 else None
+    axis_ticks = [money.Money(axis_amt * Decimal(f), ccy) for f in ("0", "0.5", "1")] if axis_max else []
+
+    return {"reporting_currency": ccy, "total": donut_total, "breakup": breakup_rows,
+            "series": series_rows, "axis_max": axis_max, "axis_ticks": axis_ticks}
 
 
 def _rows(m: Manifest, granularity: Granularity, *, on: str | None,

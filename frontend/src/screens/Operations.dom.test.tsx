@@ -18,6 +18,7 @@ const entities: NetWorth["entities"] = [
     total: { amount: "1000.00", currency: "INR" },
     evidence_as_of: "2026-07-31",
     contributes: true,
+    status: "ok",
     excluded_reason: null,
     owner_warning: null,
     workspaces: [],

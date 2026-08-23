@@ -755,6 +755,12 @@ export interface components {
             owner: string;
             /** Owner Warning */
             owner_warning?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "stale" | "excluded";
             total?: components["schemas"]["Money"] | null;
             /**
              * Workspaces
@@ -1021,6 +1027,12 @@ export interface components {
             provenance: components["schemas"]["Provenance"];
             /** Reporting Currency */
             reporting_currency: string;
+            /**
+             * Stale Count
+             * @description Included entities answering from stale evidence
+             * @default 0
+             */
+            stale_count: number;
             total?: components["schemas"]["Money"] | null;
         };
         /**
@@ -1052,8 +1064,17 @@ export interface components {
         /**
          * Performance
          * @description The portfolio, for the charts: the current value breakup and the monthly value series per class.
+         *     Every figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI.
          */
         Performance: {
+            /** @description Growth-chart Y-axis maximum */
+            axis_max?: components["schemas"]["Money"] | null;
+            /**
+             * Axis Ticks
+             * @description Growth-chart Y-axis tick values (money labels)
+             * @default []
+             */
+            axis_ticks: components["schemas"]["Money"][];
             /**
              * Breakup
              * @default []
@@ -1066,6 +1087,8 @@ export interface components {
              * @default []
              */
             series: components["schemas"]["PerformancePoint"][];
+            /** @description Portfolio total = sum of positive buckets */
+            total?: components["schemas"]["Money"] | null;
         };
         /**
          * PerformanceBucket
@@ -1074,17 +1097,27 @@ export interface components {
         PerformanceBucket: {
             /** Asset Class */
             asset_class: string;
+            /**
+             * Share
+             * @description Percent of the positive-bucket total; computed in the bridge
+             * @default 0
+             */
+            share: number;
             value: components["schemas"]["Money"];
         };
         /**
          * PerformancePoint
-         * @description One (month, asset-class) value on the growth series.
+         * @description One (month, asset-class) value on the growth series, with its PRE-SUMMED stack position.
          */
         PerformancePoint: {
             /** Asset Class */
             asset_class: string;
+            /** @description Cumulative stack floor below this band */
+            base?: components["schemas"]["Money"] | null;
             /** Date */
             date?: string | null;
+            /** @description Cumulative stack ceiling incl. this band */
+            top?: components["schemas"]["Money"] | null;
             value: components["schemas"]["Money"];
         };
         /** PositionRow */
