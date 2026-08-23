@@ -268,3 +268,20 @@ def test_an_owner_mismatch_excludes_rows_too_rather_than_showing_an_empty_list(m
     got = aggregate.positions(_manifest(_entity("dad", dad)), on="2026-07-31")
     assert got.is_partial and got.rows() == []
     assert "valued at zero" in got.excluded[0].owner_warning
+
+
+def test_positions_carry_the_full_stored_projection(make_workspace):
+    """WLC now returns the position's full projection (acquisition history, disposition, metadata); the
+    bridge must widen with it, so a drill-down has the columns it needs rather than a WLC release each time."""
+    a = make_workspace("alpha", {"A Share": 1000}, as_of="2026-05-31")
+    rows = aggregate.positions(_manifest(_entity("alpha", a)), on="2026-07-31").rows()
+    assert rows
+    r = rows[0]
+    # the drill-down key and the new columns are all present (plumbing), even where NULL for this store
+    for c in ("instrument_id", "first_acquired_on", "last_acquired_on", "lots", "fills",
+              "last_valued_on", "disposition", "closed_on", "subtype", "amfi_code", "jurisdiction"):
+        assert c in r, f"positions row is missing {c}"
+    assert r["instrument_id"] == "inst:alpha:0"        # the stable key a holding→history drill-down links on
+    assert r["jurisdiction"] == "IN"                    # instruments.jurisdiction default flows through
+    # a snapshot-only store has no acquiring events, so the acquisition columns are honestly NULL
+    assert r["first_acquired_on"] is None and r["lots"] is None

@@ -100,11 +100,25 @@ class PositionRow(BaseModel):
     name: str | None = None
     asset_class: str | None = None
     account_id: str | None = None
+    instrument_id: str | None = None            # the stable key a drill-down links on (holding → its history)
     quantity: float | None = None
     value: Money
     identifier: Identifier
     as_of: str | None = None
     basis: str | None = None
+    # the position's stored projection (WLC full-column-read-surface): acquisition history, the reason a
+    # zero is a zero, and cheap instrument metadata. NULL where the store has no events to say — which the
+    # presenter reads as "not known for this household", not as a gap.
+    first_acquired_on: str | None = None        # earliest acquisition, walked over the succession chain
+    last_acquired_on: str | None = None
+    lots: int | None = None                     # distinct acquiring dates (decisions, not fills)
+    fills: int | None = None
+    last_valued_on: str | None = None           # the PIT anchor for an unexplained zero
+    disposition: str | None = None              # NULL = live; else written_off / sold / succeeded / unknown
+    closed_on: str | None = None
+    subtype: str | None = None
+    amfi_code: str | None = None
+    jurisdiction: str | None = None
 
 
 class TransactionRow(BaseModel):

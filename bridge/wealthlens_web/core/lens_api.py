@@ -67,6 +67,14 @@ def _identifier(isin) -> dict:
     return {"kind": "isin", "value": text}
 
 
+def _date(v) -> str | None:
+    """A store date as an ISO string, or None for NULL/NaT — dates the store could not fill are absences,
+    not the epoch."""
+    if v is None or _isnan(v):
+        return None
+    return str(v)[:10]
+
+
 def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
     """Instrument-level holdings. One row per position, each carrying how it was valued and how current
     the evidence behind it is."""
@@ -75,15 +83,30 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
     out = []
     for _, r in df.iterrows():
         row_ccy = str(r["currency"]) if "currency" in df.columns and r["currency"] else currency
+        def _int(v):
+            return None if v is None or _isnan(v) else int(v)
+        def _str(v):
+            return None if v is None or (isinstance(v, float) and _isnan(v)) else str(v)
         out.append({
             "name": r["name"],
             "asset_class": r["asset_class"],
             "account_id": r["account_id"],
+            "instrument_id": _str(r.get("instrument_id")),
             "quantity": (None if r["quantity"] is None or _isnan(r["quantity"]) else float(r["quantity"])),
             "value": Money(_dec(r["value_inr"]), row_ccy),
             "identifier": _identifier(r.get("isin")),
             "as_of": str(r["as_of"])[:10],
             "basis": r["basis"],
+            "first_acquired_on": _date(r.get("first_acquired_on")),
+            "last_acquired_on": _date(r.get("last_acquired_on")),
+            "lots": _int(r.get("lots")),
+            "fills": _int(r.get("fills")),
+            "last_valued_on": _date(r.get("last_valued_on")),
+            "disposition": _str(r.get("disposition")),
+            "closed_on": _date(r.get("closed_on")),
+            "subtype": _str(r.get("subtype")),
+            "amfi_code": _str(r.get("amfi_code")),
+            "jurisdiction": _str(r.get("jurisdiction")),
         })
     return out
 
@@ -104,7 +127,8 @@ def transactions(con, *, since: str | None, until: str | None, currency: str) ->
 
 
 def _isnan(v) -> bool:
+    import pandas as pd
     try:
-        return v != v
-    except Exception:       # a non-numeric is simply not NaN
+        return bool(pd.isna(v))     # handles NaN, NaT, and pandas NA (nullable ints) without the != ambiguity
+    except (TypeError, ValueError):  # a non-scalar / non-numeric is simply not NaN
         return False
