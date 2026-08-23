@@ -185,6 +185,18 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                                 detail={"error": "secret", "reason": str(e), "field": e.field}) from None
         return {"what": what, "value": value}
 
+    @app.post("/api/workspace/{entity_id}/open", response_model=models.Opened)
+    def open_document(entity_id: str, body: dict) -> dict:
+        """Ask the OS to open ONE collateral file. WLW never reads a statement (ADR-0001) — this hands the
+        file to the platform's opener. The path is never trusted: `collateral.resolve_document_path` refuses
+        anything that escapes the workspace, so even a tampered filename cannot reach outside it."""
+        target = _target_workspace(_manifest(), entity_id, None)
+        try:
+            real = collateral.open_document(target, body.get("provider"), body.get("filename"))
+        except collateral.DocumentNotFound as e:
+            raise HTTPException(status_code=404, detail={"error": "document", "reason": str(e)}) from None
+        return {"path": str(real)}
+
     @app.get("/api/jobs", response_model=list[models.Job])
     def list_jobs() -> list[dict]:
         """Everything this session has run. In memory by design (ADR-0002) — the UI says so."""

@@ -135,3 +135,56 @@ def documents(con, workspace: pathlib.Path) -> list[Document]:
                 str(row["content_sha256"]) if _present(row["content_sha256"]) else None, hints),
         ))
     return out
+
+
+class DocumentNotFound(Exception):
+    """The document's file could not be located inside the workspace, or a path escaped it."""
+
+
+def resolve_document_path(workspace, provider: str | None, filename: str | None):
+    """The absolute path of a collateral file, GUARANTEED to sit inside the workspace — or a refusal.
+
+    WLW never reads a statement (ADR-0001); this exists only so the OS can be asked to open it, and the one
+    thing that must not be trusted is a path. `organize` files each document under `<workspace>/<provider>/`,
+    so the candidate is built from those two fields and then CONTAINMENT-CHECKED with real (symlink-resolved)
+    paths: anything that resolves outside the workspace — a `..`, an absolute filename, a symlink escape — is
+    refused, not opened. Missing file: refused too. The frontend only ever gets to name a document the store
+    already recorded; this makes even a tampered name safe.
+    """
+    import pathlib as _pl
+    if not filename:
+        raise DocumentNotFound("this document has no file on disk (it was not captured from one)")
+    root = _pl.Path(workspace).resolve()
+    candidate = (root / (provider or "") / filename)
+    try:
+        real = candidate.resolve()
+    except OSError as e:
+        raise DocumentNotFound(f"could not resolve the path: {e}") from None
+    # containment: real must be root itself or a descendant of it (is_relative_to, 3.9-safe form)
+    if root != real and root not in real.parents:
+        raise DocumentNotFound("the file resolves outside the workspace — refused")
+    if not real.is_file():
+        raise DocumentNotFound("no such file in the workspace")
+    return real
+
+
+def open_document(workspace, provider: str | None, filename: str | None, *, opener=None):
+    """Ask the OS to open a validated collateral file. `opener` is injected so the act is testable without
+    actually launching anything; the default hands the resolved path to the platform's open command."""
+    real = resolve_document_path(workspace, provider, filename)
+    (opener or _default_opener)(real)
+    return real
+
+
+def _default_opener(path):
+    import subprocess
+    import sys
+    # `path` is workspace-contained by construction — resolve_document_path refuses anything else — so the
+    # platform open command is only ever handed a validated, in-workspace file.
+    if sys.platform == "darwin":
+        subprocess.run(["open", str(path)], check=False)
+    elif sys.platform.startswith("win"):
+        import os
+        os.startfile(str(path))
+    else:
+        subprocess.run(["xdg-open", str(path)], check=False)

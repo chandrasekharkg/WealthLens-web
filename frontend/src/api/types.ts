@@ -226,6 +226,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspace/{entity_id}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open Document
+         * @description Ask the OS to open ONE collateral file. WLW never reads a statement (ADR-0001) — this hands the
+         *     file to the platform's opener. The path is never trusted: `collateral.resolve_document_path` refuses
+         *     anything that escapes the workspace, so even a tampered filename cannot reach outside it.
+         */
+        post: operations["open_document_api_workspace__entity_id__open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspace/{entity_id}/reveal": {
         parameters: {
             query?: never;
@@ -492,6 +514,15 @@ export interface components {
             /** Reporting Currency */
             reporting_currency: string;
             total?: components["schemas"]["Money"] | null;
+        };
+        /**
+         * Opened
+         * @description Confirmation that a collateral file was handed to the OS to open. The path is the user's own machine,
+         *     already shown on this screen — returning it is feedback, not a leak.
+         */
+        Opened: {
+            /** Path */
+            path: string;
         };
         /**
          * Outcome
@@ -1159,6 +1190,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_document_api_workspace__entity_id__open_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Opened"];
                 };
             };
             /** @description Validation Error */

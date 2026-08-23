@@ -651,3 +651,47 @@ input[type="date"] {
     flex-wrap: wrap;
   }
 }
+
+
+/* ── collateral: expanded folders, a filename that opens, a password to copy ─────────────────────────── */
+.collateral .folder {
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.collateral .folder > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--accent-soft);   /* the same teal wash the table headers wear — a folder reads as a folder */
+  font-weight: 600;
+  color: var(--accent);
+}
+.collateral .folder > summary::-webkit-details-marker { display: none; }
+.collateral .folder > summary::before {
+  content: "▸";
+  transition: transform 0.12s ease;
+  color: var(--muted);
+}
+.collateral .folder[open] > summary::before { transform: rotate(90deg); }
+.collateral .folder-count { font-weight: 400; font-size: 0.78rem; color: var(--muted); }
+.collateral .folder table { margin: 0; }
+
+/* A filename that opens something reads as a link, not a raw button. */
+.file-open {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.file-open:hover,
+.file-open:focus-visible { text-decoration-thickness: 2px; }

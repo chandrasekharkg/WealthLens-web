@@ -187,6 +187,12 @@ class SettingsInfo(BaseModel):
     config_path: str
 
 
+class Opened(BaseModel):
+    """Confirmation that a collateral file was handed to the OS to open. The path is the user's own machine,
+    already shown on this screen — returning it is feedback, not a leak."""
+    path: str
+
+
 class Revealed(BaseModel):
     """One re-obtainable secret, released on an explicit request (ADR-0019).
 

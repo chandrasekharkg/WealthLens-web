@@ -159,7 +159,12 @@ export const en = {
   "ws.saved": "Saved.",
 
   "column.document": "Document",
+  "column.folder": "Folder",
+  "column.password": "Password",
   "column.opensWith": "Opens with",
+  "ws.openFile": "Open the file",
+  "ws.openFailed": "Could not open: {reason}",
+  "ws.folderCount": "{count} document(s)",
   "password.named": "{name}",
   "password.unnamed": "an unnamed password",
   "password.none": "nothing has opened it",

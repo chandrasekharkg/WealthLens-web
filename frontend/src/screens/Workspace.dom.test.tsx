@@ -73,9 +73,10 @@ describe("the custodian is visible", () => {
 });
 
 describe("the password ring has three states, not two", () => {
-  it("names a configured secret", async () => {
+  it("offers a Copy control for a named password (it is copyable, not shown as text)", async () => {
     await show();
-    expect(screen.getByText("hdfc.pass")).toBeTruthy();
+    // the named password is now a clipboard control, labelled by its name — never rendered as text
+    expect(screen.getByRole("button", { name: /Copy hdfc\.pass/ })).toBeTruthy();
   });
 
   it("says 'an unnamed password' rather than claiming nothing opened it", async () => {
