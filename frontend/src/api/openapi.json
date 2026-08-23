@@ -44,6 +44,459 @@
         "title": "Body_upload_api_upload_post",
         "type": "object"
       },
+      "CardBillPaymentRow": {
+        "description": "A credit-card bill payment on the bank statement \u2014 the bank\u2192card drill-down.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money",
+            "description": "\u20b9 paid (positive)"
+          },
+          "bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The account the payment left from",
+            "title": "Bank"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Label"
+          },
+          "issuer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The card, identified by the amount or the narration",
+            "title": "Issuer"
+          },
+          "narration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Narration"
+          },
+          "resolved": {
+            "description": "True when the card's statement is loaded and openable",
+            "title": "Resolved",
+            "type": "boolean"
+          },
+          "statement_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The bill this settled \u2014 the drill target, when the card is loaded",
+            "title": "Statement Date"
+          }
+        },
+        "required": [
+          "amount",
+          "resolved"
+        ],
+        "title": "CardBillPaymentRow",
+        "type": "object"
+      },
+      "CardBillPayments": {
+        "properties": {
+          "excluded": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Excluded"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "granularity": {
+            "const": "card_payments",
+            "title": "Granularity",
+            "type": "string"
+          },
+          "is_partial": {
+            "title": "Is Partial",
+            "type": "boolean"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "reporting_currency": {
+            "title": "Reporting Currency",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CardBillPaymentRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "provenance",
+          "granularity",
+          "reporting_currency",
+          "is_partial"
+        ],
+        "title": "CardBillPayments",
+        "type": "object"
+      },
+      "CardRow": {
+        "description": "One credit card in the picker, tagged with whose store it came from.",
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Label"
+          },
+          "issuer": {
+            "title": "Issuer",
+            "type": "string"
+          },
+          "last_statement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Closing date of the newest statement",
+            "title": "Last Statement"
+          },
+          "outstanding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newest statement's new balance \u2014 \u20b9 owed"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Date of the first transaction on record",
+            "title": "Since"
+          },
+          "statements": {
+            "description": "How many statements are loaded for this card",
+            "title": "Statements",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "account_id",
+          "issuer",
+          "statements"
+        ],
+        "title": "CardRow",
+        "type": "object"
+      },
+      "CardStatement": {
+        "description": "One card statement, itemised \u2014 the current-month view.",
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "issuer": {
+            "title": "Issuer",
+            "type": "string"
+          },
+          "new_balance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "previous_balance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "statement_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Statement Date"
+          },
+          "transactions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CardStatementLine"
+            },
+            "title": "Transactions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity_id",
+          "issuer"
+        ],
+        "title": "CardStatement",
+        "type": "object"
+      },
+      "CardStatementLine": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Signed: a purchase is negative, a payment/credit positive"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "direction": {
+            "enum": [
+              "spend",
+              "payment"
+            ],
+            "title": "Direction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "direction"
+        ],
+        "title": "CardStatementLine",
+        "type": "object"
+      },
+      "CardStatementSummary": {
+        "description": "One statement in a card's history \u2014 the period selector, each row self-summarising.",
+        "properties": {
+          "new_balance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payments": {
+            "$ref": "#/components/schemas/Money",
+            "description": "\u03a3 credits and bill payments this period"
+          },
+          "previous_balance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spends": {
+            "$ref": "#/components/schemas/Money",
+            "description": "\u03a3 purchases this period"
+          },
+          "statement_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Statement Date"
+          },
+          "transactions": {
+            "title": "Transactions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "spends",
+          "payments",
+          "transactions"
+        ],
+        "title": "CardStatementSummary",
+        "type": "object"
+      },
+      "CardStatements": {
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "issuer": {
+            "title": "Issuer",
+            "type": "string"
+          },
+          "statements": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CardStatementSummary"
+            },
+            "title": "Statements",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity_id",
+          "issuer"
+        ],
+        "title": "CardStatements",
+        "type": "object"
+      },
+      "Cards": {
+        "properties": {
+          "excluded": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Excluded"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "granularity": {
+            "const": "cards",
+            "title": "Granularity",
+            "type": "string"
+          },
+          "is_partial": {
+            "title": "Is Partial",
+            "type": "boolean"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "reporting_currency": {
+            "title": "Reporting Currency",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CardRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "provenance",
+          "granularity",
+          "reporting_currency",
+          "is_partial"
+        ],
+        "title": "Cards",
+        "type": "object"
+      },
       "ClassTotal": {
         "properties": {
           "asset_class": {
@@ -1510,6 +1963,186 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/card-bill-payments": {
+      "get": {
+        "operationId": "card_bill_payments_api_card_bill_payments_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardBillPayments"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Card Bill Payments"
+      }
+    },
+    "/api/cards": {
+      "get": {
+        "operationId": "cards_api_cards_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cards"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Cards"
+      }
+    },
+    "/api/cards/{entity_id}/{issuer}/statement": {
+      "get": {
+        "operationId": "card_statement_api_cards__entity_id___issuer__statement_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "issuer",
+            "required": true,
+            "schema": {
+              "title": "Issuer",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          },
+          {
+            "in": "query",
+            "name": "named",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Named"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardStatement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Card Statement"
+      }
+    },
+    "/api/cards/{entity_id}/{issuer}/statements": {
+      "get": {
+        "operationId": "card_statements_api_cards__entity_id___issuer__statements_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "issuer",
+            "required": true,
+            "schema": {
+              "title": "Issuer",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "named",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Named"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardStatements"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Card Statements"
+      }
+    },
     "/api/jobs": {
       "get": {
         "description": "Everything this session has run. In memory by design (ADR-0002) \u2014 the UI says so.",

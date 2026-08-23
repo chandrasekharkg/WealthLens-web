@@ -126,6 +126,78 @@ def transactions(con, *, since: str | None, until: str | None, currency: str) ->
     } for _, r in df.iterrows()]
 
 
+def _money(v, currency: str) -> Money | None:
+    """A store number as Money, or None for NULL/NaN — an absent balance is an absence, not zero."""
+    return None if v is None or _isnan(v) else Money(_dec(v), currency)
+
+
+def cards(con, *, currency: str) -> list[dict]:
+    """One row per credit card in this store — the picker. `outstanding` is the latest statement's new balance
+    (₹ owed). Cards are a household liability, not owner-scoped, so every card in the store is returned."""
+    from wealthlens import lens
+    df = lens.cards(con=con)
+    return [{
+        "account_id": r["account_id"],
+        "issuer": r["issuer"],
+        "statements": int(r["statements"]),
+        "since": _date(r.get("since")),
+        "last_statement": _date(r.get("last_statement")),
+        "outstanding": _money(r.get("outstanding"), currency),
+    } for _, r in df.iterrows()]
+
+
+def card_statements(con, *, issuer: str, currency: str) -> list[dict]:
+    """The statement list for one card, newest first — the period selector, each row self-summarising."""
+    from wealthlens import lens
+    df = lens.card_statements(issuer, con=con)
+    return [{
+        "statement_date": _date(r["statement_date"]),
+        "previous_balance": _money(r.get("previous_balance"), currency),
+        "new_balance": _money(r.get("new_balance"), currency),
+        "spends": Money(_dec(r["spends"]), currency),
+        "payments": Money(_dec(r["payments"]), currency),
+        "transactions": int(r["transactions"]),
+    } for _, r in df.iterrows()]
+
+
+def card_statement(con, *, issuer: str, period: str | None, currency: str) -> dict:
+    """One card statement, itemised — the current-month view (or `period` for an older one). Returns the header
+    (closing date, previous/new balance) and the transaction lines, amounts SIGNED (a purchase is negative)."""
+    from wealthlens import lens
+    df = lens.card_statement(issuer, period=period, con=con)
+    hdr = df.attrs.get("statement", {})
+    return {
+        "issuer": hdr.get("issuer") or issuer,
+        "statement_date": hdr.get("statement_date"),
+        "previous_balance": _money(hdr.get("previous_balance"), currency),
+        "new_balance": _money(hdr.get("new_balance"), currency),
+        "transactions": [{
+            "date": _date(r["date"]),
+            "description": r["description"],
+            "amount": Money(_dec(r["amount"]), currency),
+            "direction": r["direction"],
+        } for _, r in df.iterrows()],
+    }
+
+
+def card_bill_payments(con, *, currency: str) -> list[dict]:
+    """The credit-card bill payments on the bank statement — the bank→card drill-down. Each row is a bank
+    debit that settled a card; `resolved` says whether the card's statement is loaded and openable, and when
+    it is, (issuer, statement_date) is the drill target."""
+    from wealthlens import lens
+    df = lens.card_bill_payments(con=con)
+    return [{
+        "date": _date(r["date"]),
+        "bank": r["bank"],
+        "amount": Money(_dec(r["amount"]), currency),
+        "narration": r["narration"],
+        "issuer": None if r.get("issuer") is None or (isinstance(r.get("issuer"), float) and _isnan(r["issuer"]))
+                  else str(r["issuer"]),
+        "statement_date": _date(r.get("statement_date")),
+        "resolved": bool(r["resolved"]),
+    } for _, r in df.iterrows()]
+
+
 def _isnan(v) -> bool:
     import pandas as pd
     try:

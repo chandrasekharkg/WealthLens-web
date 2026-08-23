@@ -152,6 +152,87 @@ class Transactions(BaseModel):
     rows: list[TransactionRow] = []
 
 
+class CardRow(BaseModel):
+    """One credit card in the picker, tagged with whose store it came from."""
+
+    account_id: str
+    issuer: str
+    statements: int = Field(description="How many statements are loaded for this card")
+    since: str | None = Field(default=None, description="Date of the first transaction on record")
+    last_statement: str | None = Field(default=None, description="Closing date of the newest statement")
+    outstanding: Money | None = Field(default=None, description="The newest statement's new balance — ₹ owed")
+    entity_id: str | None = None
+    entity_label: str | None = None
+
+
+class Cards(BaseModel):
+    provenance: Provenance
+    granularity: Literal["cards"]
+    reporting_currency: str
+    is_partial: bool
+    excluded: list[Excluded] = []
+    rows: list[CardRow] = []
+
+
+class CardStatementSummary(BaseModel):
+    """One statement in a card's history — the period selector, each row self-summarising."""
+
+    statement_date: str | None = None
+    previous_balance: Money | None = None
+    new_balance: Money | None = None
+    spends: Money = Field(description="Σ purchases this period")
+    payments: Money = Field(description="Σ credits and bill payments this period")
+    transactions: int
+
+
+class CardStatements(BaseModel):
+    entity_id: str
+    issuer: str
+    statements: list[CardStatementSummary] = []
+
+
+class CardStatementLine(BaseModel):
+    date: str | None = None
+    description: str | None = None
+    amount: Money = Field(description="Signed: a purchase is negative, a payment/credit positive")
+    direction: Literal["spend", "payment"]
+
+
+class CardStatement(BaseModel):
+    """One card statement, itemised — the current-month view."""
+
+    entity_id: str
+    issuer: str
+    statement_date: str | None = None
+    previous_balance: Money | None = None
+    new_balance: Money | None = None
+    transactions: list[CardStatementLine] = []
+
+
+class CardBillPaymentRow(BaseModel):
+    """A credit-card bill payment on the bank statement — the bank→card drill-down."""
+
+    date: str | None = None
+    bank: str | None = Field(default=None, description="The account the payment left from")
+    amount: Money = Field(description="₹ paid (positive)")
+    narration: str | None = None
+    issuer: str | None = Field(default=None, description="The card, identified by the amount or the narration")
+    statement_date: str | None = Field(
+        default=None, description="The bill this settled — the drill target, when the card is loaded")
+    resolved: bool = Field(description="True when the card's statement is loaded and openable")
+    entity_id: str | None = None
+    entity_label: str | None = None
+
+
+class CardBillPayments(BaseModel):
+    provenance: Provenance
+    granularity: Literal["card_payments"]
+    reporting_currency: str
+    is_partial: bool
+    excluded: list[Excluded] = []
+    rows: list[CardBillPaymentRow] = []
+
+
 class Deposit(BaseModel):
     """Where an uploaded statement landed. A deposit, not an import — nothing was parsed."""
 

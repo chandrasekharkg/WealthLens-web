@@ -24,7 +24,8 @@ def make_workspace(tmp_path):
     from wealthlens import cli
 
     def _build(name: str, holdings: dict[str, float] | None = None, *,
-               owner: str | None = None, as_of: str = "2026-06-30") -> pathlib.Path:
+               owner: str | None = None, as_of: str = "2026-06-30",
+               cards: dict | None = None) -> pathlib.Path:
         ws = tmp_path / f"{name}-WealthLens-data"
         ws.mkdir(parents=True)
         key = secrets.token_hex(16)
@@ -53,6 +54,27 @@ def make_workspace(tmp_path):
                 con.execute("INSERT INTO ownership "
                             "(instrument_id, owner_entity_id, share, capacity, valid_from) "
                             "VALUES (?, ?, 1.0, 'beneficial', DATE '2000-01-01')", [iid, owner])
+        # Optional credit cards: {issuer: [(period_end, prev, new, [(date, narration, signed), ...]), ...]}.
+        # Each statement is one card_spec source; its transactions load to the card:<issuer> subledger.
+        for issuer, statements in (cards or {}).items():
+            acct = f"card:{issuer}"
+            con.execute("INSERT INTO accounts (account_id, account_group, type, institution, currency) "
+                        "SELECT ?, 'card', 'credit_card', ?, 'INR' "
+                        "WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE account_id = ?)",
+                        [acct, issuer.upper(), acct])
+            for si, (period_end, prev, new, txns) in enumerate(statements):
+                sid = f"card:{name}:{issuer}:{si}"
+                con.execute("INSERT INTO sources (source_id, source_type, adapter, provider, accounts, "
+                            "period_end, detail, row_count) VALUES (?, 'file', 'card_spec', ?, ?, "
+                            "CAST(? AS DATE), ?, ?)",
+                            [sid, issuer, [acct], period_end,
+                             f'{{"previous_balance": {prev}, "new_balance": {new}}}', len(txns)])
+                for ti, (date, narr, signed) in enumerate(txns):
+                    con.execute("INSERT INTO bank_transactions (row_id, account_id, bank, narration, amount, "
+                                "signed_amount, value_date, transacted_at, source, source_id) "
+                                "VALUES (?, ?, ?, ?, ?, ?, CAST(? AS DATE), CAST(? AS TIMESTAMP), ?, ?)",
+                                [f"{sid}-{ti}", acct, issuer, narr, abs(signed), signed, date, date, acct, sid])
+
         con.execute("CHECKPOINT wl")
         con.close()
         return ws
