@@ -150,7 +150,7 @@ describe("honesty survives the regrouping", () => {
 });
 
 describe("the columns picker", () => {
-  it("offers hidden columns and reveals one when ticked, remembering the choice", async () => {
+  it("offers hidden columns and reveals one when ticked, remembering the choice everywhere", async () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", {
       getItem: (k: string) => store.get(k) ?? null,
@@ -181,7 +181,7 @@ describe("the columns picker", () => {
 
     // it now shows as a header, and the choice is persisted for this report
     expect(screen.getAllByRole("columnheader", { name: /Lots/ }).length).toBeGreaterThan(0);
-    const saved = JSON.parse(localStorage.getItem("wlw.columns.market") ?? "{}") as Record<string, boolean>;
+    const saved = JSON.parse(localStorage.getItem("wlw.columns") ?? "{}") as Record<string, boolean>;
     expect(saved.lots).toBe(true);
   });
 });

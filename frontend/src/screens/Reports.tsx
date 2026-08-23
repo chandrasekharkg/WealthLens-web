@@ -30,7 +30,13 @@ const HIDDEN_BY_DEFAULT: Record<string, boolean> = {
   subtype: false, amfi: false, jurisdiction: false, instrument_id: false,
 };
 
-/** The saved column choice for a report, merged over the defaults. A refusing/empty store just gives defaults. */
+// ONE column config for the whole app. Every report renders the SAME position columns (they differ only in
+// which rows they section), so a household's choice is a property of the columns, not of a report — pick
+// "Lots" once and it is on everywhere. If feedback ever wants per-report or per-table granularity, this key
+// grows a suffix; today the simplicity of one config that applies everywhere is the feature.
+const COLUMNS_KEY = "wlw.columns";
+
+/** The saved column choice, merged over the defaults. A refusing/empty store just gives defaults. */
 function loadVisibility(storageKey: string): Record<string, boolean> {
   try {
     const saved = localStorage.getItem(storageKey);
@@ -182,28 +188,17 @@ export function Reports({ reportId, format }: ReportsProps) {
   // Which columns show, remembered per report. The default shows the everyday set and hides the rest;
   // the Columns picker lets a household add any of them, and the choice persists across sessions. A new
   // column arriving from the engine is simply another entry in the picker — no code change to reveal it.
-  const storageKey = `wlw.columns.${reportId}`;
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() =>
-    loadVisibility(storageKey),
+    loadVisibility(COLUMNS_KEY),
   );
-  // Reset when the report changes — React's sanctioned "adjust state during render" pattern (not an effect),
-  // so switching reports loads THAT report's saved columns rather than carrying the last one's over.
-  const [loadedFor, setLoadedFor] = useState(reportId);
-  if (loadedFor !== reportId) {
-    setLoadedFor(reportId);
-    setColumnVisibility(loadVisibility(storageKey));
-  }
-  const onColumnVisibilityChange = useCallback(
-    (next: Record<string, boolean>) => {
-      setColumnVisibility(next);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch {
-        /* a store that refuses to persist just does not remember — never a broken render */
-      }
-    },
-    [storageKey],
-  );
+  const onColumnVisibilityChange = useCallback((next: Record<string, boolean>) => {
+    setColumnVisibility(next);
+    try {
+      localStorage.setItem(COLUMNS_KEY, JSON.stringify(next));
+    } catch {
+      /* a store that refuses to persist just does not remember — never a broken render */
+    }
+  }, []);
 
   const exportColumns = useMemo<Column<Row>[]>(
     () => [
