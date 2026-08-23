@@ -148,3 +148,40 @@ describe("honesty survives the regrouping", () => {
     expect(screen.getByRole("alert").textContent).toContain("Dad: the store is missing");
   });
 });
+
+describe("the columns picker", () => {
+  it("offers hidden columns and reveals one when ticked, remembering the choice", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+      clear: () => store.clear(),
+    });
+    const body = report({
+      sections: [
+        { id: "equities", title: "Equities", icon: "📈", note: null, count: 1,
+          total: { amount: "1000.00", currency: "INR" }, rows: [
+            row("Held Co", "listed_equity", "1000.00", { first_acquired_on: "2017-08-11" }),
+          ] },
+      ],
+    });
+    stub(body);
+    render(<Reports reportId="market" format={formatter("en-IN")} />);
+    await screen.findByRole("heading", { level: 1, name: "Market instruments" });
+
+    // "Lots" is an addable column — hidden by default, so it is not a header yet
+    expect(screen.queryByRole("columnheader", { name: /Lots/ })).toBeNull();
+
+    // open the picker and tick it
+    screen.getAllByText("Columns")[0]!.click();
+    const lots = screen.getAllByLabelText("Lots")[0] as HTMLInputElement;
+    expect(lots.checked).toBe(false);
+    lots.click();
+
+    // it now shows as a header, and the choice is persisted for this report
+    expect(screen.getAllByRole("columnheader", { name: /Lots/ }).length).toBeGreaterThan(0);
+    const saved = JSON.parse(localStorage.getItem("wlw.columns.market") ?? "{}") as Record<string, boolean>;
+    expect(saved.lots).toBe(true);
+  });
+});

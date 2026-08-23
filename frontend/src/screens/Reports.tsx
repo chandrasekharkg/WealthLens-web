@@ -23,6 +23,24 @@ import type { Column } from "../lib/csv";
 
 type Row = ReportSection["rows"][number];
 
+// Hidden by default: the everyday columns show, the rest are one click away in the Columns picker. Kept at
+// module scope so it is one shared object, never rebuilt per render.
+const HIDDEN_BY_DEFAULT: Record<string, boolean> = {
+  last_acquired: false, lots: false, fills: false, last_valued: false, closed: false,
+  subtype: false, amfi: false, jurisdiction: false, instrument_id: false,
+};
+
+/** The saved column choice for a report, merged over the defaults. A refusing/empty store just gives defaults. */
+function loadVisibility(storageKey: string): Record<string, boolean> {
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (!saved) return HIDDEN_BY_DEFAULT;
+    return { ...HIDDEN_BY_DEFAULT, ...(JSON.parse(saved) as Record<string, boolean>) };
+  } catch {
+    return HIDDEN_BY_DEFAULT;
+  }
+}
+
 export type ReportsProps = {
   readonly reportId: string;
   readonly format: Formatter;
@@ -112,8 +130,79 @@ export function Reports({ reportId, format }: ReportsProps) {
         },
       },
       { id: "basis", accessorKey: "basis", header: t("column.basis") },
+      // Addable columns — hidden by default, offered through the Columns picker. Each formats by what it IS
+      // (a date, a count, a code), and shows a muted dash where the store had nothing to say.
+      {
+        id: "last_acquired",
+        header: t("column.lastAcquired"),
+        accessorFn: (r) => r.last_acquired_on ?? "",
+        cell: ({ row }) =>
+          row.original.last_acquired_on ? date(row.original.last_acquired_on) : <span data-empty>—</span>,
+      },
+      {
+        id: "lots",
+        header: t("column.lots"),
+        meta: { numeric: true },
+        accessorFn: (r) => r.lots ?? -1,
+        cell: ({ row }) => (row.original.lots == null ? <span data-empty>—</span> : number(row.original.lots)),
+      },
+      {
+        id: "fills",
+        header: t("column.fills"),
+        meta: { numeric: true },
+        accessorFn: (r) => r.fills ?? -1,
+        cell: ({ row }) => (row.original.fills == null ? <span data-empty>—</span> : number(row.original.fills)),
+      },
+      {
+        id: "last_valued",
+        header: t("column.lastValued"),
+        accessorFn: (r) => r.last_valued_on ?? "",
+        cell: ({ row }) =>
+          row.original.last_valued_on ? date(row.original.last_valued_on) : <span data-empty>—</span>,
+      },
+      {
+        id: "closed",
+        header: t("column.closed"),
+        accessorFn: (r) => r.closed_on ?? "",
+        cell: ({ row }) =>
+          row.original.closed_on ? date(row.original.closed_on) : <span data-empty>—</span>,
+      },
+      { id: "subtype", accessorKey: "subtype", header: t("column.subtype"),
+        cell: ({ row }) => row.original.subtype ?? <span data-empty>—</span> },
+      { id: "amfi", accessorKey: "amfi_code", header: t("column.amfi"),
+        cell: ({ row }) => row.original.amfi_code ?? <span data-empty>—</span> },
+      { id: "jurisdiction", accessorKey: "jurisdiction", header: t("column.jurisdiction"),
+        cell: ({ row }) => row.original.jurisdiction ?? <span data-empty>—</span> },
+      { id: "instrument_id", accessorKey: "instrument_id", header: t("column.instrumentId"),
+        cell: ({ row }) => row.original.instrument_id ?? <span data-empty>—</span> },
     ],
     [t, money, number, date],
+  );
+
+  // Which columns show, remembered per report. The default shows the everyday set and hides the rest;
+  // the Columns picker lets a household add any of them, and the choice persists across sessions. A new
+  // column arriving from the engine is simply another entry in the picker — no code change to reveal it.
+  const storageKey = `wlw.columns.${reportId}`;
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() =>
+    loadVisibility(storageKey),
+  );
+  // Reset when the report changes — React's sanctioned "adjust state during render" pattern (not an effect),
+  // so switching reports loads THAT report's saved columns rather than carrying the last one's over.
+  const [loadedFor, setLoadedFor] = useState(reportId);
+  if (loadedFor !== reportId) {
+    setLoadedFor(reportId);
+    setColumnVisibility(loadVisibility(storageKey));
+  }
+  const onColumnVisibilityChange = useCallback(
+    (next: Record<string, boolean>) => {
+      setColumnVisibility(next);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        /* a store that refuses to persist just does not remember — never a broken render */
+      }
+    },
+    [storageKey],
   );
 
   const exportColumns = useMemo<Column<Row>[]>(
@@ -209,6 +298,8 @@ export function Reports({ reportId, format }: ReportsProps) {
               pageSize={25}
               caption={`${section.title} — ${date(report.as_of)}`}
               format={format}
+              columnVisibility={columnVisibility}
+              onColumnVisibilityChange={onColumnVisibilityChange}
             />
           )}
         </section>

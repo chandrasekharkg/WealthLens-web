@@ -1,5 +1,6 @@
 import {
   type ColumnDef,
+  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -57,6 +58,13 @@ export type DataTableProps<Row> = {
   /** Seam for tests: receives the finished CSV instead of writing a file. */
   readonly onExport?: (csv: string, filename: string) => void;
   readonly caption?: string;
+  /**
+   * Column personalization. When a handler is given the table shows a "Columns" picker beside Export/Print,
+   * and renders exactly the columns the caller says are visible. Controlled by the caller (Reports) so the
+   * choice is shared across a report's sections and persisted in one place.
+   */
+  readonly columnVisibility?: VisibilityState;
+  readonly onColumnVisibilityChange?: (next: VisibilityState) => void;
 };
 
 function download(csv: string, filename: string) {
@@ -78,6 +86,8 @@ export function DataTable<Row>({
   onExport,
   caption,
   format,
+  columnVisibility,
+  onColumnVisibilityChange,
 }: DataTableProps<Row>) {
   // Falls back to the shipped catalog so a caller that has not threaded `format` still renders words
   // rather than keys — the table is used from several screens and should not break one by omission.
@@ -116,8 +126,14 @@ export function DataTable<Row>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: { globalFilter },
+    state: { globalFilter, ...(columnVisibility ? { columnVisibility } : {}) },
     onGlobalFilterChange: setGlobalFilter,
+    onColumnVisibilityChange: onColumnVisibilityChange
+      ? (updater) =>
+          onColumnVisibilityChange(
+            typeof updater === "function" ? updater(columnVisibility ?? {}) : updater,
+          )
+      : undefined,
     initialState: { pagination: { pageIndex: 0, pageSize } },
   });
 
@@ -155,6 +171,26 @@ export function DataTable<Row>({
         <button type="button" onClick={() => window.print()}>
           {t("table.print")}
         </button>
+        {onColumnVisibilityChange ? (
+          <details className="column-picker">
+            <summary>{t("table.columns")}</summary>
+            <div className="column-picker-menu" role="group" aria-label={t("table.columns")}>
+              {table
+                .getAllLeafColumns()
+                .filter((col) => col.getCanHide())
+                .map((col) => (
+                  <label key={col.id}>
+                    <input
+                      type="checkbox"
+                      checked={col.getIsVisible()}
+                      onChange={col.getToggleVisibilityHandler()}
+                    />
+                    {String(col.columnDef.header ?? col.id)}
+                  </label>
+                ))}
+            </div>
+          </details>
+        ) : null}
       </div>
 
       <div className="scroll-x" style={{ overflowX: "auto" }}>

@@ -250,11 +250,12 @@ td {
   text-align: left;
   padding: 8px 12px;
   border-bottom: 1px solid var(--line);
+  font-size: 0.8rem;        /* rows read at the header's size — one scale down the whole table */
 }
 
 thead th {
-  font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--accent);
+  background: var(--accent-soft);   /* a mild teal wash, so the header row reads as a header at a glance */
   white-space: nowrap;
 }
 
@@ -276,6 +277,72 @@ th.numeric {
 th.numeric button[data-sort] {
   justify-content: flex-end;
   width: 100%;
+}
+
+/*
+ * Column picker: a <details> is a keyboard-accessible dropdown with no state to manage — its <summary> is
+ * the button that sits beside Export/Print, and the menu is a plain list of toggles. Personalization the
+ * user owns, remembered per report.
+ */
+.column-picker {
+  position: relative;
+}
+.column-picker > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background: var(--bg, transparent);
+}
+.column-picker > summary::-webkit-details-marker {
+  display: none;
+}
+.column-picker > summary::after {
+  content: "▾";
+  font-size: 0.7em;
+  color: var(--muted);
+}
+.column-picker[open] > summary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.column-picker-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  min-width: 12rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0.4rem;
+  background: var(--card, var(--bg, #fff));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.column-picker-menu label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.column-picker-menu label:hover {
+  background: var(--hover);
+}
+.column-picker-menu input {
+  accent-color: var(--accent);
 }
 
 /* An identifier a row simply does not have is context, not content. */
