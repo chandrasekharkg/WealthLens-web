@@ -52,7 +52,12 @@ real gate; the scheduled run adds what a hook cannot afford — the E2E flows an
 - **Setup, guided.** First-run flows for creating/connecting a WLC workspace, passwords/config seeding,
   and adding family members' workspaces — the ease-of-use layer WLC's CLI doesn't try to be.
 - **Reports.** Net worth, holdings, spending, point-in-time views — everything `lens.py` can answer,
-  rendered interactively, per person or for the whole family.
+  rendered interactively, per person or for the whole family. Reports are sectioned by asset class, share
+  one Columns picker, and every holding drills down into its **event diary**.
+- **Transactions, cards, and bills.** A bank-transactions ledger, credit-card statements, and card
+  bill-payment history — the everyday money movement, not just the portfolio snapshot.
+- **Performance.** Invested vs. current, returns and shares, with data-freshness surfaced — the numbers
+  computed in the bridge so the UI stays a thin presenter.
 - **Family aggregation.** One combined view across N entities (you, spouse, parents…) while each entity
   keeps its **own separate encrypted store** — WLC's federated-store semantics (its ADR-0008) are the
   foundation, not a limitation to work around. Every aggregated number remains attributable to the entity
@@ -70,7 +75,8 @@ real gate; the scheduled run adds what a hook cannot afford — the E2E flows an
 ## Architecture (two thin layers)
 
 ```
- frontend/   the SPA (setup + reports)          — talks only to the bridge
+ frontend/   the SPA (setup, reports, cards,     — talks only to the bridge
+             transactions, performance, family)
  bridge/     read-only Python API over lens.py  — per-entity store access, aggregation, family.toml
              └─ one write-ish endpoint: POST /import → runs `wealthlens import` in a subprocess
 ```
@@ -90,11 +96,15 @@ architecturally significant choices are [ADRs](openspec/decisions/). Same licens
 always-on family-aggregator deployment is designed but deliberately deferred until real usage says what
 belongs in it ([ADR-0009](openspec/decisions/0009-distribution-and-deployment.md)).
 
-**Definition stage — specs and design settled, implementation next.** The [use cases](openspec/USE-CASES.md),
-[UX first pass](openspec/UX.md) (information architecture, screens, the four critical flows), six
-[ADRs](openspec/decisions/) and four capability specs define what gets built. The stack is React + Vite +
-TypeScript over a Python bridge ([ADR-0003](openspec/decisions/0003-frontend-stack.md)).
+**The SPA has shipped.** A running React + Vite + TypeScript app
+([ADR-0003](openspec/decisions/0003-frontend-stack.md)) over a Python bridge, with eleven tabs —
+Overview, Reports, Cards, Bill payments, Performance, Family, Transactions, Import, Operations,
+Workspace and Activity — served by two-dozen-plus read-only bridge routes. Reports are **sectioned** by
+asset class with a shared **Columns picker** (the household's column choice is saved once and applies to
+every report); each holding drills down into its **event diary**; the Transactions tab renders the bank
+ledger; and Performance totals, shares and freshness are computed in the bridge. Cards and Bill payments
+expose the card statements and bill-payment history.
 
-**First reviewers wanted.** [UX.md](openspec/UX.md) ends with open questions — nav shape, where the as-of
-date belongs, how much of the machinery a non-technical household member should ever see. Opinions from
-people who actually keep a household's books are worth more here than more design from us.
+**First reviewers wanted.** [UX.md](openspec/UX.md) still carries open questions — where the as-of date
+belongs, how much of the machinery a non-technical household member should ever see. Opinions from people
+who actually keep a household's books are worth more here than more design from us.

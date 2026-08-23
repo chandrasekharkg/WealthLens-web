@@ -11,9 +11,9 @@ follows from one sentence:
   family.toml            bridge/ (Python, FastAPI)           frontend/ (React+Vite+TS)
   ───────────            ─────────────────────────           ─────────────────────────
   entities + paths  ──►  core/  workspaces · lens access ──►  setup · workspaces · family
-  labels, prefs                 aggregation · freshness       reports · operations
-  (no secrets,                  per-workspace job queue       (talks only to the bridge)
-   no data)                     (framework-free, reusable)
+  labels, prefs                 aggregation · freshness       reports · transactions · cards
+  (no secrets,                  per-workspace job queue       performance · operations
+   no data)                     (framework-free, reusable)    (talks only to the bridge)
                          api/   typed routes · SSE progress
                                 Host/Origin/token guards
                                 serves the built SPA
@@ -119,16 +119,16 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       command rather than building the button (ADR-0012). Graduates on demand.
 - [x] WLC: **a `promote` verb** — shipped (WLC `c9fdb41`). Eight abort-first gates, backup, atomic
       `os.replace`. ADR-0006's in-UI promotion now has a verb to drive within the ADR-0005 boundary.
-- [ ] WLC: **an acquisition date on the read surface.** A market-instruments report wants each holding's
-      purchase date, and nothing public carries one: `holdings()` has no acquisition column and
-      `performance()` gives invested/current without a date. `holding_events.event_date` has it, so this is
-      a projection rather than new arithmetic. Until it lands, that column is the one part of the report
-      that cannot be composed from public calls.
+- [x] WLC: **an acquisition date on the read surface** — shipped (commit `2f64611`). `holdings()` now
+      carries `first_acquired_on` / `last_acquired_on` (walked over the succession chain) and a `lots`
+      count; the bridge reads them in `core/lens_api.py` and the sectioned reports show an acquisition
+      column. What was the one part of the report that couldn't be composed from public calls is now a
+      plain projection.
 - [ ] WLC (**lower priority — may not be needed**): a structured account summary. `account_summary.build()`
-      computes the hierarchy plus per-year document coverage but emits only text and HTML. **Sectioned
-      reports composed from lens primitives may make most of it unnecessary** — what would remain uniquely
-      upstream is the document-coverage-per-line view, which is genuinely WLC's arithmetic. Revisit after
-      the sectioned reports exist.
+      computes the hierarchy plus per-year document coverage but emits only text and HTML. **The sectioned
+      reports have now shipped** (`core/reports.py` composes each report from lens primitives, rendered by
+      `Reports.tsx`), which makes most of this unnecessary — what remains uniquely upstream is the
+      document-coverage-per-line view, which is genuinely WLC's arithmetic.
 - [ ] WLC (**deferred — waiting for a real user to want it**): a one-time password path for `import`,
       e.g. `--password-file <path>`, read then forgotten. Today "use it once" is unbuildable: `import`
       takes no password argument and gives up on a closed stdin (ADR-0019). Designed and understood, but
@@ -147,5 +147,6 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       approximating (ADR-0016).
 - [ ] WLC (roadmap): foreign-held accounts. WLW's standing free-landing test — if displaying one needs
       more than a locale string, WLW's data conventions are wrong (ADR-0012 part 2).
-- [ ] Seed the bridge from the reviewed prototype (WLC PR #1's report server) — with ADR-0004's
-      Host/Origin/token hardening and the manifest replacing ad-hoc workspace discovery.
+- [x] Seed the bridge from the reviewed prototype (WLC PR #1's report server) — shipped. `api/app.py`
+      serves two-dozen-plus typed routes with ADR-0004's Host/Origin/token hardening and the manifest
+      replacing ad-hoc workspace discovery.
