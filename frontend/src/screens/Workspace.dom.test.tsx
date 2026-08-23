@@ -94,7 +94,7 @@ describe("the password ring has three states, not two", () => {
     await show({
       documents: [{ ...detail().documents[0]!, password: { kind: "none", name: null } }],
     });
-    expect(screen.getByText("nothing has opened it")).toBeTruthy();
+    expect(screen.getByText("no password")).toBeTruthy();
   });
 });
 

@@ -22,6 +22,7 @@ import json
 import pathlib
 
 HINTS_FILE = ".password_hints.json"
+CONFIG_FILE = "config.toml"
 
 
 class PasswordRef(enum.StrEnum):
@@ -92,6 +93,39 @@ def _hints(workspace: pathlib.Path) -> dict[str, str]:
     return {k: str(v) for k, v in loaded.items() if isinstance(v, str)} if isinstance(loaded, dict) else {}
 
 
+def _parser_passwords(workspace: pathlib.Path) -> dict[str, str]:
+    """provider → the password REFERENCE its parser config declares (e.g. religare → '@identity.pan'). This
+    is what opens a document when no per-file hint was recorded: a Religare contract note or a depository CAS
+    is opened by the PAN, and the config says so even where the hint file is silent. Absent/unreadable
+    config: nothing known."""
+    try:
+        import tomllib
+        cfg = tomllib.loads((pathlib.Path(workspace) / CONFIG_FILE).read_text())
+    except (OSError, ValueError):
+        return {}
+    out: dict[str, str] = {}
+    for name, section in (cfg.get("parser") or {}).items():
+        ref = section.get("password") if isinstance(section, dict) else None
+        # a list-valued password (several tried in series) resolves to its first reference
+        if isinstance(ref, list):
+            ref = next((r for r in ref if isinstance(r, str)), None)
+        if isinstance(ref, str):
+            out[name] = ref
+    return out
+
+
+def _reveal_name(ref: str) -> str | None:
+    """A config password reference → the name `settings.reveal` understands, or None if it names nothing
+    revealable here. `@identity.pan` is the PAN; `@secrets.X` and `@file:F` name a configured secret."""
+    if ref == "@identity.pan":
+        return "pan"
+    if ref.startswith("@secrets."):
+        return ref.removeprefix("@secrets.")
+    if ref.startswith("@file:"):
+        return ref.removeprefix("@file:")
+    return None
+
+
 def _password_for(sha: str | None, hints: dict[str, str]) -> Password:
     ref = hints.get(sha or "")
     if not ref:
@@ -103,11 +137,23 @@ def _password_for(sha: str | None, hints: dict[str, str]) -> Password:
     return Password(PasswordRef.NAMED, name=ref)
 
 
+def _password_with_config(sha, hints, provider, parser_pw) -> Password:
+    """The recorded hint is authoritative; only when it kept NOTHING for a file does the parser config decide
+    — so a Religare CN or a CAS opened by the PAN reports the PAN (copyable) instead of "no password"."""
+    got = _password_for(sha, hints)
+    if got.kind is not PasswordRef.NONE:
+        return got
+    ref = parser_pw.get(provider or "")
+    name = _reveal_name(ref) if ref else None
+    return Password(PasswordRef.NAMED, name=name) if name else got
+
+
 def documents(con, workspace: pathlib.Path) -> list[Document]:
     """Every source registered in this store, newest capture first."""
     from wealthlens import lens
 
     hints = _hints(workspace)
+    parser_pw = _parser_passwords(workspace)
     rows = lens.sql(
         "SELECT source_id, source_type, provider, payload_ref, row_count, captured_at, "
         "       content_sha256, detail "
@@ -131,8 +177,9 @@ def documents(con, workspace: pathlib.Path) -> list[Document]:
             payload_ref=(str(row["payload_ref"]) if _present(row["payload_ref"]) else None),
             rows=(int(row["row_count"]) if _present(row["row_count"]) else None),
             captured_at=(str(row["captured_at"])[:19] if _present(row["captured_at"]) else None),
-            password=_password_for(
-                str(row["content_sha256"]) if _present(row["content_sha256"]) else None, hints),
+            password=_password_with_config(
+                str(row["content_sha256"]) if _present(row["content_sha256"]) else None, hints,
+                str(row["provider"]) if _present(row["provider"]) else None, parser_pw),
         ))
     return out
 

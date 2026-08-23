@@ -76,7 +76,7 @@ export function Collateral({
                         <CopySecret
                           entity={entity}
                           what={doc.password.name}
-                          label={doc.password.name}
+                          label={doc.password.name === "pan" ? t("password.pan") : doc.password.name}
                           format={format}
                         />
                       ) : doc.password.kind === "unnamed" ? (

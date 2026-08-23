@@ -167,7 +167,8 @@ export const en = {
   "ws.folderCount": "{count} document(s)",
   "password.named": "{name}",
   "password.unnamed": "an unnamed password",
-  "password.none": "nothing has opened it",
+  "password.none": "no password",
+  "password.pan": "PAN",
 
   "secret.copy": "Copy",
   "secret.copied": "Copied — it will not be shown here.",
