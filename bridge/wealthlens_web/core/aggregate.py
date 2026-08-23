@@ -41,6 +41,7 @@ class Granularity(enum.StrEnum):
     TRANSACTIONS = "transactions"
     CARDS = "cards"
     CARD_PAYMENTS = "card_payments"
+    FAMILY = "family"
 
 
 class UnsupportedReportingCurrency(ValueError):
@@ -241,6 +242,13 @@ def cards(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -> FamilyRows:
     liability rather than an owned instrument, so — unlike positions — no owner filter is applied."""
     return _rows(m, Granularity.CARDS, on=resolve_date(None), our_pids=our_pids,
                  fetch=lambda con, entity: lens_api.cards(con, currency=m.reporting_currency))
+
+
+def family_transfers(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -> FamilyRows:
+    """Money moved to household members, across the family's stores — each row tagged with the SENDING store's
+    entity, while `member_id` names the recipient. Not owner-scoped (whose bank account paid is the store)."""
+    return _rows(m, Granularity.FAMILY, on=resolve_date(None), our_pids=our_pids,
+                 fetch=lambda con, entity: lens_api.family_transfers(con, currency=m.reporting_currency))
 
 
 def card_bill_payments(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -> FamilyRows:

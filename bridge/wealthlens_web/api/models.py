@@ -313,6 +313,45 @@ class Performance(BaseModel):
     series: list[PerformancePoint] = []
 
 
+class FamilyMemberRow(BaseModel):
+    """One household member and the money moved to them from a store."""
+
+    member_id: str | None = None
+    name: str | None = None
+    relationship: str | None = None
+    transfers: int = 0
+    total: Money
+    first_transfer: str | None = None
+    last_transfer: str | None = None
+    holdings: int = Field(default=0, description="Instruments the store attributes to this member")
+    entity_id: str | None = Field(default=None, description="The sending store")
+    entity_label: str | None = None
+
+
+class Family(BaseModel):
+    provenance: Provenance
+    granularity: Literal["family"]
+    reporting_currency: str
+    is_partial: bool
+    excluded: list[Excluded] = []
+    rows: list[FamilyMemberRow] = []
+
+
+class TransferRow(BaseModel):
+    """One bank transfer to a household member."""
+
+    date: str | None = None
+    bank: str | None = None
+    narration: str | None = None
+    amount: Money
+
+
+class FamilyTransfers(BaseModel):
+    entity_id: str
+    person: str
+    transfers: list[TransferRow] = []
+
+
 class Deposit(BaseModel):
     """Where an uploaded statement landed. A deposit, not an import — nothing was parsed."""
 

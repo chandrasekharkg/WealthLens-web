@@ -135,6 +135,19 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
     def card_bill_payments() -> dict:
         return _rows(aggregate.card_bill_payments(_manifest(), our_pids=app.state.runner.our_pids))
 
+    @app.get("/api/family", response_model=models.Family)
+    def family() -> dict:
+        return _rows(aggregate.family_transfers(_manifest(), our_pids=app.state.runner.our_pids))
+
+    @app.get("/api/family/{entity_id}/{person}/transfers", response_model=models.FamilyTransfers)
+    def family_transfers(entity_id: str, person: str, named: str | None = Query(default=None)) -> dict:
+        m = _manifest()
+        path = _target_workspace(m, entity_id, named)
+        from wealthlens import workspace as wl_workspace
+        with wl_workspace.resolve(path).open() as con:
+            transfers = lens_api.transfers_to(con, person=person, currency=m.reporting_currency)
+        return {"entity_id": entity_id, "person": person, "transfers": [_row(t) for t in transfers]}
+
     @app.get("/api/performance", response_model=models.Performance)
     def performance() -> dict:
         got = aggregate.performance(_manifest(), our_pids=app.state.runner.our_pids)

@@ -981,6 +981,178 @@
         "title": "Excluded",
         "type": "object"
       },
+      "Family": {
+        "properties": {
+          "excluded": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Excluded"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "granularity": {
+            "const": "family",
+            "title": "Granularity",
+            "type": "string"
+          },
+          "is_partial": {
+            "title": "Is Partial",
+            "type": "boolean"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "reporting_currency": {
+            "title": "Reporting Currency",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FamilyMemberRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "provenance",
+          "granularity",
+          "reporting_currency",
+          "is_partial"
+        ],
+        "title": "Family",
+        "type": "object"
+      },
+      "FamilyMemberRow": {
+        "description": "One household member and the money moved to them from a store.",
+        "properties": {
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The sending store",
+            "title": "Entity Id"
+          },
+          "entity_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Label"
+          },
+          "first_transfer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Transfer"
+          },
+          "holdings": {
+            "default": 0,
+            "description": "Instruments the store attributes to this member",
+            "title": "Holdings",
+            "type": "integer"
+          },
+          "last_transfer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Transfer"
+          },
+          "member_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Member Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "transfers": {
+            "default": 0,
+            "title": "Transfers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total"
+        ],
+        "title": "FamilyMemberRow",
+        "type": "object"
+      },
+      "FamilyTransfers": {
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "person": {
+            "title": "Person",
+            "type": "string"
+          },
+          "transfers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TransferRow"
+            },
+            "title": "Transfers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity_id",
+          "person"
+        ],
+        "title": "FamilyTransfers",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2310,6 +2482,52 @@
         "title": "Transactions",
         "type": "object"
       },
+      "TransferRow": {
+        "description": "One bank transfer to a household member.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "narration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Narration"
+          }
+        },
+        "required": [
+          "amount"
+        ],
+        "title": "TransferRow",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -2639,6 +2857,88 @@
           }
         },
         "summary": "Card Statements"
+      }
+    },
+    "/api/family": {
+      "get": {
+        "operationId": "family_api_family_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Family"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Family"
+      }
+    },
+    "/api/family/{entity_id}/{person}/transfers": {
+      "get": {
+        "operationId": "family_transfers_api_family__entity_id___person__transfers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "title": "Person",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "named",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Named"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyTransfers"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Family Transfers"
       }
     },
     "/api/holdings/{entity_id}/{instrument_id}/diary": {

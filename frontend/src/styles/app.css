@@ -877,3 +877,19 @@ input[type="date"] {
 .chart-area svg { width: 100%; height: auto; min-width: 320px; }
 .chart-grid { stroke: var(--line); stroke-width: 1; }
 .chart-tick { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ── Family ───────────────────────────────────────────────────────────────────────────────────────── */
+.family-list { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
+.family-tile {
+  display: flex; flex-direction: column; gap: 0.15rem; min-width: 13rem;
+  padding: 0.75rem 0.9rem; text-align: left; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font: inherit; color: inherit;
+}
+.family-tile:hover:not(:disabled) { background: var(--hover); }
+.family-tile[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.family-tile:disabled { cursor: default; opacity: 0.7; }
+.family-name { font-weight: 600; }
+.family-rel { font-size: 0.72rem; color: var(--muted); text-transform: capitalize; }
+.family-amount { font-size: 1.15rem; font-variant-numeric: tabular-nums; margin-top: 0.2rem; }
+.family-amount[data-sent="true"] { color: var(--accent); }
+.family-meta { font-size: 0.72rem; color: var(--muted); }

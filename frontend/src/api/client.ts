@@ -23,6 +23,10 @@ export type CardBillPaymentRow = components["schemas"]["CardBillPaymentRow"];
 export type HoldingDiary = components["schemas"]["HoldingDiary"];
 export type DiaryLine = components["schemas"]["DiaryLine"];
 export type Performance = components["schemas"]["Performance"];
+export type Family = components["schemas"]["Family"];
+export type FamilyMemberRow = components["schemas"]["FamilyMemberRow"];
+export type FamilyTransfers = components["schemas"]["FamilyTransfers"];
+export type TransferRow = components["schemas"]["TransferRow"];
 export type Version = components["schemas"]["Version"];
 export type Job = components["schemas"]["Job"];
 export type Deposit = components["schemas"]["Deposit"];
@@ -92,6 +96,9 @@ export const api = {
   holdingDiary: (entity: string, instrument: string) =>
     request<HoldingDiary>(`/api/holdings/${entity}/${instrument}/diary`),
   performance: () => request<Performance>("/api/performance"),
+  family: () => request<Family>("/api/family"),
+  familyTransfers: (entity: string, person: string) =>
+    request<FamilyTransfers>(`/api/family/${entity}/${person}/transfers`),
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   jobs: () => request<Job[]>("/api/jobs"),
   workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),
