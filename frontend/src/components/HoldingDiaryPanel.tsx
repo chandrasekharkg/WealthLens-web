@@ -184,7 +184,8 @@ export function HoldingDiaryPanel({
           provenance={{
             title: t("diary.title", { name }),
             scope: entity,
-            reporting_currency: "—",
+            // The reporting currency is the bridge's decision — previously a "—" placeholder.
+            reporting_currency: diary.state === "ready" ? diary.data.provenance.reporting_currency : "—",
             row_count: lines.length,
           }}
         />

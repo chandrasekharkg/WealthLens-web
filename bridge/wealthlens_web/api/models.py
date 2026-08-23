@@ -211,6 +211,7 @@ class CardStatement(BaseModel):
     previous_balance: Money | None = None
     new_balance: Money | None = None
     transactions: list[CardStatementLine] = []
+    provenance: Provenance
 
 
 class CardBillPaymentRow(BaseModel):
@@ -290,6 +291,7 @@ class HoldingDiary(BaseModel):
     performance: HoldingPerformance | None = None
     lineage: list[LineageEdge] = []
     lines: list[DiaryLine] = []
+    provenance: Provenance
 
 
 class PerformanceBucket(BaseModel):
@@ -359,6 +361,7 @@ class FamilyTransfers(BaseModel):
     entity_id: str
     person: str
     transfers: list[TransferRow] = []
+    provenance: Provenance
 
 
 class Deposit(BaseModel):

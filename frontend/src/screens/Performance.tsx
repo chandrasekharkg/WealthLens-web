@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api, type Performance as PerformanceData } from "../api/client";
 import { DonutChart, StackedAreaChart } from "../components/charts";
-import { type Band, compactINR, PALETTE, type Slice, type Tick } from "../lib/chart";
+import { type Band, compact, PALETTE, type Slice, type Tick } from "../lib/chart";
 import type { Formatter, MessageKey } from "../i18n";
 
 /**
@@ -86,7 +86,7 @@ export function Performance({ format }: PerformanceProps) {
     }));
     const built_ticks: Tick[] = perf.data.axis_ticks.map((m) => ({
       frac: Number(m.amount) / max,
-      label: compactINR(Number(m.amount)),
+      label: compact(Number(m.amount), perf.data.reporting_currency),
     }));
     return { bands: built, dateLabels: dates.map(monthLabel), ticks: built_ticks, months: dates.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps

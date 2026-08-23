@@ -120,6 +120,20 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
     return out
 
 
+def sources(con) -> list[dict]:
+    """The source registry — one row per document/feed registered in this store, newest capture first.
+    Its own verb so every WLC call still funnels through this one module (collateral shapes these into the
+    Workspace document list); the read is a plain projection, not new arithmetic."""
+    from wealthlens import lens
+    df = lens.sql(
+        "SELECT source_id, source_type, provider, payload_ref, row_count, captured_at, "
+        "       period_start, period_end, content_sha256, detail "
+        "FROM sources ORDER BY captured_at DESC NULLS LAST, source_id",
+        con=con,
+    )
+    return df.to_dict("records")
+
+
 def transactions(con, *, since: str | None, until: str | None, currency: str) -> list[dict]:
     """Ledger-level rows. The finest granularity, and the one scoped exposure exists to gate."""
     from wealthlens import lens

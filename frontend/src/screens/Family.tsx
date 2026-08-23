@@ -143,7 +143,8 @@ function TransferList({ focus, format }: { focus: Focus; format: Formatter }) {
       provenance={{
         title: t("family.transfersTo", { name: focus.name }),
         scope: focus.entity,
-        reporting_currency: rows[0]?.amount.currency ?? "INR",
+        // The reporting currency is the bridge's decision, not something to read off the first row.
+        reporting_currency: state.data.provenance.reporting_currency,
         row_count: rows.length,
       }}
     />

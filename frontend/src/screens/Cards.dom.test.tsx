@@ -37,6 +37,7 @@ const AXIS_LATEST = {
     { date: "2026-02-03", description: "BOOKSTORE", amount: money("-100.00"), direction: "spend" },
     { date: "2026-02-15", description: "BILL PAYMENT", amount: money("800.00"), direction: "payment" },
   ],
+  provenance: { title: "axis statement", scope: "Me", reporting_currency: "INR", row_count: 2 },
 };
 
 const ICICI_LATEST = {
@@ -45,6 +46,7 @@ const ICICI_LATEST = {
   transactions: [
     { date: "2026-02-01", description: "ELECTRONICS", amount: money("-5000.00"), direction: "spend" },
   ],
+  provenance: { title: "icici statement", scope: "Me", reporting_currency: "INR", row_count: 1 },
 };
 
 const AXIS_JAN = {
@@ -54,6 +56,7 @@ const AXIS_JAN = {
     { date: "2026-01-05", description: "COFFEE SHOP", amount: money("-300.00"), direction: "spend" },
     { date: "2026-01-10", description: "GROCERY", amount: money("-200.00"), direction: "spend" },
   ],
+  provenance: { title: "axis statement", scope: "Me", reporting_currency: "INR", row_count: 2 },
 };
 
 function stub() {

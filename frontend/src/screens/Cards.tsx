@@ -274,7 +274,8 @@ export function CardStatementBody({
             title: caption,
             scope,
             as_of: statement?.statement_date ?? null,
-            reporting_currency: lines[0]?.amount.currency ?? "INR",
+            // The reporting currency is the bridge's decision, not something to read off the first row.
+            reporting_currency: statement?.provenance.reporting_currency ?? "INR",
             row_count: lines.length,
           }}
         />

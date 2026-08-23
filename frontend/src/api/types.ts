@@ -547,6 +547,7 @@ export interface components {
             issuer: string;
             new_balance?: components["schemas"]["Money"] | null;
             previous_balance?: components["schemas"]["Money"] | null;
+            provenance: components["schemas"]["Provenance"];
             /** Statement Date */
             statement_date?: string | null;
             /**
@@ -843,6 +844,7 @@ export interface components {
             entity_id: string;
             /** Person */
             person: string;
+            provenance: components["schemas"]["Provenance"];
             /**
              * Transfers
              * @default []
@@ -888,6 +890,7 @@ export interface components {
             /** Name */
             name?: string | null;
             performance?: components["schemas"]["HoldingPerformance"] | null;
+            provenance: components["schemas"]["Provenance"];
         };
         /**
          * HoldingPerformance

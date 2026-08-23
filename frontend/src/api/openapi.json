@@ -301,6 +301,9 @@
               }
             ]
           },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "statement_date": {
             "anyOf": [
               {
@@ -323,7 +326,8 @@
         },
         "required": [
           "entity_id",
-          "issuer"
+          "issuer",
+          "provenance"
         ],
         "title": "CardStatement",
         "type": "object"
@@ -1147,6 +1151,9 @@
             "title": "Person",
             "type": "string"
           },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "transfers": {
             "default": [],
             "items": {
@@ -1158,7 +1165,8 @@
         },
         "required": [
           "entity_id",
-          "person"
+          "person",
+          "provenance"
         ],
         "title": "FamilyTransfers",
         "type": "object"
@@ -1247,11 +1255,15 @@
                 "type": "null"
               }
             ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
           }
         },
         "required": [
           "entity_id",
-          "instrument"
+          "instrument",
+          "provenance"
         ],
         "title": "HoldingDiary",
         "type": "object"
