@@ -256,6 +256,7 @@ export const en = {
   "role.unchained": "Unchained",
   "role.undated": "Undated",
   "role.rejected": "Rejected",
+  "role.superseded": "Booked elsewhere",
   "kind.balance": "Balance",
   "kind.lockin": "Lock-in",
 
