@@ -70,6 +70,20 @@ export function Reports({ reportId, format }: ReportsProps) {
             : number(row.original.quantity),
       },
       {
+        id: "acquired",
+        header: t("column.acquired"),
+        // When you FIRST held this — walked over the succession chain in the engine, so a restructured
+        // holding shows its true first purchase, not the relabel. A dash where the store has no events to
+        // say (a snapshot-only position); the store not knowing is not the epoch.
+        accessorFn: (r) => r.first_acquired_on ?? "",
+        cell: ({ row }) =>
+          row.original.first_acquired_on ? (
+            date(row.original.first_acquired_on)
+          ) : (
+            <span data-empty>—</span>
+          ),
+      },
+      {
         id: "value",
         header: t("column.value"),
         meta: { numeric: true },
@@ -78,9 +92,28 @@ export function Reports({ reportId, format }: ReportsProps) {
         accessorFn: (r) => Number(r.value.amount),
         cell: ({ row }) => money(row.original.value),
       },
+      {
+        id: "disposition",
+        header: t("column.disposition"),
+        // A live position says nothing here. A closed one wears a badge that says WHY it is at zero —
+        // written off, or an unexplained zero that is really a prompt to go look. `sold` and `succeeded`
+        // never reach this screen (the engine keeps them out of the live set), but the badge renders any
+        // value the row carries rather than hard-coding the two.
+        accessorFn: (r) => r.disposition ?? "",
+        cell: ({ row }) => {
+          const d = row.original.disposition;
+          if (!d) return <span data-empty>—</span>;
+          const known = ["written_off", "sold", "succeeded", "unknown"].includes(d);
+          return (
+            <span data-disposition={d} data-tone={d === "unknown" ? "warning" : undefined}>
+              {known ? t(`disposition.${d}` as Parameters<typeof t>[0]) : d}
+            </span>
+          );
+        },
+      },
       { id: "basis", accessorKey: "basis", header: t("column.basis") },
     ],
-    [t, money, number],
+    [t, money, number, date],
   );
 
   const exportColumns = useMemo<Column<Row>[]>(
@@ -92,6 +125,8 @@ export function Reports({ reportId, format }: ReportsProps) {
       { header: t("column.units"), value: (r) => r.quantity ?? null },
       { header: t("column.value"), value: (r) => r.value },
       { header: `${t("column.value")} currency`, value: (r) => r.value.currency },
+      { header: t("column.acquired"), value: (r) => r.first_acquired_on ?? null },
+      { header: t("column.disposition"), value: (r) => r.disposition ?? null },
       { header: t("column.basis"), value: (r) => r.basis ?? null },
     ],
     [t],

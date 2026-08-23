@@ -59,6 +59,12 @@ export const en = {
   "column.units": "Units",
   "column.value": "Value",
   "column.basis": "Valued by",
+  "column.acquired": "First acquired",
+  "column.disposition": "Status",
+  "disposition.written_off": "Written off",
+  "disposition.sold": "Sold",
+  "disposition.succeeded": "Succeeded",
+  "disposition.unknown": "Unexplained",
   "identifier.none": "not applicable",
 
   "import.title": "Import statements",

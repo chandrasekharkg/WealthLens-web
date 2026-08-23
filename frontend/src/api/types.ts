@@ -514,21 +514,43 @@ export interface components {
         PositionRow: {
             /** Account Id */
             account_id?: string | null;
+            /** Amfi Code */
+            amfi_code?: string | null;
             /** As Of */
             as_of?: string | null;
             /** Asset Class */
             asset_class?: string | null;
             /** Basis */
             basis?: string | null;
+            /** Closed On */
+            closed_on?: string | null;
+            /** Disposition */
+            disposition?: string | null;
             /** Entity Id */
             entity_id: string;
             /** Entity Label */
             entity_label: string;
+            /** Fills */
+            fills?: number | null;
+            /** First Acquired On */
+            first_acquired_on?: string | null;
             identifier: components["schemas"]["Identifier"];
+            /** Instrument Id */
+            instrument_id?: string | null;
+            /** Jurisdiction */
+            jurisdiction?: string | null;
+            /** Last Acquired On */
+            last_acquired_on?: string | null;
+            /** Last Valued On */
+            last_valued_on?: string | null;
+            /** Lots */
+            lots?: number | null;
             /** Name */
             name?: string | null;
             /** Quantity */
             quantity?: number | null;
+            /** Subtype */
+            subtype?: string | null;
             value: components["schemas"]["Money"];
         };
         /** Positions */

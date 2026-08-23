@@ -5,7 +5,12 @@ import type { Report } from "../api/client";
 import { formatter } from "../i18n";
 import { Reports } from "./Reports";
 
-const row = (name: string, cls: string, amount: string) => ({
+const row = (
+  name: string,
+  cls: string,
+  amount: string,
+  extra: { first_acquired_on?: string | null; disposition?: string | null } = {},
+) => ({
   entity_id: "me",
   entity_label: "Me",
   name,
@@ -16,6 +21,8 @@ const row = (name: string, cls: string, amount: string) => ({
   identifier: { kind: "isin" as const, value: "INF000000000" }, // pii-ok — a shaped placeholder
   as_of: "2026-07-31",
   basis: "statement",
+  first_acquired_on: extra.first_acquired_on ?? null,
+  disposition: extra.disposition ?? null,
 });
 
 const report = (over: Partial<Report> = {}): Report => ({
@@ -52,6 +59,50 @@ const show = async (body?: Report) => {
   render(<Reports reportId="market" format={formatter("en-IN")} />);
   await screen.findByRole("heading", { level: 1, name: "Market instruments" });
 };
+
+describe("the acquisition column and disposition badge", () => {
+  it("shows when a position was first held, and a dash where the store cannot say", async () => {
+    const body = report({
+      sections: [
+        { id: "equities", title: "Equities", icon: "📈", note: null, count: 2,
+          total: { amount: "2000.00", currency: "INR" }, rows: [
+            row("Held Co", "listed_equity", "1000.00", { first_acquired_on: "2017-08-11" }),
+            row("Snapshot Only", "listed_equity", "1000.00"),   // no events → no date
+          ] },
+      ],
+    });
+    stub(body);
+    render(<Reports reportId="market" format={formatter("en-IN")} />);
+    await screen.findByRole("heading", { level: 1, name: "Market instruments" });
+    const held = screen.getByRole("row", { name: /Held Co/ });
+    expect(within(held).getByText("11 Aug 2017")).toBeTruthy();   // en-IN date, walked over the chain
+    const snap = screen.getByRole("row", { name: /Snapshot Only/ });
+    // a snapshot-only, live position shows a dash in BOTH new columns (no acquisition date, no disposition)
+    expect(within(snap).getAllByText("\u2014").length).toBeGreaterThanOrEqual(1);   // an em dash, not the epoch
+  });
+
+  it("badges a written-off position with its reason, and unknown wears the warning tone", async () => {
+    const body = report({
+      sections: [
+        { id: "equities", title: "Equities", icon: "📈", note: null, count: 2,
+          total: { amount: "0.00", currency: "INR" }, rows: [
+            row("Rolta", "listed_equity", "0.00", { first_acquired_on: "2018-05-16", disposition: "written_off" }),
+            row("Fading Co", "listed_equity", "0.00", { disposition: "unknown" }),
+          ] },
+      ],
+    });
+    stub(body);
+    render(<Reports reportId="market" format={formatter("en-IN")} />);
+    await screen.findByRole("heading", { level: 1, name: "Market instruments" });
+    const rolta = screen.getByRole("row", { name: /Rolta/ });
+    const badge = within(rolta).getByText("Written off");
+    expect(badge.getAttribute("data-disposition")).toBe("written_off");
+    const fading = screen.getByRole("row", { name: /Fading Co/ });
+    const unknown = within(fading).getByText("Unexplained");
+    expect(unknown.getAttribute("data-tone")).toBe("warning");    // a zero nobody has explained → go look
+  });
+});
+
 
 describe("sections", () => {
   it("shows each section with its icon, count and total", async () => {

@@ -283,6 +283,28 @@ th.numeric button[data-sort] {
   color: var(--muted);
 }
 
+/* A cell the store could not fill is an absence, muted — never mistaken for a value. */
+[data-empty] {
+  color: var(--muted);
+}
+
+/*
+ * Disposition badge: a closed position wears the reason it is at zero. A pill, not a colour alone, so it
+ * reads on paper and for a colour-blind reader; `unknown` borrows the warning tone because it is really a
+ * prompt to go look (an unexplained zero), while a written-off loss is stated plainly, not alarmed.
+ */
+[data-disposition] {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.82em;
+  border: 1px solid var(--border, currentColor);
+  color: var(--muted);
+}
+[data-disposition="written_off"] {
+  color: var(--fg);
+}
+
 /*
  * The caption repeats the section heading on screen and is the ONLY label on paper — so it is present in
  * the DOM, hidden visually here, and restored by print.css.
