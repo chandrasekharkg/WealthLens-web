@@ -97,7 +97,7 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
         def _str(v):
             return None if v is None or (isinstance(v, float) and _isnan(v)) else str(v)
         out.append({
-            "name": r["name"],
+            "name": _str(r["name"]),
             "asset_class": r["asset_class"],
             "account_id": r["account_id"],
             "instrument_id": _str(r.get("instrument_id")),
