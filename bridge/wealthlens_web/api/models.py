@@ -290,6 +290,29 @@ class HoldingDiary(BaseModel):
     lines: list[DiaryLine] = []
 
 
+class PerformanceBucket(BaseModel):
+    """One asset-class slice of the current portfolio value."""
+
+    asset_class: str
+    value: Money
+
+
+class PerformancePoint(BaseModel):
+    """One (month, asset-class) value on the growth series."""
+
+    date: str | None = None
+    asset_class: str
+    value: Money
+
+
+class Performance(BaseModel):
+    """The portfolio, for the charts: the current value breakup and the monthly value series per class."""
+
+    reporting_currency: str
+    breakup: list[PerformanceBucket] = []
+    series: list[PerformancePoint] = []
+
+
 class Deposit(BaseModel):
     """Where an uploaded statement landed. A deposit, not an import — nothing was parsed."""
 
@@ -314,6 +337,8 @@ class DocumentInfo(BaseModel):
     payload_ref: str | None = None
     rows: int | None = None
     captured_at: str | None = None
+    period_start: str | None = Field(default=None, description="Statement period start, when the source records one")
+    period_end: str | None = Field(default=None, description="Statement period end / statement date")
     password: PasswordRef
 
 

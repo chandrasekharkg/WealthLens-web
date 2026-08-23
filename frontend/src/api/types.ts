@@ -177,6 +177,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/performance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Performance */
+        get: operations["performance_api_performance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/positions": {
         parameters: {
             query?: never;
@@ -651,6 +668,16 @@ export interface components {
             password: components["schemas"]["PasswordRef"];
             /** Payload Ref */
             payload_ref?: string | null;
+            /**
+             * Period End
+             * @description Statement period end / statement date
+             */
+            period_end?: string | null;
+            /**
+             * Period Start
+             * @description Statement period start, when the source records one
+             */
+            period_start?: string | null;
             /** Provider */
             provider?: string | null;
             /** Rows */
@@ -917,6 +944,44 @@ export interface components {
             kind: "named" | "unnamed" | "none";
             /** Name */
             name?: string | null;
+        };
+        /**
+         * Performance
+         * @description The portfolio, for the charts: the current value breakup and the monthly value series per class.
+         */
+        Performance: {
+            /**
+             * Breakup
+             * @default []
+             */
+            breakup: components["schemas"]["PerformanceBucket"][];
+            /** Reporting Currency */
+            reporting_currency: string;
+            /**
+             * Series
+             * @default []
+             */
+            series: components["schemas"]["PerformancePoint"][];
+        };
+        /**
+         * PerformanceBucket
+         * @description One asset-class slice of the current portfolio value.
+         */
+        PerformanceBucket: {
+            /** Asset Class */
+            asset_class: string;
+            value: components["schemas"]["Money"];
+        };
+        /**
+         * PerformancePoint
+         * @description One (month, asset-class) value on the growth series.
+         */
+        PerformancePoint: {
+            /** Asset Class */
+            asset_class: string;
+            /** Date */
+            date?: string | null;
+            value: components["schemas"]["Money"];
         };
         /** PositionRow */
         PositionRow: {
@@ -1519,6 +1584,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    performance_api_performance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Performance"];
                 };
             };
         };

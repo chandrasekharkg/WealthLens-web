@@ -23,7 +23,16 @@ export function Collateral({
   format: Formatter;
   onOpen: (doc: Doc) => void;
 }) {
-  const { t, number } = format;
+  const { t, number, date } = format;
+  // The statement period, from the source: a from–to when both are recorded, else the single date.
+  const periodOf = (doc: Doc) =>
+    doc.period_start && doc.period_end
+      ? `${date(doc.period_start)} – ${date(doc.period_end)}`
+      : doc.period_end
+        ? date(doc.period_end)
+        : doc.period_start
+          ? date(doc.period_start)
+          : "—";
 
   // Group by folder (provider). Insertion order preserves the store's own newest-first ordering; a document
   // with no provider lands in an "unfiled" group rather than vanishing.
@@ -45,6 +54,7 @@ export function Collateral({
             <thead>
               <tr>
                 <th>{t("column.document")}</th>
+                <th>{t("column.period")}</th>
                 <th>{t("column.rows")}</th>
                 <th>{t("column.password")}</th>
               </tr>
@@ -69,6 +79,7 @@ export function Collateral({
                         <span>{name}</span>
                       )}
                     </td>
+                    <td className="doc-period">{periodOf(doc)}</td>
                     <td className="numeric">{doc.rows === null || doc.rows === undefined ? "—" : number(doc.rows)}</td>
                     {/* Three states. A NAMED password gets a Copy control; unnamed/none just say so. */}
                     <td data-password={doc.password.kind}>

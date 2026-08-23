@@ -39,6 +39,15 @@ def net_worth_by_class(con, *, on: str | None, owner: str, currency: str) -> lis
             for _, r in df.iterrows() if str(r["asset_class"]).upper() != TOTAL_ROW]
 
 
+def value_series(con, *, currency: str, owner: str = "self", months: int = 36) -> list[dict]:
+    """Portfolio value per asset class at each month-end — the growth-chart series. Asset value, not net
+    worth (liabilities excluded)."""
+    from wealthlens import lens
+    df = lens.value_series(months=months, owner=owner, con=con)
+    return [{"date": _date(r["as_of"]), "asset_class": r["asset_class"],
+             "value": Money(_dec(r["value"]), currency)} for _, r in df.iterrows()]
+
+
 def evidence_as_of(con) -> str | None:
     """The newest DOCUMENT evidence date — not a price pull, and not the date we happened to ask for."""
     from wealthlens import lens
