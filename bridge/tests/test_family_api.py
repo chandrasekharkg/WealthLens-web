@@ -27,7 +27,8 @@ def client(tmp_path, make_workspace):
     con.execute("INSERT INTO bank_transactions (row_id, account_id, bank, value_date, signed_amount, narration, "
                 "source_id) VALUES ('t1','bank:x','x', DATE '2026-01-10', -5000, 'UPI/AVI SHARMA/1/UPI','src:test'),"
                 "('t2','bank:x','x', DATE '2026-02-10', -9000, 'AVIATION FUEL', 'src:test')")
-    con.execute("CHECKPOINT wl"); con.close()
+    con.execute("CHECKPOINT wl")
+    con.close()
 
     mf = tmp_path / "family.toml"
     mf.write_text(f'''

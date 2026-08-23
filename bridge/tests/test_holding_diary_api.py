@@ -32,7 +32,8 @@ def client(tmp_path, make_workspace):
                     [did, ISIN, "2026-05-10", kind, desc, role, debit, credit, closing, booked])
     line("d1", "transaction", "movement", "Purchase", None, 100.0, 100.0, "evt-1")
     line("d2", "transaction", "custody", "Pledge Request", None, 0.0, 100.0, None)
-    con.execute("CHECKPOINT wl"); con.close()
+    con.execute("CHECKPOINT wl")
+    con.close()
 
     mf = tmp_path / "family.toml"
     mf.write_text(f'''
@@ -55,7 +56,7 @@ def test_diary_returns_the_transcript_with_roles(client):
     body = r.json()
     assert body["entity_id"] == "mine"
     assert body["name"] == "ALPHA LTD"
-    roles = [(l["role"], l["booked"]) for l in body["lines"]]
+    roles = [(ln["role"], ln["booked"]) for ln in body["lines"]]
     assert ("movement", True) in roles           # the booked ownership move
     assert ("custody", False) in roles           # the pledge — a status change, not booked
 
