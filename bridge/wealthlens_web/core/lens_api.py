@@ -123,7 +123,9 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
 def transactions(con, *, since: str | None, until: str | None, currency: str) -> list[dict]:
     """Ledger-level rows. The finest granularity, and the one scoped exposure exists to gate."""
     from wealthlens import lens
-    df = lens.transactions(since=since, until=until, con=con)
+    # bank_only: the card:* subledger has no running balance and lives in the card views; a "bank
+    # transactions" ledger that mixed it in would show a NaN balance on every card line.
+    df = lens.transactions(since=since, until=until, bank_only=True, con=con)
     return [{
         "date": str(r["value_date"])[:10],
         "bank": r["bank"],
@@ -131,7 +133,8 @@ def transactions(con, *, since: str | None, until: str | None, currency: str) ->
         "narration": r["narration"],
         # Signed: negative left the household. The sign is the fact, so it is not split into a type column.
         "amount": Money(_dec(r["signed_amount"]), currency),
-        "balance": Money(_dec(r["current_balance"]), currency),
+        # A row without a running balance (rare on a real bank account) reads as absent, not zero.
+        "balance": _money(r["current_balance"], currency),
     } for _, r in df.iterrows()]
 
 
