@@ -6,6 +6,15 @@ import { HoldingDiaryPanel } from "./HoldingDiaryPanel";
 
 const DIARY = {
   entity_id: "self", instrument: "INE000A01001", name: "ALPHA LTD",
+  performance: {
+    invested: { amount: "10000.00", currency: "INR" }, current: { amount: "15000.00", currency: "INR" },
+    gain: { amount: "5000.00", currency: "INR" }, realised: null, unrealised: null,
+    abs_return_pct: 50, xirr_pct: 12.3, corp_action: false, synthetic_dates: false,
+  },
+  lineage: [
+    { date: "2020-07-31", from_isin: "INE000OLD001", from_name: "OLD BANK LTD",
+      to_isin: "INE000NEW002", to_name: "NEW BANK LTD", action: "merger", ratio: "1:1", note: "OLD merged into NEW" },
+  ],
   lines: [
     { date: "2026-05-10", line_kind: "transaction", role: "movement", action: "buy",
       description: "Purchase", debit: null, credit: 100, closing: 100, pledged: null, locked: null, free: null, booked: true },
@@ -30,6 +39,11 @@ describe("HoldingDiaryPanel", () => {
     expect(screen.getByText("Pledge Request")).toBeTruthy();
     // the balance line's band breakdown is surfaced (the ◆ flag carries the pledged/locked tooltip)
     expect(screen.getByText("◆")).toBeTruthy();
+    // the performance strip and the identity lineage render above the transcript
+    expect(screen.getByText("₹15,000.00")).toBeTruthy();
+    expect(screen.getByText("12.3%")).toBeTruthy();
+    expect(screen.getByText("Identity history")).toBeTruthy();
+    expect(screen.getByText(/OLD BANK LTD/)).toBeTruthy();
   });
 
   it("shows an empty-state when the holding has no transcript", async () => {

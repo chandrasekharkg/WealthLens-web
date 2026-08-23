@@ -176,6 +176,9 @@ def card_statement(con, *, issuer: str, period: str | None, currency: str) -> di
             "description": r["description"],
             "amount": Money(_dec(r["amount"]), currency),
             "direction": r["direction"],
+            # the funding account for a payment line (the reverse of the bank→card drill-down), or None
+            "funded_by_bank": _str(r.get("funded_by_bank")),
+            "funded_by_date": _date(r.get("funded_by_date")),
         } for _, r in df.iterrows()],
     }
 
@@ -189,9 +192,48 @@ def _str(v) -> str | None:
     return None if v is None or (isinstance(v, float) and _isnan(v)) else str(v)
 
 
-def holding_diary(con, *, instrument: str) -> dict:
-    """One holding's full transcript — every CAS line for it, in order, with the `role` that says why each did
-    or did not move ownership. Balances are unit quantities, not money, so they are plain numbers."""
+def _holding_performance(con, instrument: str, currency: str) -> dict | None:
+    """One holding's performance summary, or None when the store has no cost basis for it."""
+    from wealthlens import lens
+    df = lens.holding_performance(instrument, con=con)
+    if df.empty:
+        return None
+    r = df.iloc[0]
+    def m(v):
+        return None if v is None or _isnan(v) else Money(_dec(v), currency)
+    return {
+        "invested": m(r.get("invested")),
+        "current": m(r.get("current")),
+        "gain": m(r.get("gain")),
+        "realised": m(r.get("realised")),
+        "unrealised": m(r.get("unrealised")),
+        "abs_return_pct": _num(r.get("abs_return_pct")),
+        "xirr_pct": _num(r.get("xirr_pct")),
+        "corp_action": bool(r.get("corp_action")),
+        "synthetic_dates": bool(r.get("synthetic_dates")),
+    }
+
+
+def _holding_lineage(con, instrument: str) -> list[dict]:
+    """The succession chain a holding belongs to — former names, mergers, ISIN changes."""
+    from wealthlens import lens
+    df = lens.holding_lineage(instrument, con=con)
+    return [{
+        "date": _date(r["date"]),
+        "from_isin": _str(r["from_isin"]),
+        "from_name": _str(r["from_name"]),
+        "to_isin": _str(r["to_isin"]),
+        "to_name": _str(r["to_name"]),
+        "action": _str(r["action"]),
+        "ratio": _str(r["ratio"]),
+        "note": _str(r["note"]),
+    } for _, r in df.iterrows()]
+
+
+def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
+    """One holding's full detail — its performance summary, its identity lineage (succession chain), and the
+    complete CAS transcript with the `role` on each line. Balances in the transcript are unit quantities, not
+    money, so they are plain numbers; the performance figures are Money."""
     from wealthlens import lens
     df = lens.holding_diary(instrument, con=con)
     lines = [{
@@ -209,7 +251,16 @@ def holding_diary(con, *, instrument: str) -> dict:
         "booked": _str(r["booked_event_id"]) is not None,
     } for _, r in df.iterrows()]
     name = _str(df["name"].iloc[0]) if len(df) else None
-    return {"instrument": instrument, "name": name, "lines": lines}
+    if name is None:   # a holding with no CAS transcript (e.g. one reached only through a merger) still has a name
+        row = con.execute("SELECT name FROM instruments WHERE instrument_id = ? LIMIT 1", [instrument]).fetchone()
+        name = _str(row[0]) if row else None
+    return {
+        "instrument": instrument,
+        "name": name,
+        "performance": _holding_performance(con, instrument, currency),
+        "lineage": _holding_lineage(con, instrument),
+        "lines": lines,
+    }
 
 
 def card_bill_payments(con, *, currency: str) -> list[dict]:

@@ -825,3 +825,29 @@ input[type="date"] {
 [data-role="custody"], [data-role="settlement_leg"] { background: var(--warn-bg); color: var(--warn); }
 [data-role="unmapped"], [data-role="unchained"], [data-role="rejected"] { color: var(--debit); }
 [data-role="balance"] { background: transparent; }
+
+/* Holding detail: the performance strip and identity lineage above the transcript. */
+.perf-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.perf-strip dt { font-size: 0.72rem; color: var(--muted); }
+.perf-strip dd { margin: 0.1rem 0 0; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.perf-strip dd[data-sign="up"] { color: var(--ok); }
+.perf-strip dd[data-sign="down"] { color: var(--debit); }
+
+.lineage { margin: 0 0 1.25rem; }
+.lineage h3, .diary-panel h3 { font-size: 0.9rem; margin: 0.5rem 0 0.4rem; }
+.lineage ul { list-style: none; margin: 0; padding: 0; }
+.lineage li { padding: 0.4rem 0; border-top: 1px solid var(--line); font-size: 0.85rem; }
+.lineage-when { color: var(--muted); font-variant-numeric: tabular-nums; }
+.lineage-note { color: var(--muted); font-size: 0.78rem; margin-top: 0.15rem; }
+
+/* The reverse bank←card link: which account funded a payment. */
+.funded-tag { font-size: 0.72rem; color: var(--accent); white-space: nowrap; }

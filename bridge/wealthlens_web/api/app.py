@@ -162,7 +162,9 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         path = _target_workspace(m, entity_id, named)
         from wealthlens import workspace as wl_workspace
         with wl_workspace.resolve(path).open() as con:
-            diary = lens_api.holding_diary(con, instrument=instrument_id)
+            diary = lens_api.holding_diary(con, instrument=instrument_id, currency=m.reporting_currency)
+        if diary.get("performance"):
+            diary["performance"] = _row(diary["performance"])   # its ₹ figures are Money → serialise them
         return {"entity_id": entity_id, **diary}
 
     # ── the custodian, made legible ──────────────────────────────────────────────────────────────────

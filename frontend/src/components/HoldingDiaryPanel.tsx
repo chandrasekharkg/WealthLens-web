@@ -36,7 +36,7 @@ export function HoldingDiaryPanel({
   readonly format: Formatter;
   readonly onClose: () => void;
 }) {
-  const { t, number } = format;
+  const { t, number, money } = format;
   const [diary, setDiary] = useState<Load<HoldingDiary>>({ state: "loading" });
 
   useEffect(() => {
@@ -112,6 +112,60 @@ export function HoldingDiaryPanel({
         </button>
       </div>
       <p className="cards-subtitle">{t("diary.subtitle")}</p>
+
+      {diary.state === "ready" && diary.data.performance ? (
+        <dl className="perf-strip">
+          <div>
+            <dt>{t("perf.invested")}</dt>
+            <dd>{diary.data.performance.invested ? money(diary.data.performance.invested) : "—"}</dd>
+          </div>
+          <div>
+            <dt>{t("perf.current")}</dt>
+            <dd>{diary.data.performance.current ? money(diary.data.performance.current) : "—"}</dd>
+          </div>
+          <div>
+            <dt>{t("perf.gain")}</dt>
+            <dd data-sign={diary.data.performance.gain && Number(diary.data.performance.gain.amount) < 0 ? "down" : "up"}>
+              {diary.data.performance.gain ? money(diary.data.performance.gain) : "—"}
+              {diary.data.performance.abs_return_pct !== null && diary.data.performance.abs_return_pct !== undefined
+                ? ` (${diary.data.performance.abs_return_pct}%)`
+                : ""}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("perf.xirr")}</dt>
+            <dd>
+              {diary.data.performance.xirr_pct !== null && diary.data.performance.xirr_pct !== undefined
+                ? `${diary.data.performance.xirr_pct}%`
+                : "—"}
+              {diary.data.performance.corp_action ? (
+                <span data-role="unmapped" title={t("perf.approx")}> ≈</span>
+              ) : diary.data.performance.synthetic_dates ? (
+                <span data-role="unmapped" title={t("perf.approxDates")}> ≈</span>
+              ) : null}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+
+      {diary.state === "ready" && diary.data.lineage.length > 0 ? (
+        <div className="lineage">
+          <h3>{t("lineage.heading")}</h3>
+          <ul>
+            {diary.data.lineage.map((e, i) => (
+              <li key={`${e.from_isin}-${e.to_isin}-${i}`}>
+                <span className="lineage-when">{format.date(e.date)}</span>{" "}
+                {t("lineage.edge", { from: e.from_name ?? e.from_isin ?? "?", to: e.to_name ?? e.to_isin ?? "?" })}
+                {e.action ? ` · ${e.action}` : ""}
+                {e.ratio ? ` ${e.ratio}` : ""}
+                {e.note ? <div className="lineage-note">{e.note}</div> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {diary.state === "ready" && lines.length > 0 ? <h3>{t("diary.transcript")}</h3> : null}
 
       {diary.state === "error" ? (
         <p role="alert">{t("error.load")}</p>
