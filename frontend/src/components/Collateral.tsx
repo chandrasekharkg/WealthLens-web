@@ -21,7 +21,7 @@ export function Collateral({
   documents: readonly Doc[];
   entity: string;
   format: Formatter;
-  onOpen: (provider: string | null, filename: string | null) => void;
+  onOpen: (doc: Doc) => void;
 }) {
   const { t, number } = format;
 
@@ -60,7 +60,7 @@ export function Collateral({
                         <button
                           type="button"
                           className="file-open"
-                          onClick={() => onOpen(doc.provider ?? null, doc.filename ?? null)}
+                          onClick={() => onOpen(doc)}
                           aria-label={`${t("ws.openFile")}: ${name}`}
                         >
                           {name}

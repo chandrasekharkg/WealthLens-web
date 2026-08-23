@@ -37,10 +37,10 @@ export function Workspace({ entities, format }: WorkspaceProps) {
   useEffect(() => load(entity), [entity, load]);
 
   const [openNote, setOpenNote] = useState<string | null>(null);
-  const openDocument = async (provider: string | null, filename: string | null) => {
+  const openDocument = async (doc: WorkspaceDetail["documents"][number]) => {
     setOpenNote(null);
     try {
-      await api.openDocument(entity, provider, filename);          // the OS opens it; WLW never reads it
+      await api.openDocument(entity, doc);                          // the OS opens it; WLW never reads it
     } catch (error: unknown) {
       const detailed = error instanceof ApiError ? error.detail : null;
       const reason = (detailed as { detail?: { reason?: string } } | null)?.detail?.reason ?? "";
@@ -101,7 +101,7 @@ export function Workspace({ entities, format }: WorkspaceProps) {
                 documents={detail.documents}
                 entity={entity}
                 format={format}
-                onOpen={(prov, file) => void openDocument(prov, file)}
+                onOpen={(doc) => void openDocument(doc)}
               />
             )}
           </section>

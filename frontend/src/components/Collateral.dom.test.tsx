@@ -12,7 +12,7 @@ const doc = (over: Partial<Doc> & Pick<Doc, "source_id">): Doc => ({
   kind: "file",
   provider: over.provider ?? null,
   filename: over.filename ?? null,
-  payload_ref: null,
+  payload_ref: over.payload_ref ?? null,
   rows: over.rows ?? null,
   captured_at: null,
   password: over.password ?? { kind: "none", name: null },
@@ -49,7 +49,7 @@ describe("collateral as expanded folders", () => {
       />,
     );
     screen.getByRole("button", { name: /Open the file: cas.pdf/ }).click();
-    expect(onOpen).toHaveBeenCalledWith("nsdl", "cas.pdf");
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ provider: "nsdl", filename: "cas.pdf" }));
   });
 
   it("offers a Copy control only where a named password opened the document", () => {

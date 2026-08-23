@@ -23,10 +23,35 @@ def _ws(tmp_path):
     return ws
 
 
+def test_the_recorded_payload_ref_is_the_authoritative_location(tmp_path):
+    """`organize` files a document into a nested path (statements/credit-card/axis-magnus/…), so
+    provider/filename is a guess that misses it. The store records the real relative path as payload_ref,
+    and that is what must be resolved — the reason card statements would not open."""
+    ws = tmp_path / "acme-WealthLens-data"
+    real_dir = ws / "statements" / "credit-card" / "axis-magnus"
+    real_dir.mkdir(parents=True)
+    (real_dir / "Credit Card Statement (40).pdf").write_text("here, not under provider/")
+    opened: list = []
+    got = collateral.open_document(
+        ws, provider="axis", filename="Credit Card Statement (40).pdf",
+        payload_ref="statements/credit-card/axis-magnus/Credit Card Statement (40).pdf",
+        opener=opened.append,
+    )
+    assert got == (real_dir / "Credit Card Statement (40).pdf").resolve()
+    assert opened == [got]
+
+
+def test_payload_ref_cannot_escape_the_workspace_either(tmp_path):
+    ws = tmp_path / "acme-WealthLens-data"
+    (ws / "nsdl").mkdir(parents=True)
+    with pytest.raises(collateral.DocumentNotFound):
+        collateral.resolve_document_path(ws, payload_ref="../../../../etc/hosts")
+
+
 def test_a_real_file_inside_the_workspace_opens(tmp_path):
     ws = _ws(tmp_path)
     opened: list = []
-    real = collateral.open_document(ws, "nsdl", "statement.pdf", opener=opened.append)
+    real = collateral.open_document(ws, provider="nsdl", filename="statement.pdf", opener=opened.append)
     assert opened == [real]
     assert real == (ws / "nsdl" / "statement.pdf").resolve()
 
@@ -35,13 +60,13 @@ def test_a_traversal_filename_is_refused(tmp_path):
     ws = _ws(tmp_path)
     (tmp_path / "secret.txt").write_text("outside")
     with pytest.raises(collateral.DocumentNotFound):
-        collateral.open_document(ws, "nsdl", "../../secret.txt", opener=lambda p: None)
+        collateral.open_document(ws, provider="nsdl", filename="../../secret.txt", opener=lambda p: None)
 
 
 def test_an_absolute_filename_cannot_escape(tmp_path):
     ws = _ws(tmp_path)
     with pytest.raises(collateral.DocumentNotFound):
-        collateral.resolve_document_path(ws, "nsdl", "/etc/hosts")
+        collateral.resolve_document_path(ws, provider="nsdl", filename="/etc/hosts")
 
 
 def test_a_symlink_pointing_out_is_refused(tmp_path):
@@ -50,16 +75,16 @@ def test_a_symlink_pointing_out_is_refused(tmp_path):
     outside.write_text("out")
     (ws / "nsdl" / "link.pdf").symlink_to(outside)
     with pytest.raises(collateral.DocumentNotFound):
-        collateral.resolve_document_path(ws, "nsdl", "link.pdf")
+        collateral.resolve_document_path(ws, provider="nsdl", filename="link.pdf")
 
 
 def test_a_missing_file_is_refused_not_opened(tmp_path):
     ws = _ws(tmp_path)
     with pytest.raises(collateral.DocumentNotFound):
-        collateral.open_document(ws, "nsdl", "nope.pdf", opener=lambda p: None)
+        collateral.open_document(ws, provider="nsdl", filename="nope.pdf", opener=lambda p: None)
 
 
 def test_a_document_with_no_filename_is_refused(tmp_path):
     ws = _ws(tmp_path)
     with pytest.raises(collateral.DocumentNotFound):
-        collateral.resolve_document_path(ws, "nsdl", None)
+        collateral.resolve_document_path(ws, provider="nsdl", filename=None)

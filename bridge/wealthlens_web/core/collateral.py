@@ -141,37 +141,49 @@ class DocumentNotFound(Exception):
     """The document's file could not be located inside the workspace, or a path escaped it."""
 
 
-def resolve_document_path(workspace, provider: str | None, filename: str | None):
+def resolve_document_path(workspace, *, payload_ref: str | None = None,
+                         provider: str | None = None, filename: str | None = None):
     """The absolute path of a collateral file, GUARANTEED to sit inside the workspace — or a refusal.
 
     WLW never reads a statement (ADR-0001); this exists only so the OS can be asked to open it, and the one
-    thing that must not be trusted is a path. `organize` files each document under `<workspace>/<provider>/`,
-    so the candidate is built from those two fields and then CONTAINMENT-CHECKED with real (symlink-resolved)
-    paths: anything that resolves outside the workspace — a `..`, an absolute filename, a symlink escape — is
-    refused, not opened. Missing file: refused too. The frontend only ever gets to name a document the store
-    already recorded; this makes even a tampered name safe.
+    thing that must not be trusted is a path. The AUTHORITATIVE location is the store's recorded
+    `payload_ref` — the file's path relative to the workspace, wherever `organize` filed it (a card statement
+    lands under `statements/credit-card/<issuer>/…`, NOT under `<provider>/`). `provider/filename` is only a
+    fallback for a store that recorded no payload_ref. Either candidate is then CONTAINMENT-CHECKED with real
+    (symlink-resolved) paths: a `..`, an absolute path, or a symlink escape is refused, not opened. A missing
+    file is refused too.
     """
     import pathlib as _pl
-    if not filename:
-        raise DocumentNotFound("this document has no file on disk (it was not captured from one)")
     root = _pl.Path(workspace).resolve()
-    candidate = (root / (provider or "") / filename)
-    try:
-        real = candidate.resolve()
-    except OSError as e:
-        raise DocumentNotFound(f"could not resolve the path: {e}") from None
-    # containment: real must be root itself or a descendant of it (is_relative_to, 3.9-safe form)
-    if root != real and root not in real.parents:
+    candidates = []
+    if payload_ref:
+        candidates.append(root / payload_ref)
+    if filename:
+        candidates.append(root / (provider or "") / filename)
+    if not candidates:
+        raise DocumentNotFound("this document has no file on disk (it was not captured from one)")
+
+    last_outside = False
+    for candidate in candidates:
+        try:
+            real = candidate.resolve()
+        except OSError:
+            continue
+        if root != real and root not in real.parents:
+            last_outside = True
+            continue                                     # escapes the workspace — never this one
+        if real.is_file():
+            return real
+    if last_outside:
         raise DocumentNotFound("the file resolves outside the workspace — refused")
-    if not real.is_file():
-        raise DocumentNotFound("no such file in the workspace")
-    return real
+    raise DocumentNotFound("no such file in the workspace")
 
 
-def open_document(workspace, provider: str | None, filename: str | None, *, opener=None):
+def open_document(workspace, *, payload_ref: str | None = None,
+                  provider: str | None = None, filename: str | None = None, opener=None):
     """Ask the OS to open a validated collateral file. `opener` is injected so the act is testable without
     actually launching anything; the default hands the resolved path to the platform's open command."""
-    real = resolve_document_path(workspace, provider, filename)
+    real = resolve_document_path(workspace, payload_ref=payload_ref, provider=provider, filename=filename)
     (opener or _default_opener)(real)
     return real
 

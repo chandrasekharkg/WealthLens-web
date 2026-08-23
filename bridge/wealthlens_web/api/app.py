@@ -192,7 +192,9 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         anything that escapes the workspace, so even a tampered filename cannot reach outside it."""
         target = _target_workspace(_manifest(), entity_id, None)
         try:
-            real = collateral.open_document(target, body.get("provider"), body.get("filename"))
+            real = collateral.open_document(
+                target, payload_ref=body.get("payload_ref"),
+                provider=body.get("provider"), filename=body.get("filename"))
         except collateral.DocumentNotFound as e:
             raise HTTPException(status_code=404, detail={"error": "document", "reason": str(e)}) from None
         return {"path": str(real)}
