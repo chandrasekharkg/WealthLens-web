@@ -102,13 +102,44 @@ def test_a_pan_opened_document_infers_its_password_from_the_parser_config(ws):
     assert got.password.name == "pan"        # reveal(what="pan") copies it
 
 
-def test_a_hint_still_wins_over_the_parser_config(ws):
-    """A recorded hint is what ACTUALLY opened the file; the parser config is only the fallback."""
+def test_a_fingerprint_yields_to_a_config_that_NAMES_the_password(ws):
+    """A fingerprint (UNNAMED) records only THAT a password opened the file, not which. The parser config
+    knows which — so it wins over a bare fingerprint and the document shows the copyable PAN. (A NAMED hint,
+    a specific .pass file, is more specific still and beats the config — see the CAS test above.)"""
     _register(ws, source_id="src:1", sha="aaa", filename="x.pdf", provider="religare")
     _config(ws, '[parser.religare]\npassword = "@identity.pan"\n')
     _hints(ws, {"aaa": "pw:deadbeef"})
     got = {d.source_id: d for d in _documents(ws)}["src:1"]
-    assert got.password.kind is collateral.PasswordRef.UNNAMED    # the hint, not the inferred PAN
+    assert got.password.kind is collateral.PasswordRef.NAMED and got.password.name == "pan"
+
+
+def test_an_nsdl_cas_names_the_PAN_even_though_it_carries_a_fingerprint(ws):
+    """The NSDL CAS case: the store DID keep a hint, but only a fingerprint (UNNAMED). The config knows the
+    name the fingerprint does not — the depository CAS opens with the PAN (`[parser.cas]`, and nsdl/cdsl map
+    to it). "An unnamed password" is unhelpful when the PAN is copyable; the config name wins over a bare
+    fingerprint (a NAMED hint would still win over the config)."""
+    _register(ws, source_id="src:1", sha="aaa", filename="NSDLe-CAS.pdf", provider="nsdl")
+    _config(ws, '[parser.cas]\npassword = "@identity.pan"\n')
+    _hints(ws, {"aaa": "pw:c3ef86857a63"})
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.NAMED
+    assert got.password.name == "pan"
+
+
+def test_a_named_pass_hint_still_beats_the_config_even_for_a_cas(ws):
+    _register(ws, source_id="src:1", sha="aaa", filename="cas.pdf", provider="cdsl")
+    _config(ws, '[parser.cas]\npassword = "@identity.pan"\n')
+    _hints(ws, {"aaa": "cams.pass"})               # a specific recorded file — more specific than "the PAN"
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.NAMED and got.password.name == "cams.pass"
+
+
+def test_an_unnamed_password_with_NO_config_match_stays_unnamed(ws):
+    """Without a parser config that names the opener, a fingerprint is still just a fingerprint."""
+    _register(ws, source_id="src:1", sha="aaa", filename="x.pdf", provider="somebank")
+    _hints(ws, {"aaa": "pw:abcdef"})
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.UNNAMED
 
 
 def test_a_provider_with_no_parser_password_stays_none(ws):

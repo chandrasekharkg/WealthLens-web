@@ -114,6 +114,19 @@ def _parser_passwords(workspace: pathlib.Path) -> dict[str, str]:
     return out
 
 
+# A depository CAS is opened by the PAN, but its provider is recorded as the DEPOSITORY (nsdl/cdsl), while
+# the config declares the password under the PARSER that reads them ([parser.cas]). This bridges the two.
+_PROVIDER_PARSER_ALIAS = {"nsdl": "cas", "cdsl": "cas"}
+
+
+def _config_password_name(provider: str | None, parser_pw: dict[str, str]) -> str | None:
+    """The reveal-name of the password a provider's parser config declares — directly, or via a known alias
+    (nsdl/cdsl → cas). None when the config names nothing revealable."""
+    key = provider or ""
+    ref = parser_pw.get(key) or parser_pw.get(_PROVIDER_PARSER_ALIAS.get(key, ""))
+    return _reveal_name(ref) if ref else None
+
+
 def _reveal_name(ref: str) -> str | None:
     """A config password reference → the name `settings.reveal` understands, or None if it names nothing
     revealable here. `@identity.pan` is the PAN; `@secrets.X` and `@file:F` name a configured secret."""
@@ -138,14 +151,21 @@ def _password_for(sha: str | None, hints: dict[str, str]) -> Password:
 
 
 def _password_with_config(sha, hints, provider, parser_pw) -> Password:
-    """The recorded hint is authoritative; only when it kept NOTHING for a file does the parser config decide
-    — so a Religare CN or a CAS opened by the PAN reports the PAN (copyable) instead of "no password"."""
+    """Which password to SHOW for a document, most-specific first:
+
+      1. a NAMED hint — a specific `.pass` file the store actually recorded — always wins;
+      2. the parser config — it NAMES the password a fingerprint (UNNAMED) or a blank (NONE) does not, so a
+         CAS or a Religare CN opened by the PAN shows a copyable PAN instead of "an unnamed password"/"no
+         password";
+      3. otherwise the hint stands (a fingerprint with no config match stays UNNAMED; a blank stays NONE).
+    """
     got = _password_for(sha, hints)
-    if got.kind is not PasswordRef.NONE:
+    if got.kind is PasswordRef.NAMED:
         return got
-    ref = parser_pw.get(provider or "")
-    name = _reveal_name(ref) if ref else None
-    return Password(PasswordRef.NAMED, name=name) if name else got
+    name = _config_password_name(provider, parser_pw)
+    if name:
+        return Password(PasswordRef.NAMED, name=name)
+    return got
 
 
 def documents(con, workspace: pathlib.Path) -> list[Document]:
