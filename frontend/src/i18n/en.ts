@@ -300,6 +300,15 @@ export const en = {
   "family.transfersTo": "Transfers to {name}",
   "family.close": "Close",
   "family.since": "{from} – {to}",
+
+  "nav.transactions": "Transactions",
+  "txn.title": "Bank transactions",
+  "txn.subtitle": "Every line across your bank accounts — filter by text, sort any column, narrow by date. Outflows are negative.",
+  "txn.from": "From",
+  "txn.to": "To",
+  "txn.apply": "Apply",
+  "txn.clear": "Clear dates",
+  "txn.none": "No bank transactions in this window.",
 } as const;
 
 export type MessageKey = keyof typeof en;

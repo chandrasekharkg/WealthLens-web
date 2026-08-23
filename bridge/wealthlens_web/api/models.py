@@ -129,7 +129,7 @@ class TransactionRow(BaseModel):
     account_id: str | None = None
     narration: str | None = None
     amount: Money = Field(description="Signed: negative left the household")
-    balance: Money
+    balance: Money | None = None
 
 
 class Positions(BaseModel):

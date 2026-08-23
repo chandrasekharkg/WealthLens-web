@@ -2374,7 +2374,14 @@
             "description": "Signed: negative left the household"
           },
           "balance": {
-            "$ref": "#/components/schemas/Money"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "bank": {
             "anyOf": [
@@ -2421,8 +2428,7 @@
         "required": [
           "entity_id",
           "entity_label",
-          "amount",
-          "balance"
+          "amount"
         ],
         "title": "TransactionRow",
         "type": "object"

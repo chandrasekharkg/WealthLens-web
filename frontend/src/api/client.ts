@@ -13,6 +13,7 @@ import type { components } from "./types";
 export type NetWorth = components["schemas"]["NetWorth"];
 export type Positions = components["schemas"]["Positions"];
 export type Transactions = components["schemas"]["Transactions"];
+export type TransactionRow = components["schemas"]["TransactionRow"];
 export type Cards = components["schemas"]["Cards"];
 export type CardRow = components["schemas"]["CardRow"];
 export type CardStatements = components["schemas"]["CardStatements"];

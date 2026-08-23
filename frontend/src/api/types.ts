@@ -1308,7 +1308,7 @@ export interface components {
             account_id?: string | null;
             /** @description Signed: negative left the household */
             amount: components["schemas"]["Money"];
-            balance: components["schemas"]["Money"];
+            balance?: components["schemas"]["Money"] | null;
             /** Bank */
             bank?: string | null;
             /** Date */
