@@ -160,6 +160,7 @@ export const en = {
 
   "column.document": "Document",
   "column.folder": "Folder",
+  "column.period": "Period",
   "column.password": "Password",
   "column.opensWith": "Opens with",
   "ws.openFile": "Open the file",
@@ -268,6 +269,22 @@ export const en = {
   "lineage.heading": "Identity history",
   "lineage.edge": "{from} → {to}",
   "diary.transcript": "Transcript",
+
+  "nav.performance": "Performance",
+  "perf.pageTitle": "Portfolio performance",
+  "perf.breakupTitle": "What the portfolio is made of",
+  "perf.breakupCaption": "Current value by asset class — bank holdings split into cash and fixed deposits.",
+  "perf.growthTitle": "Value growth by type",
+  "perf.growthCaption": "Portfolio value over the last {months} months, stacked by asset type (real estate excluded).",
+  "perf.none": "Not enough valued holdings yet to chart.",
+  "perf.total": "Total",
+  "class.mutual_fund": "Mutual funds & ETFs",
+  "class.listed_equity": "Stocks",
+  "class.fixed_deposit": "Fixed deposits",
+  "class.savings": "Cash",
+  "class.bond": "Bonds",
+  "class.real_estate": "Real estate",
+  "class.unlisted_equity": "Unlisted equity",
 } as const;
 
 export type MessageKey = keyof typeof en;

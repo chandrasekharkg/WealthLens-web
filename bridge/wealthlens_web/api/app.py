@@ -135,6 +135,15 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
     def card_bill_payments() -> dict:
         return _rows(aggregate.card_bill_payments(_manifest(), our_pids=app.state.runner.our_pids))
 
+    @app.get("/api/performance", response_model=models.Performance)
+    def performance() -> dict:
+        got = aggregate.performance(_manifest(), our_pids=app.state.runner.our_pids)
+        return {
+            "reporting_currency": got["reporting_currency"],
+            "breakup": [_row(b) for b in got["breakup"]],
+            "series": [_row(p) for p in got["series"]],
+        }
+
     @app.get("/api/cards/{entity_id}/{issuer}/statements", response_model=models.CardStatements)
     def card_statements(entity_id: str, issuer: str, named: str | None = Query(default=None)) -> dict:
         m = _manifest()

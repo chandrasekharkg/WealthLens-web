@@ -51,6 +51,8 @@ class Document:
     payload_ref: str | None
     rows: int | None
     captured_at: str | None
+    period_start: str | None
+    period_end: str | None
     password: Password
 
     def as_dict(self) -> dict:
@@ -62,6 +64,8 @@ class Document:
             "payload_ref": self.payload_ref,
             "rows": self.rows,
             "captured_at": self.captured_at,
+            "period_start": self.period_start,
+            "period_end": self.period_end,
             "password": self.password.as_dict(),
         }
 
@@ -176,7 +180,7 @@ def documents(con, workspace: pathlib.Path) -> list[Document]:
     parser_pw = _parser_passwords(workspace)
     rows = lens.sql(
         "SELECT source_id, source_type, provider, payload_ref, row_count, captured_at, "
-        "       content_sha256, detail "
+        "       period_start, period_end, content_sha256, detail "
         "FROM sources ORDER BY captured_at DESC NULLS LAST, source_id",
         con=con,
     )
@@ -197,6 +201,8 @@ def documents(con, workspace: pathlib.Path) -> list[Document]:
             payload_ref=(str(row["payload_ref"]) if _present(row["payload_ref"]) else None),
             rows=(int(row["row_count"]) if _present(row["row_count"]) else None),
             captured_at=(str(row["captured_at"])[:19] if _present(row["captured_at"]) else None),
+            period_start=(str(row["period_start"])[:10] if _present(row["period_start"]) else None),
+            period_end=(str(row["period_end"])[:10] if _present(row["period_end"]) else None),
             password=_password_with_config(
                 str(row["content_sha256"]) if _present(row["content_sha256"]) else None, hints,
                 str(row["provider"]) if _present(row["provider"]) else None, parser_pw),

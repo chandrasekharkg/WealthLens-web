@@ -758,6 +758,30 @@
             ],
             "title": "Payload Ref"
           },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Statement period end / statement date",
+            "title": "Period End"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Statement period start, when the source records one",
+            "title": "Period Start"
+          },
           "provider": {
             "anyOf": [
               {
@@ -1491,6 +1515,83 @@
           "kind"
         ],
         "title": "PasswordRef",
+        "type": "object"
+      },
+      "Performance": {
+        "description": "The portfolio, for the charts: the current value breakup and the monthly value series per class.",
+        "properties": {
+          "breakup": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PerformanceBucket"
+            },
+            "title": "Breakup",
+            "type": "array"
+          },
+          "reporting_currency": {
+            "title": "Reporting Currency",
+            "type": "string"
+          },
+          "series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PerformancePoint"
+            },
+            "title": "Series",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reporting_currency"
+        ],
+        "title": "Performance",
+        "type": "object"
+      },
+      "PerformanceBucket": {
+        "description": "One asset-class slice of the current portfolio value.",
+        "properties": {
+          "asset_class": {
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "asset_class",
+          "value"
+        ],
+        "title": "PerformanceBucket",
+        "type": "object"
+      },
+      "PerformancePoint": {
+        "description": "One (month, asset-class) value on the growth series.",
+        "properties": {
+          "asset_class": {
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "asset_class",
+          "value"
+        ],
+        "title": "PerformancePoint",
         "type": "object"
       },
       "PositionRow": {
@@ -2787,6 +2888,24 @@
           }
         },
         "summary": "Networth"
+      }
+    },
+    "/api/performance": {
+      "get": {
+        "operationId": "performance_api_performance_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Performance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Performance"
       }
     },
     "/api/positions": {

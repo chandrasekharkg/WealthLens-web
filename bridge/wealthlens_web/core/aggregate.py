@@ -251,6 +251,43 @@ def card_bill_payments(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -
                  fetch=lambda con, entity: lens_api.card_bill_payments(con, currency=m.reporting_currency))
 
 
+def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: int = 60) -> dict:
+    """The household portfolio, for the charts: the current value BREAKUP by asset class, and a monthly value
+    SERIES per class. Both summed across the family's readable stores. The breakup is owner-weighted (net
+    worth per class); the series is the portfolio's asset value over time (unweighted — a value trend, not a
+    beneficial-share total)."""
+    from collections import defaultdict
+
+    from wealthlens import workspace as wl_workspace
+
+    breakup: dict[str, list] = defaultdict(list)
+    series: dict[tuple[str, str], list] = defaultdict(list)
+    for entity in m.entities:
+        statuses = tuple(workspaces.check_entity(entity, our_pids=our_pids))
+        for status in (s for s in statuses if s.is_readable):
+            with wl_workspace.resolve(status.path).open() as con:
+                declared = lens_api.owner_entities(con)
+                if declared and entity.owner not in declared:
+                    continue
+                for row in lens_api.net_worth_by_class(con, on=None, owner=entity.owner,
+                                                       currency=m.reporting_currency):
+                    breakup[row["asset_class"]].append(row["value"])
+                for row in lens_api.value_series(con, currency=m.reporting_currency,
+                                                 owner=entity.owner, months=months):
+                    series[(row["date"], row["asset_class"])].append(row["value"])
+
+    ccy = m.reporting_currency
+    breakup_rows = sorted(
+        ({"asset_class": k, "value": money.total(v) or money.Money(Decimal("0"), ccy)}
+         for k, v in breakup.items()),
+        key=lambda r: Decimal(r["value"].amount), reverse=True)
+    series_rows = sorted(
+        ({"date": d, "asset_class": c, "value": money.total(v) or money.Money(Decimal("0"), ccy)}
+         for (d, c), v in series.items()),
+        key=lambda r: (r["date"] or "", r["asset_class"]))
+    return {"reporting_currency": ccy, "breakup": breakup_rows, "series": series_rows}
+
+
 def _rows(m: Manifest, granularity: Granularity, *, on: str | None,
           our_pids: frozenset[int], fetch) -> FamilyRows:
     if m.reporting_currency not in SUPPORTED_REPORTING_CURRENCIES:
