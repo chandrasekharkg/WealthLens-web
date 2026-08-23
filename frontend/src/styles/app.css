@@ -893,3 +893,6 @@ input[type="date"] {
 .family-amount { font-size: 1.15rem; font-variant-numeric: tabular-nums; margin-top: 0.2rem; }
 .family-amount[data-sent="true"] { color: var(--accent); }
 .family-meta { font-size: 0.72rem; color: var(--muted); }
+
+/* A depository movement your contract note / MF feed books authoritatively — real, counted, not here. */
+[data-role="superseded"] { color: var(--muted); font-style: italic; }
