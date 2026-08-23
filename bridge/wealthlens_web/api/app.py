@@ -131,6 +131,10 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
     def cards() -> dict:
         return _rows(aggregate.cards(_manifest(), our_pids=app.state.runner.our_pids))
 
+    @app.get("/api/card-bill-payments", response_model=models.CardBillPayments)
+    def card_bill_payments() -> dict:
+        return _rows(aggregate.card_bill_payments(_manifest(), our_pids=app.state.runner.our_pids))
+
     @app.get("/api/cards/{entity_id}/{issuer}/statements", response_model=models.CardStatements)
     def card_statements(entity_id: str, issuer: str, named: str | None = Query(default=None)) -> dict:
         m = _manifest()

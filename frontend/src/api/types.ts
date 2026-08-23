@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/card-bill-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Card Bill Payments */
+        get: operations["card_bill_payments_api_card_bill_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cards": {
         parameters: {
             query?: never;
@@ -360,6 +377,65 @@ export interface components {
             file: string;
             /** Workspace */
             workspace?: string | null;
+        };
+        /**
+         * CardBillPaymentRow
+         * @description A credit-card bill payment on the bank statement — the bank→card drill-down.
+         */
+        CardBillPaymentRow: {
+            /** @description ₹ paid (positive) */
+            amount: components["schemas"]["Money"];
+            /**
+             * Bank
+             * @description The account the payment left from
+             */
+            bank?: string | null;
+            /** Date */
+            date?: string | null;
+            /** Entity Id */
+            entity_id?: string | null;
+            /** Entity Label */
+            entity_label?: string | null;
+            /**
+             * Issuer
+             * @description The card, identified by the amount or the narration
+             */
+            issuer?: string | null;
+            /** Narration */
+            narration?: string | null;
+            /**
+             * Resolved
+             * @description True when the card's statement is loaded and openable
+             */
+            resolved: boolean;
+            /**
+             * Statement Date
+             * @description The bill this settled — the drill target, when the card is loaded
+             */
+            statement_date?: string | null;
+        };
+        /** CardBillPayments */
+        CardBillPayments: {
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: components["schemas"]["Excluded"][];
+            /**
+             * Granularity
+             * @constant
+             */
+            granularity: "card_payments";
+            /** Is Partial */
+            is_partial: boolean;
+            provenance: components["schemas"]["Provenance"];
+            /** Reporting Currency */
+            reporting_currency: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["CardBillPaymentRow"][];
         };
         /**
          * CardRow
@@ -1021,6 +1097,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    card_bill_payments_api_card_bill_payments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardBillPayments"];
+                };
+            };
+        };
+    };
     cards_api_cards_get: {
         parameters: {
             query?: never;

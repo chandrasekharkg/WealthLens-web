@@ -109,7 +109,7 @@ export function Cards({ format }: CardsProps) {
 
 /** The selected card's statement — its period selector, the summary header, and the itemised lines. */
 function Statement({ card, format }: { card: CardRow; format: Formatter }) {
-  const { t, money, date } = format;
+  const { t, date } = format;
   const entity = card.entity_id ?? "";
   const [periods, setPeriods] = useState<Load<CardStatements>>({ state: "loading" });
   const [period, setPeriod] = useState<string | undefined>(undefined);
@@ -133,7 +133,63 @@ function Statement({ card, format }: { card: CardRow; format: Formatter }) {
       .catch(() => setStatement({ state: "error" }));
   }, [entity, card.issuer, period]);
 
-  const lines = statement.state === "ready" ? statement.data.transactions : [];
+  if (statement.state === "error") return <p role="alert">{t("error.load")}</p>;
+
+  const head = statement.state === "ready" ? statement.data : null;
+  const options = periods.state === "ready" ? periods.data.statements : [];
+
+  return (
+    <section className="statement">
+      <div className="statement-head">
+        <h2>{cardName(card.issuer)}</h2>
+        <label className="statement-period">
+          {t("cards.period")}
+          <select
+            value={period ?? ""}
+            onChange={(e) => setPeriod(e.target.value || undefined)}
+            disabled={options.length === 0}
+          >
+            {/* Empty value = "latest", so the default selection is always the current month. */}
+            {options.map((s, i) => (
+              <option key={s.statement_date ?? i} value={i === 0 ? "" : (s.statement_date ?? "")}>
+                {date(s.statement_date)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <CardStatementBody
+        statement={head}
+        loading={statement.state === "loading"}
+        issuer={card.issuer}
+        scope={card.entity_label ?? entity}
+        format={format}
+      />
+    </section>
+  );
+}
+
+/**
+ * The body of one card statement — the balance summary and the itemised lines. Presentational: it renders
+ * whatever loaded statement it is handed. Shared by the Cards tab (under its period selector) and the
+ * bank→card drill-down, so a statement looks and exports identically wherever it is opened.
+ */
+export function CardStatementBody({
+  statement,
+  loading,
+  issuer,
+  scope,
+  format,
+}: {
+  readonly statement: CardStatement | null;
+  readonly loading: boolean;
+  readonly issuer: string;
+  readonly scope: string;
+  readonly format: Formatter;
+}) {
+  const { t, money, date } = format;
+  const lines = statement?.transactions ?? [];
 
   const columns = useMemo<ColumnDef<CardStatementLine>[]>(
     () => [
@@ -172,46 +228,24 @@ function Statement({ card, format }: { card: CardRow; format: Formatter }) {
     [t],
   );
 
-  if (statement.state === "error") return <p role="alert">{t("error.load")}</p>;
-
-  const head = statement.state === "ready" ? statement.data : null;
-  const options = periods.state === "ready" ? periods.data.statements : [];
+  const caption = `${cardName(issuer)} — ${date(statement?.statement_date)}`;
 
   return (
-    <section className="statement">
-      <div className="statement-head">
-        <h2>{cardName(card.issuer)}</h2>
-        <label className="statement-period">
-          {t("cards.period")}
-          <select
-            value={period ?? ""}
-            onChange={(e) => setPeriod(e.target.value || undefined)}
-            disabled={options.length === 0}
-          >
-            {/* Empty value = "latest", so the default selection is always the current month. */}
-            {options.map((s, i) => (
-              <option key={s.statement_date ?? i} value={i === 0 ? "" : (s.statement_date ?? "")}>
-                {date(s.statement_date)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {head ? (
+    <>
+      {statement ? (
         <dl className="statement-summary">
           <div>
             <dt>{t("cards.previousBalance")}</dt>
-            <dd>{head.previous_balance ? money(head.previous_balance) : "—"}</dd>
+            <dd>{statement.previous_balance ? money(statement.previous_balance) : "—"}</dd>
           </div>
           <div>
             <dt>{t("cards.newBalance")}</dt>
-            <dd className="statement-owed">{head.new_balance ? money(head.new_balance) : "—"}</dd>
+            <dd className="statement-owed">{statement.new_balance ? money(statement.new_balance) : "—"}</dd>
           </div>
         </dl>
       ) : null}
 
-      {statement.state === "loading" ? (
+      {loading ? (
         <p role="status">…</p>
       ) : lines.length === 0 ? (
         <p>{t("cards.empty")}</p>
@@ -221,16 +255,16 @@ function Statement({ card, format }: { card: CardRow; format: Formatter }) {
           columns={columns}
           exportColumns={exportColumns}
           format={format}
-          caption={`${cardName(card.issuer)} — ${date(head?.statement_date)}`}
+          caption={caption}
           provenance={{
-            title: `${cardName(card.issuer)} — ${date(head?.statement_date)}`,
-            scope: card.entity_label ?? entity,
-            as_of: head?.statement_date ?? null,
-            reporting_currency: card.outstanding?.currency ?? "INR",
+            title: caption,
+            scope,
+            as_of: statement?.statement_date ?? null,
+            reporting_currency: lines[0]?.amount.currency ?? "INR",
             row_count: lines.length,
           }}
         />
       )}
-    </section>
+    </>
   );
 }

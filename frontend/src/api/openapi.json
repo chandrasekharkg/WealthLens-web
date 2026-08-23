@@ -44,6 +44,150 @@
         "title": "Body_upload_api_upload_post",
         "type": "object"
       },
+      "CardBillPaymentRow": {
+        "description": "A credit-card bill payment on the bank statement \u2014 the bank\u2192card drill-down.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money",
+            "description": "\u20b9 paid (positive)"
+          },
+          "bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The account the payment left from",
+            "title": "Bank"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Label"
+          },
+          "issuer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The card, identified by the amount or the narration",
+            "title": "Issuer"
+          },
+          "narration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Narration"
+          },
+          "resolved": {
+            "description": "True when the card's statement is loaded and openable",
+            "title": "Resolved",
+            "type": "boolean"
+          },
+          "statement_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The bill this settled \u2014 the drill target, when the card is loaded",
+            "title": "Statement Date"
+          }
+        },
+        "required": [
+          "amount",
+          "resolved"
+        ],
+        "title": "CardBillPaymentRow",
+        "type": "object"
+      },
+      "CardBillPayments": {
+        "properties": {
+          "excluded": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Excluded"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "granularity": {
+            "const": "card_payments",
+            "title": "Granularity",
+            "type": "string"
+          },
+          "is_partial": {
+            "title": "Is Partial",
+            "type": "boolean"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "reporting_currency": {
+            "title": "Reporting Currency",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CardBillPaymentRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "provenance",
+          "granularity",
+          "reporting_currency",
+          "is_partial"
+        ],
+        "title": "CardBillPayments",
+        "type": "object"
+      },
       "CardRow": {
         "description": "One credit card in the picker, tagged with whose store it came from.",
         "properties": {
@@ -1819,6 +1963,24 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/card-bill-payments": {
+      "get": {
+        "operationId": "card_bill_payments_api_card_bill_payments_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardBillPayments"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Card Bill Payments"
+      }
+    },
     "/api/cards": {
       "get": {
         "operationId": "cards_api_cards_get",

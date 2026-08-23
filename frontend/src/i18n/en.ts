@@ -225,6 +225,17 @@ export const en = {
   "column.direction": "Type",
   "direction.spend": "Spend",
   "direction.payment": "Payment",
+
+  "nav.payments": "Bill payments",
+  "payments.title": "Credit-card bill payments",
+  "payments.subtitle": "The card bills you cleared from your bank accounts — identified by amount, so a payment through Amazon Pay or UPI still finds its card. Open one to see the dues it paid.",
+  "payments.none": "No credit-card bill payments were found across your bank statements.",
+  "payments.paidTo": "Paid to",
+  "payments.view": "View bill",
+  "payments.notLoaded": "Statement not loaded",
+  "payments.viewing": "The bill this payment cleared",
+  "payments.close": "Close",
+  "column.from": "From",
 } as const;
 
 export type MessageKey = keyof typeof en;

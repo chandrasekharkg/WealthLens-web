@@ -18,6 +18,8 @@ export type CardRow = components["schemas"]["CardRow"];
 export type CardStatements = components["schemas"]["CardStatements"];
 export type CardStatement = components["schemas"]["CardStatement"];
 export type CardStatementLine = components["schemas"]["CardStatementLine"];
+export type CardBillPayments = components["schemas"]["CardBillPayments"];
+export type CardBillPaymentRow = components["schemas"]["CardBillPaymentRow"];
 export type Version = components["schemas"]["Version"];
 export type Job = components["schemas"]["Job"];
 export type Deposit = components["schemas"]["Deposit"];
@@ -79,6 +81,7 @@ export const api = {
   transactions: (since?: string, until?: string) =>
     request<Transactions>(`/api/transactions${query({ since, until })}`),
   cards: () => request<Cards>("/api/cards"),
+  cardBillPayments: () => request<CardBillPayments>("/api/card-bill-payments"),
   cardStatements: (entity: string, issuer: string) =>
     request<CardStatements>(`/api/cards/${entity}/${issuer}/statements`),
   cardStatement: (entity: string, issuer: string, period?: string) =>

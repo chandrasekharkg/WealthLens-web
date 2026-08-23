@@ -209,6 +209,30 @@ class CardStatement(BaseModel):
     transactions: list[CardStatementLine] = []
 
 
+class CardBillPaymentRow(BaseModel):
+    """A credit-card bill payment on the bank statement — the bank→card drill-down."""
+
+    date: str | None = None
+    bank: str | None = Field(default=None, description="The account the payment left from")
+    amount: Money = Field(description="₹ paid (positive)")
+    narration: str | None = None
+    issuer: str | None = Field(default=None, description="The card, identified by the amount or the narration")
+    statement_date: str | None = Field(
+        default=None, description="The bill this settled — the drill target, when the card is loaded")
+    resolved: bool = Field(description="True when the card's statement is loaded and openable")
+    entity_id: str | None = None
+    entity_label: str | None = None
+
+
+class CardBillPayments(BaseModel):
+    provenance: Provenance
+    granularity: Literal["card_payments"]
+    reporting_currency: str
+    is_partial: bool
+    excluded: list[Excluded] = []
+    rows: list[CardBillPaymentRow] = []
+
+
 class Deposit(BaseModel):
     """Where an uploaded statement landed. A deposit, not an import — nothing was parsed."""
 

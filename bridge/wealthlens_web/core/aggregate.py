@@ -40,6 +40,7 @@ class Granularity(enum.StrEnum):
     POSITIONS = "positions"
     TRANSACTIONS = "transactions"
     CARDS = "cards"
+    CARD_PAYMENTS = "card_payments"
 
 
 class UnsupportedReportingCurrency(ValueError):
@@ -240,6 +241,14 @@ def cards(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -> FamilyRows:
     liability rather than an owned instrument, so — unlike positions — no owner filter is applied."""
     return _rows(m, Granularity.CARDS, on=resolve_date(None), our_pids=our_pids,
                  fetch=lambda con, entity: lens_api.cards(con, currency=m.reporting_currency))
+
+
+def card_bill_payments(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -> FamilyRows:
+    """The credit-card bill payments across the family — the bank→card drill-down. Each row is a bank debit
+    that settled a card, tagged with whose store it came from and, where the card is loaded, its drill
+    target. Not owner-scoped (a card is a household liability), same as cards()."""
+    return _rows(m, Granularity.CARD_PAYMENTS, on=resolve_date(None), our_pids=our_pids,
+                 fetch=lambda con, entity: lens_api.card_bill_payments(con, currency=m.reporting_currency))
 
 
 def _rows(m: Manifest, granularity: Granularity, *, on: str | None,

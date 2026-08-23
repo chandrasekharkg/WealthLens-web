@@ -180,6 +180,24 @@ def card_statement(con, *, issuer: str, period: str | None, currency: str) -> di
     }
 
 
+def card_bill_payments(con, *, currency: str) -> list[dict]:
+    """The credit-card bill payments on the bank statement — the bank→card drill-down. Each row is a bank
+    debit that settled a card; `resolved` says whether the card's statement is loaded and openable, and when
+    it is, (issuer, statement_date) is the drill target."""
+    from wealthlens import lens
+    df = lens.card_bill_payments(con=con)
+    return [{
+        "date": _date(r["date"]),
+        "bank": r["bank"],
+        "amount": Money(_dec(r["amount"]), currency),
+        "narration": r["narration"],
+        "issuer": None if r.get("issuer") is None or (isinstance(r.get("issuer"), float) and _isnan(r["issuer"]))
+                  else str(r["issuer"]),
+        "statement_date": _date(r.get("statement_date")),
+        "resolved": bool(r["resolved"]),
+    } for _, r in df.iterrows()]
+
+
 def _isnan(v) -> bool:
     import pandas as pd
     try:
