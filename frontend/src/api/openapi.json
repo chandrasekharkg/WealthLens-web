@@ -588,6 +588,20 @@
         "title": "NetWorth",
         "type": "object"
       },
+      "Opened": {
+        "description": "Confirmation that a collateral file was handed to the OS to open. The path is the user's own machine,\nalready shown on this screen \u2014 returning it is feedback, not a leak.",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "Opened",
+        "type": "object"
+      },
       "Outcome": {
         "description": "WLC's own vocabulary, mirrored so callers never see a raw exit code.",
         "enum": [
@@ -1963,6 +1977,58 @@
           }
         },
         "summary": "Workspace Detail"
+      }
+    },
+    "/api/workspace/{entity_id}/open": {
+      "post": {
+        "description": "Ask the OS to open ONE collateral file. WLW never reads a statement (ADR-0001) \u2014 this hands the\nfile to the platform's opener. The path is never trusted: `collateral.resolve_document_path` refuses\nanything that escapes the workspace, so even a tampered filename cannot reach outside it.",
+        "operationId": "open_document_api_workspace__entity_id__open_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Opened"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Open Document"
       }
     },
     "/api/workspace/{entity_id}/reveal": {

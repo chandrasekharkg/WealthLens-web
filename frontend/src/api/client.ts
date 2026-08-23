@@ -20,6 +20,7 @@ export type EntityTotal = components["schemas"]["EntityTotal"];
 export type Provenance = components["schemas"]["Provenance"];
 export type Money = components["schemas"]["Money"];
 export type WorkspaceDetail = components["schemas"]["WorkspaceDetail"];
+export type Opened = components["schemas"]["Opened"];
 export type SettingsInfo = components["schemas"]["SettingsInfo"];
 export type Revealed = components["schemas"]["Revealed"];
 export type Report = components["schemas"]["Report"];
@@ -75,6 +76,19 @@ export const api = {
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   jobs: () => request<Job[]>("/api/jobs"),
   workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),
+  openDocument: (
+    entity: string,
+    doc: { payload_ref?: string | null; provider?: string | null; filename?: string | null },
+  ) =>
+    request<Opened>(`/api/workspace/${entity}/open`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        payload_ref: doc.payload_ref ?? null,
+        provider: doc.provider ?? null,
+        filename: doc.filename ?? null,
+      }),
+    }),
   /**
    * ONE re-obtainable secret, by name (ADR-0019). Its own call on purpose: a value must never be
    * reachable by asking for a list, and the store key has no equivalent at all.

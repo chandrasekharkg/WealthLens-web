@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError, type WorkspaceDetail } from "../api/client";
+import { Collateral } from "../components/Collateral";
 import { CopySecret } from "../components/CopySecret";
 import type { Formatter } from "../i18n";
 
@@ -18,7 +19,7 @@ export type WorkspaceProps = {
 };
 
 export function Workspace({ entities, format }: WorkspaceProps) {
-  const { t, number } = format;
+  const { t } = format;
   // `format` itself is passed down: a component that renders words takes the catalog, never its own strings.
   const [entity, setEntity] = useState(entities[0]?.id ?? "");
   const [detail, setDetail] = useState<WorkspaceDetail | null>(null);
@@ -34,6 +35,18 @@ export function Workspace({ entities, format }: WorkspaceProps) {
   }, []);
 
   useEffect(() => load(entity), [entity, load]);
+
+  const [openNote, setOpenNote] = useState<string | null>(null);
+  const openDocument = async (doc: WorkspaceDetail["documents"][number]) => {
+    setOpenNote(null);
+    try {
+      await api.openDocument(entity, doc);                          // the OS opens it; WLW never reads it
+    } catch (error: unknown) {
+      const detailed = error instanceof ApiError ? error.detail : null;
+      const reason = (detailed as { detail?: { reason?: string } } | null)?.detail?.reason ?? "";
+      setOpenNote(t("ws.openFailed", { reason }));
+    }
+  };
 
   const save = async (body: Record<string, unknown>) => {
     setProblem(null);
@@ -80,34 +93,16 @@ export function Workspace({ entities, format }: WorkspaceProps) {
 
           <section aria-label={t("ws.collateral")}>
             <h2>{t("ws.collateral")}</h2>
+            {openNote ? <p role="alert" data-tone="warning">{openNote}</p> : null}
             {detail.documents.length === 0 ? (
               <p role="status">{t("ws.noDocuments")}</p>
             ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t("column.document")}</th>
-                    <th>{t("column.rows")}</th>
-                    <th>{t("column.opensWith")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.documents.map((doc) => (
-                    <tr key={doc.source_id}>
-                      <td>{doc.filename ?? doc.payload_ref ?? doc.source_id}</td>
-                      <td>{doc.rows === null || doc.rows === undefined ? "—" : number(doc.rows)}</td>
-                      {/* Three states, not two. "an unnamed password" is not "nothing has opened it". */}
-                      <td data-password={doc.password.kind}>
-                        {doc.password.kind === "named"
-                          ? t("password.named", { name: doc.password.name ?? "" })
-                          : doc.password.kind === "unnamed"
-                            ? t("password.unnamed")
-                            : t("password.none")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Collateral
+                documents={detail.documents}
+                entity={entity}
+                format={format}
+                onOpen={(doc) => void openDocument(doc)}
+              />
             )}
           </section>
 

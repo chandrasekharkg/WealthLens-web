@@ -20,7 +20,8 @@ from wealthlens_web.core import collateral
 HOST = "127.0.0.1:7788"
 
 
-def _register(ws: pathlib.Path, *, source_id: str, sha: str, filename: str, rows: int = 10) -> None:
+def _register(ws: pathlib.Path, *, source_id: str, sha: str, filename: str, rows: int = 10,
+              provider: str = "hdfc") -> None:
     import duckdb
     from wealthlens import cli
 
@@ -30,8 +31,8 @@ def _register(ws: pathlib.Path, *, source_id: str, sha: str, filename: str, rows
     con.execute("USE wl")
     con.execute(
         "INSERT INTO sources (source_id, source_type, provider, content_sha256, payload_ref, row_count, "
-        "captured_at, detail) VALUES (?, 'file', 'hdfc', ?, ?, ?, TIMESTAMP '2026-07-31 10:00:00', ?)",
-        [source_id, sha, f"statements/{filename}", rows, json.dumps({"filename": filename})],
+        "captured_at, detail) VALUES (?, 'file', ?, ?, ?, ?, TIMESTAMP '2026-07-31 10:00:00', ?)",
+        [source_id, provider, sha, f"statements/{filename}", rows, json.dumps({"filename": filename})],
     )
     con.execute("CHECKPOINT wl")
     con.close()
@@ -82,6 +83,67 @@ def test_an_unnamed_opener_is_its_own_state_not_a_name(ws):
 
 def test_a_document_nothing_has_opened_says_so(ws):
     _register(ws, source_id="src:1", sha="aaa", filename="scan.pdf")
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.NONE
+
+
+def _config(ws: pathlib.Path, body: str) -> None:
+    (ws / "config.toml").write_text(body)
+
+
+def test_a_pan_opened_document_infers_its_password_from_the_parser_config(ws):
+    """The store recorded no hint for this file, but the config says the religare parser opens with the PAN
+    (`[parser.religare] password = "@identity.pan"`). "Nothing has opened it" is then FALSE — the PAN did.
+    With no explicit hint, the parser config is the authority, and the document reports a copyable PAN."""
+    _register(ws, source_id="src:1", sha="aaa", filename="CN_20200114.pdf", provider="religare")
+    _config(ws, '[parser.religare]\npassword = "@identity.pan"\n')
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.NAMED
+    assert got.password.name == "pan"        # reveal(what="pan") copies it
+
+
+def test_a_fingerprint_yields_to_a_config_that_NAMES_the_password(ws):
+    """A fingerprint (UNNAMED) records only THAT a password opened the file, not which. The parser config
+    knows which — so it wins over a bare fingerprint and the document shows the copyable PAN. (A NAMED hint,
+    a specific .pass file, is more specific still and beats the config — see the CAS test above.)"""
+    _register(ws, source_id="src:1", sha="aaa", filename="x.pdf", provider="religare")
+    _config(ws, '[parser.religare]\npassword = "@identity.pan"\n')
+    _hints(ws, {"aaa": "pw:deadbeef"})
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.NAMED and got.password.name == "pan"
+
+
+def test_an_nsdl_cas_names_the_PAN_even_though_it_carries_a_fingerprint(ws):
+    """The NSDL CAS case: the store DID keep a hint, but only a fingerprint (UNNAMED). The config knows the
+    name the fingerprint does not — the depository CAS opens with the PAN (`[parser.cas]`, and nsdl/cdsl map
+    to it). "An unnamed password" is unhelpful when the PAN is copyable; the config name wins over a bare
+    fingerprint (a NAMED hint would still win over the config)."""
+    _register(ws, source_id="src:1", sha="aaa", filename="NSDLe-CAS.pdf", provider="nsdl")
+    _config(ws, '[parser.cas]\npassword = "@identity.pan"\n')
+    _hints(ws, {"aaa": "pw:c3ef86857a63"})
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.NAMED
+    assert got.password.name == "pan"
+
+
+def test_a_named_pass_hint_still_beats_the_config_even_for_a_cas(ws):
+    _register(ws, source_id="src:1", sha="aaa", filename="cas.pdf", provider="cdsl")
+    _config(ws, '[parser.cas]\npassword = "@identity.pan"\n')
+    _hints(ws, {"aaa": "cams.pass"})               # a specific recorded file — more specific than "the PAN"
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.NAMED and got.password.name == "cams.pass"
+
+
+def test_an_unnamed_password_with_NO_config_match_stays_unnamed(ws):
+    """Without a parser config that names the opener, a fingerprint is still just a fingerprint."""
+    _register(ws, source_id="src:1", sha="aaa", filename="x.pdf", provider="somebank")
+    _hints(ws, {"aaa": "pw:abcdef"})
+    got = {d.source_id: d for d in _documents(ws)}["src:1"]
+    assert got.password.kind is collateral.PasswordRef.UNNAMED
+
+
+def test_a_provider_with_no_parser_password_stays_none(ws):
+    _register(ws, source_id="src:1", sha="aaa", filename="scan.pdf", provider="somebank")
     got = {d.source_id: d for d in _documents(ws)}["src:1"]
     assert got.password.kind is collateral.PasswordRef.NONE
 
