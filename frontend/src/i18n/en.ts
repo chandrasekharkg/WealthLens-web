@@ -104,7 +104,7 @@ export const en = {
   "diagnose.guide": "Open the “Add your bank” guide",
   "diagnose.reportLabel": "Layout diagnosis (safe to share)",
   "diagnose.agentPrompt":
-    "I use WealthLens, a local open-source personal-finance tool (github.com/chandrasekharkg/WealthLens-core). One of my bank/statement formats isn't supported yet. Below is a SAFE, value-free description of its layout (every number replaced by its shape). Please help me add a parser for it — see PARSER-AUTHORING.md and GETTING_STARTED.md (“Add your bank”) in that repo, and add a synthetic-fixture test that proves it. Ask me for anything you need.",
+    "I use WealthLens, a local open-source personal-finance tool (github.com/chandrasekharkg/WealthLens-core). One of my bank/statement formats isn't supported yet. Below is a SAFE, value-free description of its layout (every number replaced by its shape). Please help me add a parser for it — see PARSER-AUTHORING.md and GETTING_STARTED.md (“Add your bank”) in that repo, and add a synthetic-fixture test that proves it. IMPORTANT: the fixture must use INVENTED ROUND numbers, never my real amounts — mask the VALUES, not just the names (a real balance is PII even without a name). The commit gate (scripts/pii_scan.py) will block a real-looking amount in a new fixture. Ask me for anything you need.",
   "diagnose.scanned": "This looks like a scanned/image PDF ({count} page(s) with no text layer) — it needs OCR to read.",
   "import.whereFrom": "Where do these come from?",
   "import.whereFromBody":
