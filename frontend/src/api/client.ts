@@ -35,6 +35,7 @@ export type EntityTotal = components["schemas"]["EntityTotal"];
 export type Provenance = components["schemas"]["Provenance"];
 export type Money = components["schemas"]["Money"];
 export type WorkspaceDetail = components["schemas"]["WorkspaceDetail"];
+export type DiagnoseBundle = components["schemas"]["DiagnoseBundle"];
 export type Opened = components["schemas"]["Opened"];
 export type SettingsInfo = components["schemas"]["SettingsInfo"];
 export type Revealed = components["schemas"]["Revealed"];
@@ -103,6 +104,12 @@ export const api = {
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   jobs: () => request<Job[]>("/api/jobs"),
   workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),
+  diagnose: (entity: string, filename: string) =>
+    request<DiagnoseBundle>(`/api/workspace/${entity}/diagnose`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ filename }),
+    }),
   openDocument: (
     entity: string,
     doc: { payload_ref?: string | null; provider?: string | null; filename?: string | null },

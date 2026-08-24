@@ -374,6 +374,18 @@ class Deposit(BaseModel):
     inbox: str
 
 
+class DiagnoseBundle(BaseModel):
+    """The safe-to-share diagnostic for an unrecognized statement — STRUCTURE ONLY, no values, names, or ids.
+    The on-ramp a user hands to their AI agent, or reads alongside the 'Add your bank' guide."""
+
+    filename: str
+    fingerprint: str | None = Field(default=None, description="A stable id for this layout — same format, same id")
+    pages: int | None = None
+    needs_ocr: bool = Field(default=False, description="True when scanned pages carry content no text parser reads")
+    scanned: int = 0
+    report: str = Field(description="The masked layout report — every value replaced by its shape")
+
+
 class PasswordRef(BaseModel):
     kind: Literal["named", "unnamed", "none"] = Field(
         description="THREE states, not two: named, opened-by-something-unnamed, or never opened")

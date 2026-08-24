@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { api, ApiError, type Job } from "../api/client";
+import { api, ApiError, type DiagnoseBundle, type Job } from "../api/client";
 import type { Formatter } from "../i18n";
 
 /**
@@ -106,6 +106,8 @@ export function Import({ entities, format, onImported }: ImportProps) {
 
   const files = (job?.result?.files as FileVerdict[] | undefined) ?? [];
   const locked = files.filter((file) => file.status === "locked");
+  // An unrecognized statement is not a failure — it is a format we have not met yet. Turn it into an on-ramp.
+  const unrecognized = files.filter((file) => file.status === "unrecognized");
 
   return (
     <main>
@@ -159,7 +161,97 @@ export function Import({ entities, format, onImported }: ImportProps) {
       {locked.length > 0 && (
         <Unlock entity={entity} files={locked} format={format} onSaved={() => void runImport()} />
       )}
+
+      {unrecognized.map((file) => (
+        <AddYourBank key={file.file} entity={entity} filename={file.file ?? ""} format={format} />
+      ))}
     </main>
+  );
+}
+
+/**
+ * The unrecognized-statement on-ramp (1→2→3). Not a wall: an institution we have not met yet. `diagnose`
+ * runs in WLC's own workspace context (the bridge duplicates no password logic), and returns a value-free
+ * layout description a user hands to their AI assistant — or reads beside the guide.
+ */
+function AddYourBank({
+  entity,
+  filename,
+  format,
+}: {
+  entity: string;
+  filename: string;
+  format: Formatter;
+}) {
+  const { t } = format;
+  const [bundle, setBundle] = useState<DiagnoseBundle | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const run = async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      setBundle(await api.diagnose(entity, filename));
+    } catch {
+      setProblem(t("error.load"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const agentText = bundle ? `${t("diagnose.agentPrompt")}\n\n${bundle.report}` : "";
+
+  return (
+    <section aria-label={t("diagnose.title", { name: filename })} data-tone="info">
+      <h2>{t("diagnose.title", { name: filename })}</h2>
+      <p>{t("diagnose.intro")}</p>
+      <ol>
+        <li>{t("diagnose.step1")}</li>
+        <li>{t("diagnose.step2")}</li>
+        <li>{t("diagnose.step3")}</li>
+      </ol>
+
+      {!bundle ? (
+        <button type="button" onClick={() => void run()} disabled={busy}>
+          {busy ? t("diagnose.running") : t("diagnose.run")}
+        </button>
+      ) : (
+        <>
+          {bundle.needs_ocr && (
+            <p role="note" data-tone="warning">
+              {t("diagnose.scanned", { count: bundle.scanned })}
+            </p>
+          )}
+          <div className="diagnose-actions">
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(agentText).then(() => setCopied(true));
+              }}
+            >
+              {copied ? t("diagnose.copied") : t("diagnose.copyAgent")}
+            </button>{" "}
+            <a
+              href="https://github.com/chandrasekharkg/WealthLens-core/blob/main/GETTING_STARTED.md#your-bank-isnt-recognized-add-it-great-with-cursor"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t("diagnose.guide")}
+            </a>
+          </div>
+          <pre className="diagnose-report" aria-label={t("diagnose.reportLabel")}>
+            {bundle.report}
+          </pre>
+        </>
+      )}
+      {problem && (
+        <p role="alert" data-tone="warning">
+          {problem}
+        </p>
+      )}
+    </section>
   );
 }
 
