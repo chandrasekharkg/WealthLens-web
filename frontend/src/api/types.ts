@@ -362,6 +362,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspace/{entity_id}/diagnose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Diagnose Statement
+         * @description Describe an unrecognized statement's LAYOUT, safe to share. The diagnose verb runs in the workspace
+         *     context, so it reuses WLC's OWN password resolution — the presenter duplicates no secret logic
+         *     (custodian/presenter boundary, constitution #10). The result is structure only: no values, no names.
+         */
+        post: operations["diagnose_statement_api_workspace__entity_id__diagnose_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspace/{entity_id}/open": {
         parameters: {
             query?: never;
@@ -655,6 +677,38 @@ export interface components {
              * @description Set when a name collided: both files are kept, never overwritten
              */
             renamed_from?: string | null;
+        };
+        /**
+         * DiagnoseBundle
+         * @description The safe-to-share diagnostic for an unrecognized statement — STRUCTURE ONLY, no values, names, or ids.
+         *     The on-ramp a user hands to their AI agent, or reads alongside the 'Add your bank' guide.
+         */
+        DiagnoseBundle: {
+            /** Filename */
+            filename: string;
+            /**
+             * Fingerprint
+             * @description A stable id for this layout — same format, same id
+             */
+            fingerprint?: string | null;
+            /**
+             * Needs Ocr
+             * @description True when scanned pages carry content no text parser reads
+             * @default false
+             */
+            needs_ocr: boolean;
+            /** Pages */
+            pages?: number | null;
+            /**
+             * Report
+             * @description The masked layout report — every value replaced by its shape
+             */
+            report: string;
+            /**
+             * Scanned
+             * @default 0
+             */
+            scanned: number;
         };
         /**
          * DiaryLine
@@ -2002,6 +2056,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diagnose_statement_api_workspace__entity_id__diagnose_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnoseBundle"];
                 };
             };
             /** @description Validation Error */

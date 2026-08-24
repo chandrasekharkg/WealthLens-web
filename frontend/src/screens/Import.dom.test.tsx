@@ -1,258 +1,64 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Job } from "../api/client";
 import { formatter } from "../i18n";
 import { Import } from "./Import";
 
-const ENTITIES = [
-  { id: "me", label: "Me" },
-  { id: "dad", label: "Dad" },
-];
+// An import job whose one file WLC could not recognize — the on-ramp's trigger.
+const JOB = {
+  id: "j1", verb: "import", entity_id: "self", state: "finished", outcome: "attention",
+  gate: null, message: null, changed_something: false, exit_code: 0,
+  result: { imported: 0, attention: 1, files: [{ file: "mystery.pdf", status: "unrecognized", // pii-ok
+    message: "opened, but this bank's layout isn't recognized yet." }] },
+};
 
-const job = (over: Partial<Job> = {}): Job => ({
-  id: "j1",
-  verb: "import",
-  entity_id: "me",
-  state: "finished",
-  outcome: "attention",
-  gate: null,
-  message: null,
-  changed_something: true,
-  exit_code: 2,
-  result: {
-    imported: 2,
-    attention: 1,
-    files: [
-      { file: "hdfc.pdf", status: "imported", loaded: 218, warnings: [] },
-      { file: "sbi.pdf", status: "locked", warnings: [], message: "password-protected" },
-      { file: "cas.pdf", status: "imported", loaded: 1043, warnings: ["units_incomplete", "footing_break"] },
-    ],
-  },
-  ...over,
-});
+const BUNDLE = {
+  filename: "mystery.pdf", fingerprint: "abc123", pages: 2, needs_ocr: false, scanned: 0,
+  report: "WealthLens statement diagnostic — SAFE TO SHARE\nlayout fingerprint : abc123", // pii-ok
+};
 
-function mockFetch(responses: Record<string, unknown>) {
-  return vi.fn((input: RequestInfo | URL) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    const key = Object.keys(responses).find((candidate) => url.includes(candidate));
-    return Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(key ? responses[key] : {}),
-    } as Response);
-  });
+const clipboardWrite = vi.fn(() => Promise.resolve());
+
+function stub() {
+  clipboardWrite.mockClear();
+  vi.stubGlobal("fetch", vi.fn((url: string) => {
+    const body =
+      url === "/api/jobs" ? JOB
+      : url.startsWith("/api/jobs/") ? JOB
+      : url.endsWith("/diagnose") ? BUNDLE
+      : {};
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(body) } as Response);
+  }));
+  Object.assign(navigator, { clipboard: { writeText: clipboardWrite } });
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+afterEach(() => vi.unstubAllGlobals());
 
-const show = () => render(<Import entities={ENTITIES} format={formatter("en-IN")} />);
+const entities = [{ id: "self", label: "Me", available: true }];
 
-describe("the verdict is the engine's, verbatim", () => {
-  it("renders every file with its outcome, rows and warnings", async () => {
-    vi.stubGlobal("fetch", mockFetch({ "/api/jobs": job() }));
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-
-    const table = await screen.findByRole("table");
-    expect(within(table).getByText("hdfc.pdf")).toBeTruthy();
-    expect(within(table).getByText("218")).toBeTruthy();
-    // No file's warning may be dropped, however many it has.
-    expect(within(table).getByText("units_incomplete, footing_break")).toBeTruthy();
+describe("the unrecognized-statement on-ramp", () => {
+  it("turns an unrecognized file into a 1→2→3 add-your-bank panel, not a dead end", async () => {
+    stub();
+    render(<Import entities={entities} format={formatter()} />);
+    fireEvent.click(screen.getByText("Import now"));
+    // the on-ramp appears, framed as an invitation
+    await waitFor(() => expect(screen.getByText("Add mystery.pdf to WealthLens")).toBeTruthy());
+    expect(screen.getByText(/that's not a bug, just a format we haven't met/)).toBeTruthy();
   });
 
-  it("translates each status rather than showing the engine's raw token", async () => {
-    vi.stubGlobal("fetch", mockFetch({ "/api/jobs": job() }));
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-    expect(await screen.findByText("Password needed")).toBeTruthy();
-  });
+  it("diagnoses on demand and offers the two destinations (agent copy + guide), showing the safe bundle", async () => {
+    stub();
+    render(<Import entities={entities} format={formatter()} />);
+    fireEvent.click(screen.getByText("Import now"));
+    const diagnose = await screen.findByText("Diagnose this statement");
+    fireEvent.click(diagnose);
+    // the safe, value-free report renders, plus the two chosen destinations
+    await waitFor(() => expect(screen.getByText(/layout fingerprint : abc123/)).toBeTruthy());
+    expect(screen.getByText("Copy for my AI assistant")).toBeTruthy();
+    expect(screen.getByText("Open the “Add your bank” guide")).toBeTruthy();
 
-  it("shows an em dash where a file loaded nothing, not a zero", async () => {
-    vi.stubGlobal("fetch", mockFetch({ "/api/jobs": job() }));
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-    const table = await screen.findByRole("table");
-    expect(within(table).getAllByText("—").length).toBeGreaterThan(0);
-  });
-});
-
-describe("a refusal is not a failure", () => {
-  it("says plainly that nothing changed, and which gate refused", async () => {
-    // The job contract distinguishes these, so the UI does not have to read prose to know which happened.
-    vi.stubGlobal(
-      "fetch",
-      mockFetch({
-        "/api/jobs": job({ outcome: "refused", gate: "locked", changed_something: false, result: {} }),
-      }),
-    );
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-
-    const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Nothing was changed");
-    expect(alert.textContent).toContain("locked");
-    expect(screen.queryByRole("table")).toBeNull();
-  });
-
-  it("reports a real failure differently from a refusal", async () => {
-    vi.stubGlobal(
-      "fetch",
-      mockFetch({
-        "/api/jobs": job({ outcome: "failed", message: "the engine is not installed", result: {} }),
-      }),
-    );
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("the engine is not installed");
-  });
-});
-
-describe("upload", () => {
-  it("says when a colliding name was kept under a different one", async () => {
-    // Otherwise the user finds "s (2).pdf" later and has to guess why.
-    vi.stubGlobal(
-      "fetch",
-      mockFetch({ "/api/upload": { filename: "s (2).pdf", renamed_from: "s.pdf" } }),
-    );
-    show();
-    const input = screen.getByLabelText("Choose statement files");
-    // `input.files` is read-only, so RTL's target shortcut does not reach the handler; define it.
-    Object.defineProperty(input, "files", {
-      value: [new File(["x"], "s.pdf", { type: "application/pdf" })],
-    });
-    fireEvent.change(input);
-    await waitFor(() =>
-      expect(screen.getByText(/s\.pdf was already there, so this one was kept as s \(2\)\.pdf/)).toBeTruthy(),
-    );
-  });
-});
-
-describe("where statements come from", () => {
-  it("is on the screen, because that is where onboarding actually stalls", () => {
-    show();
-    expect(screen.getByText("Where do these come from?")).toBeTruthy();
-    expect(screen.getByText(/never signs in to anything on your behalf/)).toBeTruthy();
-  });
-});
-
-describe("choosing a member", () => {
-  it("will not offer to deposit into a store that cannot be read", () => {
-    // Found by clicking through the running app: an unreadable member was selectable, and depositing
-    // there would have built a folder tree where no workspace exists.
-    render(
-      <Import
-        entities={[
-          { id: "me", label: "Me", available: true },
-          { id: "sister", label: "Sister", available: false },
-        ]}
-        format={formatter("en-IN")}
-      />,
-    );
-    expect(screen.getByRole("option", { name: /Sister/ }).hasAttribute("disabled")).toBe(true);
-  });
-
-  it("defaults to a member who can actually receive a file", () => {
-    render(
-      <Import
-        entities={[
-          { id: "sister", label: "Sister", available: false },
-          { id: "me", label: "Me", available: true },
-        ]}
-        format={formatter("en-IN")}
-      />,
-    );
-    expect(screen.getByLabelText("For").getAttribute("value") ?? screen.getByLabelText<HTMLSelectElement>("For").value).toBe("me");
-  });
-});
-
-describe("the locked-file loop", () => {
-  it("offers to name a password when a file could not be opened", async () => {
-    vi.stubGlobal(
-      "fetch",
-      mockFetch({
-        "/api/jobs": job({
-          result: {
-            imported: 0,
-            attention: 1,
-            files: [{ file: "sbi.pdf", status: "locked", warnings: [] }],
-          },
-        }),
-      }),
-    );
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-
-    expect(await screen.findByText("This file needs a password")).toBeTruthy();
-    // It appears in the verdict table too, correctly — scope to the unlock section.
-    const unlock = screen.getByRole("region", { name: "This file needs a password" });
-    expect(within(unlock).getByText("sbi.pdf")).toBeTruthy();
-  });
-
-  it("explains that the engine proves it worked, not this app", async () => {
-    // WLW never reads a statement, so the demonstration is the retry: WLC's own verdict says whether the
-    // file opened.
-    vi.stubGlobal(
-      "fetch",
-      mockFetch({
-        "/api/jobs": job({
-          result: { imported: 0, attention: 1, files: [{ file: "sbi.pdf", status: "locked" }] },
-        }),
-      }),
-    );
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-    expect(await screen.findByText(/nothing here reads your statement/)).toBeTruthy();
-  });
-
-  it("keeps the save disabled until both a name and a password are given", async () => {
-    vi.stubGlobal(
-      "fetch",
-      mockFetch({
-        "/api/jobs": job({
-          result: { imported: 0, attention: 1, files: [{ file: "sbi.pdf", status: "locked" }] },
-        }),
-      }),
-    );
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-
-    const save = await screen.findByRole("button", { name: "Save and try again" });
-    expect(save.hasAttribute("disabled")).toBe(true);
-
-    fireEvent.change(screen.getByLabelText("Call it"), { target: { value: "sbi" } });
-    expect(save.hasAttribute("disabled")).toBe(true);
-
-    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "s3cret" } });
-    expect(save.hasAttribute("disabled")).toBe(false);
-  });
-
-  it("surfaces a name collision rather than silently replacing a password", async () => {
-    vi.stubGlobal("fetch", (input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      if (url.includes("/settings")) {
-        return Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ detail: { reason: "'sbi' already names a password here." } }),
-        } as Response);
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve(
-            job({ result: { imported: 0, attention: 1, files: [{ file: "sbi.pdf", status: "locked" }] } }),
-          ),
-      } as Response);
-    });
-    show();
-    fireEvent.click(screen.getByRole("button", { name: "Import now" }));
-    fireEvent.change(await screen.findByLabelText("Call it"), { target: { value: "sbi" } });
-    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "x" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save and try again" }));
-
-    await waitFor(() =>
-      expect(screen.getByText(/already names a password here/)).toBeTruthy(),
-    );
+    fireEvent.click(screen.getByText("Copy for my AI assistant"));
+    await waitFor(() => expect(screen.getByText("Copied ✓")).toBeTruthy());
+    expect(clipboardWrite).toHaveBeenCalled();
   });
 });

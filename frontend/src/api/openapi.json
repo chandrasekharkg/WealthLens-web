@@ -589,6 +589,60 @@
         "title": "Deposit",
         "type": "object"
       },
+      "DiagnoseBundle": {
+        "description": "The safe-to-share diagnostic for an unrecognized statement \u2014 STRUCTURE ONLY, no values, names, or ids.\nThe on-ramp a user hands to their AI agent, or reads alongside the 'Add your bank' guide.",
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A stable id for this layout \u2014 same format, same id",
+            "title": "Fingerprint"
+          },
+          "needs_ocr": {
+            "default": false,
+            "description": "True when scanned pages carry content no text parser reads",
+            "title": "Needs Ocr",
+            "type": "boolean"
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages"
+          },
+          "report": {
+            "description": "The masked layout report \u2014 every value replaced by its shape",
+            "title": "Report",
+            "type": "string"
+          },
+          "scanned": {
+            "default": 0,
+            "title": "Scanned",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "filename",
+          "report"
+        ],
+        "title": "DiagnoseBundle",
+        "type": "object"
+      },
       "DiaryLine": {
         "description": "One line of a holding's CAS transcript. Balances are UNIT quantities, not money.",
         "properties": {
@@ -3583,6 +3637,58 @@
           }
         },
         "summary": "Workspace Detail"
+      }
+    },
+    "/api/workspace/{entity_id}/diagnose": {
+      "post": {
+        "description": "Describe an unrecognized statement's LAYOUT, safe to share. The diagnose verb runs in the workspace\ncontext, so it reuses WLC's OWN password resolution \u2014 the presenter duplicates no secret logic\n(custodian/presenter boundary, constitution #10). The result is structure only: no values, no names.",
+        "operationId": "diagnose_statement_api_workspace__entity_id__diagnose_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnoseBundle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Diagnose Statement"
       }
     },
     "/api/workspace/{entity_id}/open": {

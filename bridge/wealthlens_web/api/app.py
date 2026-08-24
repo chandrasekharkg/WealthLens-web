@@ -318,6 +318,27 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         return {"filename": landed.name, "renamed_from": landed.renamed_from,
                 "entity_id": entity, "inbox": inbox.INBOX}
 
+    @app.post("/api/workspace/{entity_id}/diagnose", response_model=models.DiagnoseBundle)
+    def diagnose_statement(entity_id: str, body: dict) -> dict:
+        """Describe an unrecognized statement's LAYOUT, safe to share. The diagnose verb runs in the workspace
+        context, so it reuses WLC's OWN password resolution — the presenter duplicates no secret logic
+        (custodian/presenter boundary, constitution #10). The result is structure only: no values, no names."""
+        m = _manifest()
+        target = _target_workspace(m, entity_id, body.get("workspace"))
+        name = inbox.safe_name(str(body.get("filename", "")))
+        path = target / inbox.INBOX / name
+        if not path.is_file():
+            raise HTTPException(status_code=404,
+                                detail={"error": "file", "reason": f"'{name}' is not in the inbox"})
+        job = app.state.runner.run("diagnose", entity_id=entity_id, workspace=target, args=[str(path)])
+        if job.outcome is not verbs.Outcome.OK or not isinstance(job.result, dict):
+            raise HTTPException(status_code=422, detail={"error": "diagnose",
+                                "reason": job.message or "could not read this file's layout"})
+        b = job.result
+        return {"filename": name, "fingerprint": b.get("fingerprint"), "pages": b.get("pages"),
+                "needs_ocr": bool(b.get("needs_ocr")), "scanned": b.get("scanned", 0),
+                "report": b.get("report", "")}
+
     @app.post("/api/jobs", response_model=models.Job, status_code=202)
     def start_job(body: dict) -> JSONResponse:
         """Run a WLC verb against exactly one named, manifest-declared workspace.

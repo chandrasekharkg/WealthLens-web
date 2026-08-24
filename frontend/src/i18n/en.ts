@@ -91,6 +91,21 @@ export const en = {
   "import.nothingChanged": "Nothing was changed. {reason}",
   "import.refusedBy": "Refused at the {gate} check.",
   "import.failed": "That did not run: {reason}",
+  "diagnose.title": "Add {name} to WealthLens",
+  "diagnose.intro":
+    "This institution isn't recognized yet — that's not a bug, just a format we haven't met. Three steps and it's supported, for you and everyone after you.",
+  "diagnose.step1": "Diagnose — we read its layout. Safe to share: every value is replaced by its shape, no numbers, names, or IDs.",
+  "diagnose.step2": "Draft — hand the diagnosis to your AI assistant (or follow the guide) to write a small parser.",
+  "diagnose.step3": "Add it — the synthetic-fixture harness proves it works; then this bank imports like any other.",
+  "diagnose.run": "Diagnose this statement",
+  "diagnose.running": "Reading the layout…",
+  "diagnose.copyAgent": "Copy for my AI assistant",
+  "diagnose.copied": "Copied ✓",
+  "diagnose.guide": "Open the “Add your bank” guide",
+  "diagnose.reportLabel": "Layout diagnosis (safe to share)",
+  "diagnose.agentPrompt":
+    "I use WealthLens, a local open-source personal-finance tool (github.com/chandrasekharkg/WealthLens-core). One of my bank/statement formats isn't supported yet. Below is a SAFE, value-free description of its layout (every number replaced by its shape). Please help me add a parser for it — see PARSER-AUTHORING.md and GETTING_STARTED.md (“Add your bank”) in that repo, and add a synthetic-fixture test that proves it. Ask me for anything you need.",
+  "diagnose.scanned": "This looks like a scanned/image PDF ({count} page(s) with no text layer) — it needs OCR to read.",
   "import.whereFrom": "Where do these come from?",
   "import.whereFromBody":
     "You download them yourself, from each institution: NSDL or CDSL for the consolidated demat statement, net-banking for accounts and cards, your broker's portal for contract notes. WealthLens never signs in to anything on your behalf.",
