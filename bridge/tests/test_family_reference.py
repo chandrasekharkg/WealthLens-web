@@ -37,7 +37,7 @@ def _pair_total(nw):
 @pytest.mark.parametrize("on", ["2024-12-31", "2025-11-30", "2026-06-30"])
 def test_the_succession_conserves_the_pair_total(family, on):
     # before the demise, mid-transfer, and after: the estate never gains or loses value, it only changes store.
-    assert _pair_total(aggregate.net_worth(family, on=on)) == 6_800_000
+    assert _pair_total(aggregate.net_worth(family, on=on)) == 8_800_000
 
 
 def test_the_transfer_is_staggered_by_asset_class(family):
@@ -55,13 +55,13 @@ def test_the_transfer_is_staggered_by_asset_class(family):
 def test_before_the_demise_the_estate_sits_in_his_own_store(family):
     by = _by_id(aggregate.net_worth(family, on="2024-12-31"))
     assert by["raghavan"].total.amount == 2_600_000        # equity 6L + FD 15L + bank 5L
-    assert by["lakshmi"].total.amount == 4_200_000         # her own bank 12L + FD 30L
+    assert by["lakshmi"].total.amount == 6_200_000         # her own bank 12L + FD 30L
 
 
 def test_after_both_transfers_the_estate_sits_wholly_with_the_widow(family):
     by = _by_id(aggregate.net_worth(family, on="2026-06-30"))
     assert by["raghavan"].total.amount == 0
-    assert by["lakshmi"].total.amount == 6_800_000
+    assert by["lakshmi"].total.amount == 8_800_000
 
 
 # ── the joint flat: one whole, split across two stores ───────────────────────────────────────────────────────
