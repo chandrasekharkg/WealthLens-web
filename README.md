@@ -21,6 +21,19 @@ regression rule, the boundary rules, and how the local gates work.
 
 ### Setup
 
+**Just want to run it?** Don't set this repo up on its own — the blessed path installs the engine and this
+app into **one shared venv** from WealthLens-core. From scratch, one line into a dedicated `~/WealthLens`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chandrasekharkg/WealthLens-core/main/install.sh | bash
+```
+
+Already have WealthLens-core? From that checkout: `python bootstrap.py --with-web` (clones this repo beside
+it, installs it into the same venv, builds the frontend, seeds a demo). Then `./wealthlens-serve` serves it.
+
+**Contributing to the bridge or frontend?** The per-repo dev setup (its own venv; WLC gets installed into it
+by the unified installer, or `pip install -e ../WealthLens-core` yourself):
+
 ```bash
 python -m venv .venv && .venv/bin/pip install -e "bridge[dev]"   # bridge: fastapi, pytest, ruff
 cd frontend && npm install                                        # frontend: vite, vitest, eslint
