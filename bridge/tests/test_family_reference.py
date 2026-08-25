@@ -11,9 +11,10 @@ import pytest
 
 pytest.importorskip("wealthlens", reason="WealthLens-core is not installed")
 
-from wealthlens import synth_family as sf                       # noqa: E402
-from wealthlens_web.core import aggregate                       # noqa: E402
-from wealthlens_web.core import manifest as M                   # noqa: E402
+from wealthlens import synth_family as sf
+
+from wealthlens_web.core import aggregate
+from wealthlens_web.core import manifest as M
 
 
 @pytest.fixture(scope="module")
