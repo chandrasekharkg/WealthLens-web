@@ -7,8 +7,24 @@ Fix: keep every bridge open() at the default read_only=True.
 """
 from __future__ import annotations
 
+import pathlib
+
 import duckdb
 import pytest
+
+
+def test_the_bridge_never_opens_a_store_raw(make_workspace):
+    """The read-only-open test below only proves the SANCTIONED path is read-only; a future endpoint could
+    bypass it entirely with a raw `duckdb.connect(...)`. This grep-guard forbids that in the bridge runtime, so
+    the only way in stays `wl_workspace.resolve(...).open()` — the one place read-only + key handling live
+    (2026-08 review, P2-4)."""
+    runtime = pathlib.Path(__file__).resolve().parent.parent / "wealthlens_web"
+    offenders = [f"{p.relative_to(runtime)}:{i}"
+                 for p in runtime.rglob("*.py")
+                 for i, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1)
+                 if "duckdb.connect(" in line]
+    assert not offenders, ("bridge runtime opens a store raw — go through wl_workspace.resolve(...).open() "
+                           f"instead: {offenders}")
 
 
 def test_the_bridge_opens_stores_read_only(make_workspace):
