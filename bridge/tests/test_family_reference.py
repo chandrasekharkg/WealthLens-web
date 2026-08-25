@@ -35,9 +35,14 @@ def _pair_total(nw):
 
 # ── the centrepiece: a staggered succession conserves the family total ───────────────────────────────────────
 
-@pytest.mark.parametrize("on", ["2024-12-31", "2025-11-30", "2026-06-30"])
+# Month-ends AND the two exact transfer boundaries (half-open ownership intervals make these clean). NOTE
+# (2026-08 review, P2-2): conservation holds at these sampled dates; intra-month the pair total oscillates by
+# a few thousand rupees because each transfer's paired debit/credit lands on different days of the month — a
+# sampling property, not an accounting flaw. The transfer boundaries below are where it must be exact.
+@pytest.mark.parametrize("on", ["2024-12-31", "2025-09-30", "2025-11-30", "2026-03-31", "2026-06-30"])
 def test_the_succession_conserves_the_pair_total(family, on):
-    # before the demise, mid-transfer, and after: the estate never gains or loses value, it only changes store.
+    # before the demise, at each staggered transfer boundary, and after: the estate never gains or loses value,
+    # it only changes store.
     assert _pair_total(aggregate.net_worth(family, on=on)) == 8_800_000
 
 

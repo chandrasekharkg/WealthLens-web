@@ -16,11 +16,17 @@ PORT_ENV = "WLW_PORT"
 
 
 def manifest_path() -> pathlib.Path:
-    """`WLW_MANIFEST`, else `family.toml` beside the repo — the file the household owns (ADR-0002)."""
+    """`WLW_MANIFEST`, else `family.toml` — the file the household owns (ADR-0002). The default tries the repo
+    root (dev checkout) AND its parent (the installed `$WEALTHLENS_ROOT` layout, where the manifest sits beside
+    the two repos), so a raw `uvicorn wealthlens_web.serve:app` without the launcher still finds the demo."""
     declared = os.environ.get(MANIFEST_ENV)
     if declared:
         return pathlib.Path(declared).expanduser()
-    return pathlib.Path(__file__).resolve().parents[2] / "family.toml"
+    here = pathlib.Path(__file__).resolve()
+    for cand in (here.parents[2] / "family.toml", here.parents[3] / "family.toml"):
+        if cand.exists():
+            return cand
+    return here.parents[2] / "family.toml"   # historical default (drives the "no manifest" message)
 
 
 def bound_to() -> tuple[str, int]:
