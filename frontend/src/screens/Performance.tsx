@@ -18,14 +18,24 @@ import type { Formatter, MessageKey } from "../i18n";
 type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error" };
 
 // The known asset types, in a fixed order — this order is both the legend order and the colour assignment
-// (a type keeps its colour across both charts). Real estate is last; the growth chart drops it.
+// (a type keeps its colour across both charts). Retirement classes (EPF/PPF/NPS/gratuity) are listed so they
+// get their own colours rather than all collapsing onto the first; liabilities follow (they carry no positive
+// share, so the donut filters them out — listed only to keep the assignment total). Real estate is last among
+// assets; the growth chart drops it.
 const BUCKETS = [
-  "mutual_fund", "listed_equity", "fixed_deposit", "savings", "bond", "unlisted_equity", "real_estate",
+  "mutual_fund", "listed_equity", "fixed_deposit", "savings", "bond", "unlisted_equity",
+  "epf", "ppf", "nps", "gratuity", "real_estate",
+  "credit_card", "auto_loan", "home_loan",
 ] as const;
 
+// A class outside the known list still gets a stable, distinct-ish colour (hashed into the palette) instead of
+// silently sharing the first — so a new engine asset class is legible before this list is updated.
 const colorFor = (key: string): string => {
   const i = BUCKETS.indexOf(key as (typeof BUCKETS)[number]);
-  return PALETTE[(i < 0 ? 0 : i) % PALETTE.length] ?? PALETTE[0];
+  if (i >= 0) return PALETTE[i % PALETTE.length] ?? PALETTE[0];
+  let h = 0;
+  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return PALETTE[h % PALETTE.length] ?? PALETTE[0];
 };
 
 /** "2026-08-31" → "Aug '26". */

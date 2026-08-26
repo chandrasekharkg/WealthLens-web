@@ -3,6 +3,9 @@
 /** The bucket palette — distinct, theme-neutral hues. A bucket's colour is its index here. */
 export const PALETTE = [
   "#0f6b62", "#c9822b", "#3d6ea5", "#8a5a9c", "#4f9d69", "#b0453a", "#5c6a68", "#c2a83e",
+  // Extended so the retirement classes (EPF/PPF/NPS/gratuity) and real estate each get their own hue rather
+  // than collapsing onto the first colour — a chart of ~11 asset classes needs at least that many.
+  "#7e6cc4", "#cf6d8f", "#3f9b8e", "#9a6b2f",
 ] as const;
 
 /**

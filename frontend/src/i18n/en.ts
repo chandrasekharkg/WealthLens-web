@@ -323,6 +323,13 @@ export const en = {
   "class.bond": "Bonds",
   "class.real_estate": "Real estate",
   "class.unlisted_equity": "Unlisted equity",
+  "class.epf": "EPF",
+  "class.ppf": "PPF",
+  "class.nps": "NPS",
+  "class.gratuity": "Gratuity",
+  "class.credit_card": "Credit card",
+  "class.auto_loan": "Auto loan",
+  "class.home_loan": "Home loan",
 
   "nav.family": "Family",
   "family.title": "Family",
