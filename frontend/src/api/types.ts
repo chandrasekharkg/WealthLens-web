@@ -514,6 +514,11 @@ export interface components {
              * @description The card, identified by the amount or the narration
              */
             issuer?: string | null;
+            /**
+             * Match
+             * @description How the statement was resolved: 'exact' = its closing balance equals the amount (this payment cleared that bill); 'cycle' = no exact match, the cycle's latest statement is offered instead (typically a partial payment); 'none' = unresolved
+             */
+            match?: ("exact" | "cycle" | "none") | null;
             /** Narration */
             narration?: string | null;
             /**

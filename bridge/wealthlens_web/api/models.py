@@ -249,6 +249,11 @@ class CardBillPaymentRow(BaseModel):
     statement_date: str | None = Field(
         default=None, description="The bill this settled — the drill target, when the card is loaded")
     resolved: bool = Field(description="True when the card's statement is loaded and openable")
+    match: Literal["exact", "cycle", "none"] | None = Field(
+        default=None,
+        description="How the statement was resolved: 'exact' = its closing balance equals the amount (this "
+                    "payment cleared that bill); 'cycle' = no exact match, the cycle's latest statement is "
+                    "offered instead (typically a partial payment); 'none' = unresolved")
     entity_id: str | None = None
     entity_label: str | None = None
 
