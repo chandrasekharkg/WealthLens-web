@@ -246,8 +246,9 @@ state; and the **card-statements list + statement header** now project their `so
 statement's own document). Tests added for every fix (`test_provenance_edges.py`, plus refund / NULL-period /
 match-`none` lens tests).
 
-**Known limitations (logged, not fixed — low/info):** payment→card amount-matching is nondeterministic if two cards
-are paid the identical amount on the same day (date-diff tie-break only); a document with only a `payload_ref` and no
-parsed filename is not openable from Collateral / the source popup. Deferred design item: standardise
-`sources.detail.{statement_date, account_masked}` (tracked in the WLC `statement-metadata-completeness` archive).
-Both repos clean + in sync.
+**Former known-limitations — both since fixed:** payment→card amount-matching now has a **deterministic tie-break**
+(leg date + issuer; funding lookup by debit date + row_id), so two cards paid the identical amount the same day
+resolve stably; and a document recorded by **`payload_ref` alone** (no parsed filename) is now openable from
+Collateral and the source popup (the bridge already treated payload_ref as the authoritative locator). Deferred
+design item remaining: standardise `sources.detail.{statement_date, account_masked}` (tracked in the WLC
+`statement-metadata-completeness` archive). Both repos clean + in sync.
