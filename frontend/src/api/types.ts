@@ -1244,6 +1244,10 @@ export interface components {
             basis?: string | null;
             /** Closed On */
             closed_on?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
             /** Disposition */
             disposition?: string | null;
             /** Entity Id */
@@ -1269,8 +1273,14 @@ export interface components {
             name?: string | null;
             /** Quantity */
             quantity?: number | null;
+            /** Source Id */
+            source_id?: string | null;
             /** Subtype */
             subtype?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
             value: components["schemas"]["Money"];
         };
         /** Positions */

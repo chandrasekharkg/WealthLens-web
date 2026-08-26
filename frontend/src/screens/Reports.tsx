@@ -5,8 +5,10 @@ import { api, type Report, type ReportSection } from "../api/client";
 import { DataTable } from "../components/DataTable";
 import { HoldingDiaryPanel } from "../components/HoldingDiaryPanel";
 import { Provenance } from "../components/Provenance";
+import { SourcePopup } from "../components/SourcePopup";
 import type { Formatter } from "../i18n";
 import type { Column } from "../lib/csv";
+import { PROVENANCE_HIDDEN, provenanceColumns } from "../lib/provenance";
 
 /**
  * Reports: a series of sections, one per kind of thing.
@@ -29,6 +31,8 @@ type Row = ReportSection["rows"][number];
 const HIDDEN_BY_DEFAULT: Record<string, boolean> = {
   last_acquired: false, lots: false, fills: false, last_valued: false, closed: false,
   subtype: false, amfi: false, jurisdiction: false, instrument_id: false,
+  // The provenance/audit group (Primitive A) joins the addable columns, hidden by default like the rest.
+  ...PROVENANCE_HIDDEN,
 };
 
 // ONE column config for the whole app. Every report renders the SAME position columns (they differ only in
@@ -60,6 +64,11 @@ export function Reports({ reportId, format }: ReportsProps) {
   const [report, setReport] = useState<Report | null>(null);
   // The holding whose full transcript is open below the report, or none.
   const [diary, setDiary] = useState<{ entity: string; instrument: string; name: string } | null>(null);
+  // The source popup (Primitive B) for whichever row's Source was clicked.
+  const [source, setSource] = useState<{ entity: string; sourceId: string } | null>(null);
+  const openSource = useCallback((row: Row) => {
+    if (row.source_id && row.entity_id) setSource({ entity: row.entity_id, sourceId: row.source_id });
+  }, []);
 
   const load = useCallback((id: string, on: string) => {
     void api
@@ -209,8 +218,10 @@ export function Reports({ reportId, format }: ReportsProps) {
         cell: ({ row }) => row.original.jurisdiction ?? <span data-empty>—</span> },
       { id: "instrument_id", accessorKey: "instrument_id", header: t("column.instrumentId"),
         cell: ({ row }) => row.original.instrument_id ?? <span data-empty>—</span> },
+      // The provenance/audit group (Primitive A + B) — a snapshot row opens its source; derived rows show "—".
+      ...provenanceColumns<Row>(t, openSource),
     ],
-    [t, money, number, date],
+    [t, money, number, date, openSource],
   );
 
   // Which columns show, remembered per report. The default shows the everyday set and hides the rest;
@@ -240,6 +251,11 @@ export function Reports({ reportId, format }: ReportsProps) {
       { header: t("column.acquired"), value: (r) => r.first_acquired_on ?? null },
       { header: t("column.disposition"), value: (r) => r.disposition ?? null },
       { header: t("column.basis"), value: (r) => r.basis ?? null },
+      { header: t("column.source"), value: (r) => r.source_id ?? null },
+      { header: t("column.createdBy"), value: (r) => r.created_by ?? null },
+      { header: t("column.createdAt"), value: (r) => r.created_at ?? null },
+      { header: t("column.updatedBy"), value: (r) => r.updated_by ?? null },
+      { header: t("column.updatedAt"), value: (r) => r.updated_at ?? null },
     ],
     [t],
   );
@@ -337,6 +353,15 @@ export function Reports({ reportId, format }: ReportsProps) {
           name={diary.name}
           format={format}
           onClose={() => setDiary(null)}
+        />
+      ) : null}
+
+      {source ? (
+        <SourcePopup
+          entity={source.entity}
+          sourceId={source.sourceId}
+          format={format}
+          onClose={() => setSource(null)}
         />
       ) : null}
     </main>
