@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type Transactions as TxnData, type TransactionRow } from "../api/client";
 import { DataTable } from "../components/DataTable";
 import { Provenance } from "../components/Provenance";
+import { SourcePopup } from "../components/SourcePopup";
 import type { Formatter } from "../i18n";
 import { type Column, moneyColumns } from "../lib/csv";
+import { PROVENANCE_HIDDEN, provenanceColumns, useColumnVisibility } from "../lib/provenance";
 
 /**
  * Bank transactions — the finest grain there is, made browsable.
@@ -40,6 +42,16 @@ export function Transactions({ format }: TransactionsProps) {
   // Whose column only earns its place when more than one member's rows are present.
   const multiEntity = new Set(rows.map((r) => r.entity_id)).size > 1;
 
+  // The source popup (Primitive B) for whichever row's Source was clicked — a row carries its own store id.
+  const [source, setSource] = useState<{ entity: string; sourceId: string } | null>(null);
+  const openSource = useCallback((row: TransactionRow) => {
+    if (row.source_id && row.entity_id) setSource({ entity: row.entity_id, sourceId: row.source_id });
+  }, []);
+  const { columnVisibility, onColumnVisibilityChange } = useColumnVisibility(
+    "wlw.columns.transactions",
+    PROVENANCE_HIDDEN,
+  );
+
   const columns = useMemo<ColumnDef<TransactionRow>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => date(row.original.date) },
@@ -62,8 +74,10 @@ export function Transactions({ format }: TransactionsProps) {
       { id: "balance", header: t("column.balance"), meta: { numeric: true },
         accessorFn: (r) => (r.balance ? Number(r.balance.amount) : null),
         cell: ({ row }) => (row.original.balance ? money(row.original.balance) : "—") },
+      // The provenance/audit group (Primitive A) — hidden by default, one click away in the Columns picker.
+      ...provenanceColumns<TransactionRow>(t, openSource),
     ],
-    [t, money, date, multiEntity],
+    [t, money, date, multiEntity, openSource],
   );
 
   const exportColumns = useMemo<Column<TransactionRow>[]>(
@@ -74,6 +88,12 @@ export function Transactions({ format }: TransactionsProps) {
       { header: t("column.description"), value: (r) => r.narration ?? null },
       ...moneyColumns<TransactionRow>(t("column.amount"), (r) => r.amount),
       ...moneyColumns<TransactionRow>(t("column.balance"), (r) => r.balance),
+      // The provenance/audit trail travels with an export even though it is hidden on screen.
+      { header: t("column.source"), value: (r) => r.source_id ?? null },
+      { header: t("column.createdBy"), value: (r) => r.created_by ?? null },
+      { header: t("column.createdAt"), value: (r) => r.created_at ?? null },
+      { header: t("column.updatedBy"), value: (r) => r.updated_by ?? null },
+      { header: t("column.updatedAt"), value: (r) => r.updated_at ?? null },
     ],
     [t],
   );
@@ -120,8 +140,19 @@ export function Transactions({ format }: TransactionsProps) {
           pageSize={50}
           caption={t("txn.title")}
           provenance={txns.data.provenance}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={onColumnVisibilityChange}
         />
       )}
+
+      {source ? (
+        <SourcePopup
+          entity={source.entity}
+          sourceId={source.sourceId}
+          format={format}
+          onClose={() => setSource(null)}
+        />
+      ) : null}
     </main>
   );
 }

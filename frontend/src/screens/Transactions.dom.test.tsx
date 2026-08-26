@@ -34,7 +34,10 @@ describe("Transactions", () => {
     stub();
     render(<Transactions format={formatter()} />);
     await screen.findByText("SWIGGY ORDER");
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-07-01" } });
+    // "From" is also a column header (hence a Columns-picker checkbox), so scope to the date input.
+    fireEvent.change(screen.getByLabelText("From", { selector: 'input[type="date"]' }), {
+      target: { value: "2026-07-01" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
     // the last fetch carries the since= query param
     await waitFor(() => {
