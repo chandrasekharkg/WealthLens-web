@@ -688,13 +688,15 @@ input[type="date"] {
  */
 .collateral .folder table { margin: 0; width: 100%; table-layout: fixed; }
 .collateral table th:nth-child(1),
-.collateral table td:nth-child(1) { width: 48%; overflow-wrap: anywhere; }   /* Document */
+.collateral table td:nth-child(1) { width: 40%; overflow-wrap: anywhere; }   /* Document */
 .collateral table th:nth-child(2),
-.collateral table td:nth-child(2) { width: 20%; }                            /* Period */
+.collateral table td:nth-child(2) { width: 18%; }                            /* Period */
 .collateral table th:nth-child(3),
-.collateral table td:nth-child(3) { width: 12%; text-align: right; }         /* Rows */
+.collateral table td:nth-child(3) { width: 10%; text-align: right; }         /* Rows */
 .collateral table th:nth-child(4),
-.collateral table td:nth-child(4) { width: 20%; }                            /* Password */
+.collateral table td:nth-child(4) { width: 18%; }                            /* Password */
+.collateral table th:nth-child(5),
+.collateral table td:nth-child(5) { width: 14%; }                            /* Source */
 
 /* A filename that opens something reads as a link, not a raw button. */
 .file-open {
@@ -979,3 +981,9 @@ input[type="date"] {
 .collateral-tools select { font: inherit; padding: 0.25rem 0.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
 .collateral-count { font-size: 0.78rem; color: var(--muted); }
 .folder-more { font-size: 0.78rem; color: var(--muted); margin: 0.35rem 0 0.2rem; }
+
+/* ── Password ring as a table ────────────────────────────────────────────────────────────────────── */
+.password-ring { border-collapse: collapse; margin: 0.4rem 0 0; min-width: 22rem; }
+.password-ring th, .password-ring td { text-align: left; padding: 0.3rem 0.9rem 0.3rem 0; font-size: 0.85rem; }
+.password-ring th { color: var(--muted); font-weight: 600; }
+.password-ring td.numeric { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }

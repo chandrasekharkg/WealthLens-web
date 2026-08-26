@@ -66,9 +66,23 @@ describe("the custodian is visible", () => {
 
   it("lists each document with what it contributed", async () => {
     await show();
-    const table = screen.getByRole("table");
+    // The collateral doc table is the first table; the password ring is a second one below it.
+    const table = screen.getAllByRole("table")[0]!;
     expect(within(table).getByText("hdfc-jul.pdf")).toBeTruthy();
     expect(within(table).getByText("218")).toBeTruthy();
+  });
+
+  it("offers a source control per document, and renders the password ring as a table", async () => {
+    await show({
+      settings: { holder_names: ["K"], pan_set: false, organize: true,
+        secret_names: ["hdfc.pass"], config_path: "/x" },
+    });
+    // every document row has a source control (opens the provenance popup)
+    expect(screen.getByRole("button", { name: /Where this came from/ })).toBeTruthy();
+    // the ring is a table listing each configured password with a Copy control
+    const ring = document.querySelector(".password-ring") as HTMLElement;
+    expect(within(ring).getByText("hdfc.pass")).toBeTruthy();
+    expect(within(ring).getByRole("button", { name: /Copy/ })).toBeTruthy();
   });
 });
 
