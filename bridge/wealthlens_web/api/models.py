@@ -35,6 +35,39 @@ class Holder(BaseModel):
     ours: bool = Field(description="True only when this app started the process — never inferred")
 
 
+class RowProvenance(BaseModel):
+    """The provenance + audit columns every fact row can carry — the WHO column set (Primitive A) and the
+    `source_id` the source popup opens on (Primitive B). All optional: a derived/aggregate row that has no
+    single originating document leaves them None rather than inventing one."""
+    source_id: str | None = None
+    created_by: str | None = None
+    created_at: str | None = None
+    updated_by: str | None = None
+    updated_at: str | None = None
+
+
+class SourceTableCount(BaseModel):
+    table: str
+    rows: int
+
+
+class SourceDetail(BaseModel):
+    """One source's full provenance record — the payload behind the source popup. `detail` is the adapter's
+    own facts (card min-due/due-date, statement period, …), shape varies by adapter. Empty object = unknown
+    id (the popup fails soft)."""
+    source_id: str | None = None
+    source_type: str | None = None
+    adapter: str | None = None
+    provider: str | None = None
+    payload_ref: str | None = None
+    period_start: str | None = None
+    period_end: str | None = None
+    captured_at: str | None = None
+    row_count: int | None = None
+    detail: dict[str, Any] = {}
+    tables: list[SourceTableCount] = []
+
+
 class WorkspaceInfo(BaseModel):
     label: str
     availability: Availability
@@ -123,7 +156,7 @@ class PositionRow(BaseModel):
     jurisdiction: str | None = None
 
 
-class TransactionRow(BaseModel):
+class TransactionRow(RowProvenance):
     entity_id: str
     entity_label: str
     date: str | None = None
@@ -193,7 +226,7 @@ class CardStatements(BaseModel):
     statements: list[CardStatementSummary] = []
 
 
-class CardStatementLine(BaseModel):
+class CardStatementLine(RowProvenance):
     date: str | None = None
     description: str | None = None
     amount: Money = Field(description="Signed: a purchase is negative, a payment/credit positive")
@@ -238,7 +271,7 @@ class CardBillPayments(BaseModel):
     rows: list[CardBillPaymentRow] = []
 
 
-class DiaryLine(BaseModel):
+class DiaryLine(RowProvenance):
     """One line of a holding's CAS transcript. Balances are UNIT quantities, not money."""
 
     date: str | None = None
@@ -348,7 +381,7 @@ class Family(BaseModel):
     rows: list[FamilyMemberRow] = []
 
 
-class TransferRow(BaseModel):
+class TransferRow(RowProvenance):
     """One bank transfer to a household member."""
 
     date: str | None = None
