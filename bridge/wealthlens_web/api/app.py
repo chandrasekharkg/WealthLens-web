@@ -214,7 +214,16 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         with wl_workspace.resolve(path).open() as con:
             detail = lens_api.source_detail(con, source_id)
             tables = lens_api.source_tables(con, source_id)
-        return {**detail, "tables": tables}
+            # The collateral view of this one source (filename / path / period / password), so the popup opens
+            # the file and copies its password exactly like the Workspace list — matched by source_id.
+            doc = next((d for d in collateral.documents(con, path) if d.source_id == source_id), None)
+        return {
+            "source_id": detail.get("source_id") or (source_id if doc else None),
+            "adapter": detail.get("adapter"),
+            "document": doc.as_dict() if doc else None,
+            "detail": detail.get("detail") or {},
+            "tables": tables,
+        }
 
     # ── the custodian, made legible ──────────────────────────────────────────────────────────────────
 
