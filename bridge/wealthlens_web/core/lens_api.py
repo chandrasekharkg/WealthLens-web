@@ -116,6 +116,7 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
             "subtype": _str(r.get("subtype")),
             "amfi_code": _str(r.get("amfi_code")),
             "jurisdiction": _str(r.get("jurisdiction")),
+            **_prov(r),
         })
     return out
 

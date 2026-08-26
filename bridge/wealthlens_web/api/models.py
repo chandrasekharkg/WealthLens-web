@@ -112,7 +112,7 @@ class Excluded(BaseModel):
     owner_warning: str | None = None
 
 
-class PositionRow(BaseModel):
+class PositionRow(RowProvenance):
     entity_id: str
     entity_label: str
     name: str | None = None

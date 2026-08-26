@@ -165,6 +165,21 @@ def test_transactions_carry_their_source_and_audit_columns(app_and_client):
     assert r["source_id"] == "src:test"
 
 
+def test_report_positions_carry_provenance_on_snapshot_rows(app_and_client):
+    """Primitive A on the Reports/positions tables: a snapshot-basis holding carries its source_id + audit."""
+    _, client = app_and_client
+    rows = [
+        r
+        for rep in client.get("/api/reports").json()
+        for s in client.get(f"/api/reports/{rep['id']}").json()["sections"]
+        for r in s["rows"]
+    ]
+    assert rows, "the fixture builds a valued holding somewhere in the reports"
+    snap = next((r for r in rows if r.get("basis") == "statement"), None)
+    assert snap is not None and snap["source_id"] == "src:test"
+    assert {"created_by", "created_at", "updated_by", "updated_at"} <= set(snap)
+
+
 def test_an_aggregate_response_contains_no_instrument_rows(app_and_client):
     """Scoped exposure, enforced at the source: there is no field a position could arrive in."""
     _, client = app_and_client
