@@ -209,6 +209,7 @@ class CardStatementSummary(BaseModel):
     payments: Money = Field(description="Σ credits and bill payments this period")
     transactions: int
     status: CardStatus | None = Field(default=None, description="This statement's paid-state (the star)")
+    source_id: str | None = Field(default=None, description="The document this statement came from")
 
 
 class CardStatements(BaseModel):
@@ -234,6 +235,7 @@ class CardStatement(BaseModel):
     statement_date: str | None = None
     previous_balance: Money | None = None
     new_balance: Money | None = None
+    source_id: str | None = Field(default=None, description="The document this statement came from — opens the PDF")
     transactions: list[CardStatementLine] = []
     provenance: Provenance
 

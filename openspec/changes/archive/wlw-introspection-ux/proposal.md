@@ -27,10 +27,10 @@
 >   the picker + statement); **"Bank ledger"** rename + a **bank facet**; Performance breakup legibility (the Tier-2
 >   classes epf/ppf/nps/gratuity gained `class.*` labels + distinct palette colours; cash-vs-FD was already split).
 >
-> **Carried forward (per-tab polish, NOT blockers — see Closed):** Workspace screen enhancements (item 17 — category
-> facet, 10-doc default, passwords-as-table, per-source tables-updated *on the Workspace screen*; the popup already
-> shows tables-updated); Performance unified fonts + explicit gridlines (item 18, beyond the label/colour fix);
-> Bill-payments honest-linkage labels + statement-date on the card tile (items 19/15). These are cosmetic follow-ups.
+> **All follow-ups since completed** (a polish round + a fable-5 verification pass, 2026-08-26 eve): items 15/17/18/19
+> are done, and the verification-driven hardening (bill-payment source, `NaT` fix, `card_paid_status` refund /
+> NULL-period guards, card-statement header/list source) has landed. See the refreshed **Closed** section at the foot
+> for the full, current tally.
 
 ## Decisions locked in review (2026-08-26)
 
@@ -218,27 +218,36 @@ valuation, or provenance invariants. This pass adds *visibility/introspection* o
 plus the three small additive Layer-1 items (card min-due, CAS period, diary sourced-facts).
 
 ## Closed
-Archived on completion (2026-08-26). The backbone — **both primitives, end-to-end across all four layers** — landed
-and is verified live on the demo store; the WLW suite (bridge contract + 131 frontend) and the WLC lens suite are
-green. Item-by-item against the plan (§Layers 1–4):
+Archived 2026-08-26; this tally **refreshed 2026-08-26 (eve)** after a polish round + an independent fable-5
+verification pass. The backbone — **both primitives, end-to-end across all four layers** — landed and is verified
+live on the owner's real store; suites green (WLC lens 808, WLW bridge 220, 136 frontend, tsc + lint clean).
+**Every plan item (§Layers 1–19) is now DONE:**
 
-- **1–14, 16 — DONE.** Layer-1 store facts; Layer-2 lens (`card_paid_status`/`source_detail`/`source_tables`/
-  `asset_groups` + sourced projections); Layer-3 bridge (fact-row provenance DTOs, `/api/source`, card paid-status,
-  round ticks); Layer-4 UI (`useColumnVisibility`, the provenance column group, the source popup, the Card Star,
-  the Bank-ledger rename + bank facet).
-- **15 — PARTIAL.** The paid-status **star** shipped on the picker tile and the statement header; the **statement
-  date on the tile** was not added (the tile shows owed/settled + statement count). Cosmetic.
-- **17 — NOT DONE (carried forward).** The **Workspace screen** enhancements (category dropdown + ALL, 10-doc
-  default, passwords-as-table, per-source tables-updated *on that screen*) were not built. Note the *engine + bridge*
-  support exists — `source_tables()` and the CAS period fix landed — and the **source popup already surfaces
-  tables-updated**, so this is a self-contained UI follow-up, not a new capability.
-- **18 — PARTIAL.** Cash-vs-FD was **already split** (distinct `asset_class` slices), and the breakup was made
-  legible (Tier-2 class labels + distinct colours); the **round axis-ticks** landed (Layer-3 bridge). **Unified
-  fonts + explicit gridlines** on the Performance charts were not done.
-- **19 — PARTIAL.** Family and Bill-payments (via the shared card-statement body) received the primitives; the
-  **Bill-payments honest-linkage labels** were not revised in this pass.
+- **1–16 — DONE.** Layer-1 store facts; Layer-2 lens (`card_paid_status`/`source_detail`/`source_tables`/
+  `asset_groups` + sourced projections, incl. **positions/holdings `source_id`** on snapshot rows); Layer-3 bridge
+  (fact-row provenance DTOs, `/api/source`, card paid-status, round ticks); Layer-4 UI (`useColumnVisibility`, the
+  provenance column group + source popup, the Card Star, the Bank-ledger rename + bank facet).
+- **15 — DONE.** The paid-status star + the **statement date on the tile** ("as of …").
+- **17 — DONE.** Workspace made navigable at scale (677 docs / 21 folders): folder filter, folders collapsed above
+  a handful, per-folder 10-doc cap + "Show all", a per-document **Source** popup (incl. tables-updated), and the
+  password ring as a table. (Shipped as a *provider/folder* filter — a variant of the proposed *category* dropdown.)
+- **18 — DONE.** Cash-vs-FD was already split; the breakup gained Tier-2 class labels + distinct colours; round
+  axis-ticks landed; and the growth-chart **axis labels moved to a fixed-rem HTML overlay** (no more SVG-stretch
+  font drift), gridlines kept.
+- **19 — DONE.** Family + Bill-payments carry the primitives; the **honest-linkage labels** ship via a new
+  `card_bill_payments.match` field (`exact` vs `cycle` fallback) surfaced as "View bill · this cycle".
 
-The carried-forward items (15 tile-date, 17 Workspace screen, 18 fonts/gridlines, 19 linkage labels) are all
-UI polish over data that already exists — none is a blocker, and each is a small self-contained follow-up. Deferred
-design items (positions/holdings `source_id`; standardised `sources.detail.{statement_date, account_masked}`) remain
-as recorded above and in the WLC `statement-metadata-completeness` archive. Both repos clean + in sync.
+**Post-verification hardening (fable-5 audit, all fixed):** the Bill-payments table now carries the payment's own
+bank-statement `source_id` (was the one card surface with no Source column); `_str` in the bridge now uses `pd.isna`
+so a derived holdings row's NULL timestamp no longer serialises as the literal `"NaT"` in the Reports audit columns;
+`card_paid_status` now (a) counts only **narration-matched payments** next cycle — a refund/cashback no longer marks
+an unpaid bill `paid` — and (b) skips **NULL-period** `card_spec` sources that could hijack the latest `pending`
+state; and the **card-statements list + statement header** now project their `source_id` (the header opens the
+statement's own document). Tests added for every fix (`test_provenance_edges.py`, plus refund / NULL-period /
+match-`none` lens tests).
+
+**Known limitations (logged, not fixed — low/info):** payment→card amount-matching is nondeterministic if two cards
+are paid the identical amount on the same day (date-diff tie-break only); a document with only a `payload_ref` and no
+parsed filename is not openable from Collateral / the source popup. Deferred design item: standardise
+`sources.detail.{statement_date, account_masked}` (tracked in the WLC `statement-metadata-completeness` archive).
+Both repos clean + in sync.

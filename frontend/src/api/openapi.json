@@ -396,6 +396,18 @@
           "provenance": {
             "$ref": "#/components/schemas/Provenance"
           },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The document this statement came from \u2014 opens the PDF",
+            "title": "Source Id"
+          },
           "statement_date": {
             "anyOf": [
               {
@@ -572,6 +584,18 @@
                 "type": "null"
               }
             ]
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The document this statement came from",
+            "title": "Source Id"
           },
           "spends": {
             "$ref": "#/components/schemas/Money",
