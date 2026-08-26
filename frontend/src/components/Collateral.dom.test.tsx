@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { Collateral } from "./Collateral";
@@ -50,6 +50,34 @@ describe("collateral as expanded folders", () => {
     );
     screen.getByRole("button", { name: /Open the file: cas.pdf/ }).click();
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ provider: "nsdl", filename: "cas.pdf" }));
+  });
+
+  it("filters to one folder and caps a large folder with a show-all", () => {
+    // one big folder (well past the cap) + several others → the list must stay navigable
+    const many = Array.from({ length: 25 }, (_, i) =>
+      doc({ source_id: `r${i}`, provider: "religare", filename: `cn-${i}.pdf` }));
+    render(
+      <Collateral
+        entity="me"
+        format={formatter("en-IN")}
+        onOpen={() => {}}
+        documents={[
+          ...many,
+          doc({ source_id: "k", provider: "kotak", filename: "kotak.pdf" }),
+          doc({ source_id: "n", provider: "nsdl", filename: "cas.pdf" }),
+        ]}
+      />,
+    );
+    // capped: only the first 10 religare rows render until "show all"
+    expect(screen.getByText("cn-0.pdf")).toBeTruthy();
+    expect(screen.queryByText("cn-20.pdf")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Show all 25/ }));
+    expect(screen.getByText("cn-20.pdf")).toBeTruthy();
+
+    // filter narrows to one folder: kotak/nsdl drop out when religare is chosen
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "religare" } });
+    expect(screen.queryByText("kotak.pdf")).toBeNull();
+    expect(screen.queryByText("cas.pdf")).toBeNull();
   });
 
   it("offers a Copy control only where a named password opened the document", () => {

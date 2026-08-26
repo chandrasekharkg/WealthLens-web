@@ -972,3 +972,10 @@ input[type="date"] {
 .card-status[data-tone="muted"] { color: var(--muted); background: var(--hover); }
 .card-tile-name + .card-status, .card-tile .card-status { margin-top: 0.3rem; align-self: flex-start; }
 .statement-head .card-status { margin-right: auto; }
+
+/* ── Collateral tools (folder filter + cap) ──────────────────────────────────────────────────────── */
+.collateral-tools { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; margin-bottom: 0.75rem; }
+.collateral-tools label { font-size: 0.8rem; color: var(--muted); }
+.collateral-tools select { font: inherit; padding: 0.25rem 0.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.collateral-count { font-size: 0.78rem; color: var(--muted); }
+.folder-more { font-size: 0.78rem; color: var(--muted); margin: 0.35rem 0 0.2rem; }
