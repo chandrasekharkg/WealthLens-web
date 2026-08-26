@@ -614,6 +614,11 @@ export interface components {
             new_balance?: components["schemas"]["Money"] | null;
             previous_balance?: components["schemas"]["Money"] | null;
             provenance: components["schemas"]["Provenance"];
+            /**
+             * Source Id
+             * @description The document this statement came from — opens the PDF
+             */
+            source_id?: string | null;
             /** Statement Date */
             statement_date?: string | null;
             /**
@@ -662,6 +667,11 @@ export interface components {
             /** @description Σ credits and bill payments this period */
             payments: components["schemas"]["Money"];
             previous_balance?: components["schemas"]["Money"] | null;
+            /**
+             * Source Id
+             * @description The document this statement came from
+             */
+            source_id?: string | null;
             /** @description Σ purchases this period */
             spends: components["schemas"]["Money"];
             /** Statement Date */

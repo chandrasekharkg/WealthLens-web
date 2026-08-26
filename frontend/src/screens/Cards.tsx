@@ -308,6 +308,17 @@ export function CardStatementBody({
             <dt>{t("cards.newBalance")}</dt>
             <dd className="statement-owed">{statement.new_balance ? money(statement.new_balance) : "—"}</dd>
           </div>
+          {/* Open the statement's own document — the whole PDF this statement was read from. */}
+          {entity && statement.source_id ? (
+            <div>
+              <dt>{t("column.source")}</dt>
+              <dd>
+                <button type="button" className="linklike" onClick={() => setSource(statement.source_id!)}>
+                  {t("source.view")}
+                </button>
+              </dd>
+            </div>
+          ) : null}
         </dl>
       ) : null}
 

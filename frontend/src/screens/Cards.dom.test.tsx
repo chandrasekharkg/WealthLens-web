@@ -32,7 +32,7 @@ const AXIS_STATEMENTS = {
 
 const AXIS_LATEST = {
   entity_id: "me", issuer: "axis", statement_date: "2026-02-28",
-  previous_balance: money("1000.00"), new_balance: money("300.00"),
+  previous_balance: money("1000.00"), new_balance: money("300.00"), source_id: "src:axis:feb",
   transactions: [
     { date: "2026-02-03", description: "BOOKSTORE", amount: money("-100.00"), direction: "spend" },
     { date: "2026-02-15", description: "BILL PAYMENT", amount: money("800.00"), direction: "payment" },
@@ -42,7 +42,7 @@ const AXIS_LATEST = {
 
 const ICICI_LATEST = {
   entity_id: "me", issuer: "icici", statement_date: "2026-02-11",
-  previous_balance: money("0.00"), new_balance: money("5000.00"),
+  previous_balance: money("0.00"), new_balance: money("5000.00"), source_id: "src:icici:feb",
   transactions: [
     { date: "2026-02-01", description: "ELECTRONICS", amount: money("-5000.00"), direction: "spend" },
   ],
@@ -116,6 +116,15 @@ describe("Cards", () => {
     // the January statement was underpaid → Part paid
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "2026-01-31" } });
     await waitFor(() => expect(screen.getByText("Part paid")).toBeTruthy());
+  });
+
+  it("offers a source control to open the statement's own document", async () => {
+    stub();
+    render(<Cards format={formatter()} />);
+    await screen.findAllByRole("listitem");
+    // the opened statement exposes its source (opens the statement PDF / provenance popup)
+    await waitFor(() => expect(screen.getByText("ELECTRONICS")).toBeTruthy());
+    expect(screen.getByRole("button", { name: /Where this came from/ })).toBeTruthy();
   });
 
   it("shows an empty-state when no cards are present", async () => {

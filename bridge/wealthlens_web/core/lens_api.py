@@ -220,6 +220,8 @@ def card_statements(con, *, issuer: str, currency: str) -> list[dict]:
         "payments": Money(_dec(r["payments"]), currency),
         "transactions": int(r["transactions"]),
         "status": status.get((str(issuer), _date(r["statement_date"]))) if _date(r["statement_date"]) else None,
+        # each statement in the list IS one source — the document behind that row
+        "source_id": _str(r.get("source_id")),
     } for _, r in df.iterrows()]
 
 
@@ -234,6 +236,8 @@ def card_statement(con, *, issuer: str, period: str | None, currency: str) -> di
         "statement_date": hdr.get("statement_date"),
         "previous_balance": _money(hdr.get("previous_balance"), currency),
         "new_balance": _money(hdr.get("new_balance"), currency),
+        # the statement's own source — so the header can open the statement document
+        "source_id": _str(hdr.get("source_id")),
         "transactions": [{
             "date": _date(r["date"]),
             "description": r["description"],
