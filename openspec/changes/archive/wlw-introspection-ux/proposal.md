@@ -1,11 +1,36 @@
 # wlw-introspection-ux — a one-pass, layer-by-layer provenance/introspection pass over the web app
 
-> **Status: DESIGN v2 (decisions locked; ready to turn into a layered plan).** Raised 2026-08-26 (KG collated UX
-> feedback); refined after review. Grounded in a three-way code recon (bridge data surface, frontend structure,
-> WLC engine data availability) — every AVAILABLE/PARTIAL/MISSING verdict carries schema/file evidence.
+> **Status: ✅ IMPLEMENTED (2026-08-26).** Raised 2026-08-26 (KG collated UX feedback); refined after review.
+> Grounded in a three-way code recon (bridge data surface, frontend structure, WLC engine data availability) —
+> every AVAILABLE/PARTIAL/MISSING verdict carries schema/file evidence. Executed **layer-by-layer: SQL/store →
+> Lens → Bridge → UI** (KG's sequencing call), each layer green before the next built on it. Verified live on the
+> demo Nair store. See **Closed** at the foot for the full landed-vs-carried-forward tally.
 >
-> **Execution is deliberately layer-by-layer: SQL/store → Lens → Bridge → UI** (KG's sequencing call), so each
-> layer is complete and testable before the next builds on it.
+> **The two backbone primitives shipped end-to-end.** Primitive A (the provenance/audit column group — `source`
+> + the created/updated audit quartet, hidden by default in every table's Columns picker) and Primitive B (click a
+> row's *Source* → a popup with the document's filename [opens via the OS], period, parser, copy-password, and the
+> tables it wrote). Rolled across the Bank ledger, card statement lines, family transfers, and the holding diary.
+>
+> **Where it landed (WLC main + WLW main):**
+> - **Layer 1 (WLC store/adapters, `8d9de60` + card action-tuple `a1e1760`/`12053bd`):** card min-due/due-date/
+>   statement-date/masked-number → `sources.detail` (validated on KG's + dad's real corpora, zero-value months
+>   survive); CAS period fix; `detailed_holding_diary` added to `_SOURCED_FACTS`; `capture_io.source_table_counts()`.
+> - **Layer 2 (WLC lens, `2b8d900`):** `card_paid_status()`, `source_detail()`, `source_tables()`, `asset_groups()`,
+>   and `source_id` + audit quartet on the fact projections. (`holdings`/positions source_id deferred — an
+>   aggregate-source nuance.)
+> - **Layer 3 (WLW bridge, `705fb8c`):** `_prov()` carries source_id + audit onto every fact-row DTO (the aggregate
+>   fan spreads them through unchanged); `GET /api/source/{entity}/{id}` (one payload = provenance + collateral
+>   `DocumentInfo` + tables-it-wrote, fails soft on an unknown id); card paid-status on the cards response; the
+>   growth-chart round axis-ticks (`_nice_axis_step`).
+> - **Layer 4 (WLW UI, `6887eea`):** `SourcePopup.tsx` (Primitive B); `lib/provenance.tsx` = `provenanceColumns()` +
+>   `useColumnVisibility()` (Primitive A), rolled across the four fact tables; the **Card Star** (paid-state badge on
+>   the picker + statement); **"Bank ledger"** rename + a **bank facet**; Performance breakup legibility (the Tier-2
+>   classes epf/ppf/nps/gratuity gained `class.*` labels + distinct palette colours; cash-vs-FD was already split).
+>
+> **Carried forward (per-tab polish, NOT blockers — see Closed):** Workspace screen enhancements (item 17 — category
+> facet, 10-doc default, passwords-as-table, per-source tables-updated *on the Workspace screen*; the popup already
+> shows tables-updated); Performance unified fonts + explicit gridlines (item 18, beyond the label/colour fix);
+> Bill-payments honest-linkage labels + statement-date on the card tile (items 19/15). These are cosmetic follow-ups.
 
 ## Decisions locked in review (2026-08-26)
 
@@ -191,3 +216,29 @@ so a layer is green before the next depends on it.
 Import/Operations/Activity screens; the store-key model; dedup/idempotency; any change to WLC's read-only,
 valuation, or provenance invariants. This pass adds *visibility/introspection* over data that already exists,
 plus the three small additive Layer-1 items (card min-due, CAS period, diary sourced-facts).
+
+## Closed
+Archived on completion (2026-08-26). The backbone — **both primitives, end-to-end across all four layers** — landed
+and is verified live on the demo store; the WLW suite (bridge contract + 131 frontend) and the WLC lens suite are
+green. Item-by-item against the plan (§Layers 1–4):
+
+- **1–14, 16 — DONE.** Layer-1 store facts; Layer-2 lens (`card_paid_status`/`source_detail`/`source_tables`/
+  `asset_groups` + sourced projections); Layer-3 bridge (fact-row provenance DTOs, `/api/source`, card paid-status,
+  round ticks); Layer-4 UI (`useColumnVisibility`, the provenance column group, the source popup, the Card Star,
+  the Bank-ledger rename + bank facet).
+- **15 — PARTIAL.** The paid-status **star** shipped on the picker tile and the statement header; the **statement
+  date on the tile** was not added (the tile shows owed/settled + statement count). Cosmetic.
+- **17 — NOT DONE (carried forward).** The **Workspace screen** enhancements (category dropdown + ALL, 10-doc
+  default, passwords-as-table, per-source tables-updated *on that screen*) were not built. Note the *engine + bridge*
+  support exists — `source_tables()` and the CAS period fix landed — and the **source popup already surfaces
+  tables-updated**, so this is a self-contained UI follow-up, not a new capability.
+- **18 — PARTIAL.** Cash-vs-FD was **already split** (distinct `asset_class` slices), and the breakup was made
+  legible (Tier-2 class labels + distinct colours); the **round axis-ticks** landed (Layer-3 bridge). **Unified
+  fonts + explicit gridlines** on the Performance charts were not done.
+- **19 — PARTIAL.** Family and Bill-payments (via the shared card-statement body) received the primitives; the
+  **Bill-payments honest-linkage labels** were not revised in this pass.
+
+The carried-forward items (15 tile-date, 17 Workspace screen, 18 fonts/gridlines, 19 linkage labels) are all
+UI polish over data that already exists — none is a blocker, and each is a small self-contained follow-up. Deferred
+design items (positions/holdings `source_id`; standardised `sources.detail.{statement_date, account_masked}`) remain
+as recorded above and in the WLC `statement-metadata-completeness` archive. Both repos clean + in sync.

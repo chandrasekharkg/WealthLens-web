@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "wealthlens-web",
-      "runtimeExecutable": ".venv/bin/python",
+      "runtimeExecutable": "../WealthLens-core/.venv/bin/python",
       "runtimeArgs": [
         "-m",
         "uvicorn",
@@ -16,7 +16,7 @@
       "port": 7788,
       "env": {
         "PYTHONPATH": "bridge",
-        "WLW_MANIFEST": "/private/tmp/claude-501/-Users-chandrasekhar-kg--gemini-antigravity-Projects-TVFotoFrame/25731830-717c-4287-aedd-9c28ef33b51e/scratchpad/demo/family.toml"
+        "WLW_MANIFEST": "../demo/family.toml"
       }
     }
   ]
