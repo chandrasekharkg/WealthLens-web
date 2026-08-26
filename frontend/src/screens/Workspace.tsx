@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type WorkspaceDetail } from "../api/client";
 import { Collateral } from "../components/Collateral";
 import { CopySecret } from "../components/CopySecret";
+import { SourcePopup } from "../components/SourcePopup";
 import type { Formatter } from "../i18n";
 
 /**
@@ -25,6 +26,8 @@ export function Workspace({ entities, format }: WorkspaceProps) {
   const [detail, setDetail] = useState<WorkspaceDetail | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // The source_id whose provenance popup is open, or none.
+  const [source, setSource] = useState<string | null>(null);
 
   const load = useCallback((id: string) => {
     if (!id) return;
@@ -102,6 +105,7 @@ export function Workspace({ entities, format }: WorkspaceProps) {
                 entity={entity}
                 format={format}
                 onOpen={(doc) => void openDocument(doc)}
+                onSource={(doc) => setSource(doc.source_id)}
               />
             )}
           </section>
@@ -149,14 +153,24 @@ export function Workspace({ entities, format }: WorkspaceProps) {
             {detail.settings.secret_names.length === 0 ? (
               <p role="status">{t("ws.ringEmpty")}</p>
             ) : (
-              <ul>
-                {detail.settings.secret_names.map((name) => (
-                  <li key={name}>
-                    {name}{" "}
-                    <CopySecret entity={entity} what={name} label={name} format={format} />
-                  </li>
-                ))}
-              </ul>
+              <table className="password-ring">
+                <thead>
+                  <tr>
+                    <th>{t("ws.secretName")}</th>
+                    <th>{t("column.password")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.settings.secret_names.map((name) => (
+                    <tr key={name}>
+                      <td>{name === "pan" ? t("password.pan") : name}</td>
+                      <td>
+                        <CopySecret entity={entity} what={name} label={name} format={format} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
 
             {problem && (
@@ -168,6 +182,10 @@ export function Workspace({ entities, format }: WorkspaceProps) {
           </section>
         </>
       )}
+
+      {source ? (
+        <SourcePopup entity={entity} sourceId={source} format={format} onClose={() => setSource(null)} />
+      ) : null}
     </main>
   );
 }

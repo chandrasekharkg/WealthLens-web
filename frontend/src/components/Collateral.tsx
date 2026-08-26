@@ -27,11 +27,14 @@ export function Collateral({
   entity,
   format,
   onOpen,
+  onSource,
 }: {
   documents: readonly Doc[];
   entity: string;
   format: Formatter;
   onOpen: (doc: Doc) => void;
+  /** Open the source popup for a document — its provenance + which store tables it wrote. */
+  onSource?: (doc: Doc) => void;
 }) {
   const { t, number, date } = format;
   const [folder, setFolder] = useState("");
@@ -100,6 +103,7 @@ export function Collateral({
                   <th>{t("column.period")}</th>
                   <th>{t("column.rows")}</th>
                   <th>{t("column.password")}</th>
+                  {onSource ? <th>{t("column.source")}</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -139,6 +143,18 @@ export function Collateral({
                           t("password.none")
                         )}
                       </td>
+                      {onSource ? (
+                        <td>
+                          <button
+                            type="button"
+                            className="linklike"
+                            onClick={() => onSource(doc)}
+                            aria-label={t("source.view")}
+                          >
+                            {t("source.view")}
+                          </button>
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}
