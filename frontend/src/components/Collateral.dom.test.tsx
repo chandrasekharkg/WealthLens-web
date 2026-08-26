@@ -80,6 +80,21 @@ describe("collateral as expanded folders", () => {
     expect(screen.queryByText("cas.pdf")).toBeNull();
   });
 
+  it("opens a document that has only a payload_ref (no parsed filename)", () => {
+    const onOpen = vi.fn();
+    render(
+      <Collateral
+        entity="me"
+        format={formatter("en-IN")}
+        onOpen={onOpen}
+        documents={[doc({ source_id: "a", provider: "nsdl", filename: null, payload_ref: "statements/cas-2026.pdf" })]}
+      />,
+    );
+    // the payload_ref is the label AND the control — opening resolves it on the bridge
+    screen.getByRole("button", { name: /Open the file: statements\/cas-2026.pdf/ }).click();
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ payload_ref: "statements/cas-2026.pdf" }));
+  });
+
   it("offers a Copy control only where a named password opened the document", () => {
     render(
       <Collateral

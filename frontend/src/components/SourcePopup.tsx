@@ -94,17 +94,18 @@ export function SourcePopup({
           <p>{t("source.unknown")}</p>
         ) : (
           <dl className="source-facts">
-            {doc?.filename ? (
+            {doc && (doc.filename || doc.payload_ref) ? (
               <>
                 <dt>{t("column.document")}</dt>
                 <dd>
+                  {/* Openable via filename OR payload_ref (the workspace-relative path the bridge resolves). */}
                   <button
                     type="button"
                     className="file-open"
                     onClick={() => void openFile()}
-                    aria-label={`${t("ws.openFile")}: ${doc.filename}`}
+                    aria-label={`${t("ws.openFile")}: ${doc.filename ?? doc.payload_ref}`}
                   >
-                    {doc.filename}
+                    {doc.filename ?? doc.payload_ref}
                   </button>
                   {openNote ? <span role="status"> {openNote}</span> : null}
                 </dd>

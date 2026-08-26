@@ -112,7 +112,9 @@ export function Collateral({
                   return (
                     <tr key={doc.source_id}>
                       <td>
-                        {doc.filename ? (
+                        {doc.filename || doc.payload_ref ? (
+                          // Openable when the store recorded EITHER a filename OR a payload_ref (the file's
+                          // path relative to the workspace — the authoritative locator, resolved by the bridge).
                           // A link because it opens something; a button because the act is a POST, not a URL.
                           <button
                             type="button"
