@@ -59,6 +59,25 @@ describe("copying a secret", () => {
     expect((await screen.findByRole("status")).textContent).toContain("denied");
   });
 
+  it("falls back to execCommand when the clipboard API is absent (HTTP LAN, non-secure context)", async () => {
+    // On http://aipc.local:8765 (plain HTTP, non-localhost) navigator.clipboard is undefined — the copy must
+    // still work via the legacy execCommand path, not throw "undefined is not an object".
+    stubFetch({ what: "hdfc", value: "a-statement-password" });
+    vi.stubGlobal("navigator", {}); // no .clipboard
+    const exec = vi.fn().mockReturnValue(true);
+    // jsdom has no execCommand — define it so the legacy fallback path has something to call
+    Object.defineProperty(document, "execCommand", { value: exec, configurable: true });
+    try {
+      show();
+      screen.getByRole("button", { name: /Copy hdfc/ }).click();
+      await waitFor(() => expect(exec).toHaveBeenCalledWith("copy"));
+      expect((await screen.findByRole("status")).textContent).toContain("Copied");
+      expect(document.body.textContent).not.toContain("a-statement-password"); // still never rendered
+    } finally {
+      Reflect.deleteProperty(document, "execCommand");
+    }
+  });
+
   it("reports a refusal from the bridge instead of copying an error", async () => {
     stubFetch({ detail: { reason: "nothing is stored under that name yet." } }, false);
     const writeText = stubClipboard();
