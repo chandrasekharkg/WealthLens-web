@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   api,
@@ -10,8 +10,10 @@ import {
   type CardStatementLine,
 } from "../api/client";
 import { DataTable } from "../components/DataTable";
+import { SourcePopup } from "../components/SourcePopup";
 import type { Formatter } from "../i18n";
 import { type Column, moneyColumns } from "../lib/csv";
+import { PROVENANCE_HIDDEN, provenanceColumns, useColumnVisibility } from "../lib/provenance";
 
 /**
  * Cards: pick a card, read a statement.
@@ -192,6 +194,7 @@ function Statement({ card, format }: { card: CardRow; format: Formatter }) {
         loading={statement.state === "loading"}
         issuer={card.issuer}
         scope={card.entity_label ?? entity}
+        entity={entity}
         format={format}
       />
     </section>
@@ -208,16 +211,28 @@ export function CardStatementBody({
   loading,
   issuer,
   scope,
+  entity,
   format,
 }: {
   readonly statement: CardStatement | null;
   readonly loading: boolean;
   readonly issuer: string;
   readonly scope: string;
+  /** Which store the statement came from — enables the Source column/popup. Absent = no source column. */
+  readonly entity?: string;
   readonly format: Formatter;
 }) {
   const { t, money, date } = format;
   const lines = statement?.transactions ?? [];
+
+  const [source, setSource] = useState<string | null>(null);
+  const openSource = useCallback((row: CardStatementLine) => {
+    if (row.source_id) setSource(row.source_id);
+  }, []);
+  const { columnVisibility, onColumnVisibilityChange } = useColumnVisibility(
+    "wlw.columns.cardStatement",
+    PROVENANCE_HIDDEN,
+  );
 
   const columns = useMemo<ColumnDef<CardStatementLine>[]>(
     () => [
@@ -256,8 +271,10 @@ export function CardStatementBody({
           <span data-direction={row.original.direction}>{money(row.original.amount)}</span>
         ),
       },
+      // The provenance/audit group (Primitive A), when the statement's store is known — hidden by default.
+      ...(entity ? provenanceColumns<CardStatementLine>(t, openSource) : []),
     ],
-    [t, money, date],
+    [t, money, date, entity, openSource],
   );
 
   const exportColumns = useMemo<Column<CardStatementLine>[]>(
@@ -266,6 +283,11 @@ export function CardStatementBody({
       { header: t("column.description"), value: (r) => r.description ?? null },
       { header: t("column.direction"), value: (r) => r.direction },
       ...moneyColumns<CardStatementLine>(t("column.amount"), (r) => r.amount),
+      { header: t("column.source"), value: (r) => r.source_id ?? null },
+      { header: t("column.createdBy"), value: (r) => r.created_by ?? null },
+      { header: t("column.createdAt"), value: (r) => r.created_at ?? null },
+      { header: t("column.updatedBy"), value: (r) => r.updated_by ?? null },
+      { header: t("column.updatedAt"), value: (r) => r.updated_at ?? null },
     ],
     [t],
   );
@@ -306,8 +328,14 @@ export function CardStatementBody({
             reporting_currency: statement?.provenance.reporting_currency ?? "INR",
             row_count: lines.length,
           }}
+          columnVisibility={entity ? columnVisibility : undefined}
+          onColumnVisibilityChange={entity ? onColumnVisibilityChange : undefined}
         />
       )}
+
+      {source && entity ? (
+        <SourcePopup entity={entity} sourceId={source} format={format} onClose={() => setSource(null)} />
+      ) : null}
     </>
   );
 }

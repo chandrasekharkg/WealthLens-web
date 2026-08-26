@@ -162,6 +162,7 @@ function BillDetail({ focus, format }: { focus: Focus; format: Formatter }) {
       loading={statement.state === "loading"}
       issuer={focus.issuer}
       scope={focus.entity}
+      entity={focus.entity}
       format={format}
     />
   );

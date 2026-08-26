@@ -38,7 +38,7 @@ export function Transactions({ format }: TransactionsProps) {
 
   useEffect(() => load(applied.since, applied.until), [applied, load]);
 
-  const allRows = txns.state === "ready" ? txns.data.rows : [];
+  const allRows = useMemo(() => (txns.state === "ready" ? txns.data.rows : []), [txns]);
   // The bank facet: the distinct banks present, so a household can read one account at a time. Derived from the
   // rows themselves (a bank with no rows in this window is not an option), and applied before the table.
   const banks = useMemo(

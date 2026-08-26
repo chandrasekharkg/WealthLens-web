@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type DiaryLine, type HoldingDiary } from "../api/client";
 import type { Formatter } from "../i18n";
 import { type Column } from "../lib/csv";
+import { PROVENANCE_HIDDEN, provenanceColumns, useColumnVisibility } from "../lib/provenance";
 import { DataTable } from "./DataTable";
+import { SourcePopup } from "./SourcePopup";
 
 /**
  * The full transcript of one holding — the detailed_holding_diary drill-down.
@@ -52,6 +54,15 @@ export function HoldingDiaryPanel({
     [number],
   );
 
+  const [source, setSource] = useState<string | null>(null);
+  const openSource = useCallback((row: DiaryLine) => {
+    if (row.source_id) setSource(row.source_id);
+  }, []);
+  const { columnVisibility, onColumnVisibilityChange } = useColumnVisibility(
+    "wlw.columns.diary",
+    PROVENANCE_HIDDEN,
+  );
+
   const columns = useMemo<ColumnDef<DiaryLine>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => format.date(row.original.date) },
@@ -85,8 +96,9 @@ export function HoldingDiaryPanel({
           }
           return num(l.closing);
         } },
+      ...provenanceColumns<DiaryLine>(t, openSource),
     ],
-    [t, format, num],
+    [t, format, num, openSource],
   );
 
   const exportColumns = useMemo<Column<DiaryLine>[]>(
@@ -99,6 +111,11 @@ export function HoldingDiaryPanel({
       { header: t("column.balance"), value: (r) => r.closing ?? null },
       { header: "pledged", value: (r) => r.pledged ?? null },
       { header: "locked", value: (r) => r.locked ?? null },
+      { header: t("column.source"), value: (r) => r.source_id ?? null },
+      { header: t("column.createdBy"), value: (r) => r.created_by ?? null },
+      { header: t("column.createdAt"), value: (r) => r.created_at ?? null },
+      { header: t("column.updatedBy"), value: (r) => r.updated_by ?? null },
+      { header: t("column.updatedAt"), value: (r) => r.updated_at ?? null },
     ],
     [t],
   );
@@ -188,8 +205,14 @@ export function HoldingDiaryPanel({
             reporting_currency: diary.state === "ready" ? diary.data.provenance.reporting_currency : "—",
             row_count: lines.length,
           }}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={onColumnVisibilityChange}
         />
       )}
+
+      {source ? (
+        <SourcePopup entity={entity} sourceId={source} format={format} onClose={() => setSource(null)} />
+      ) : null}
     </section>
   );
 }

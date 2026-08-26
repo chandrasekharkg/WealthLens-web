@@ -1,10 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type Family as FamilyData, type FamilyTransfers, type TransferRow } from "../api/client";
 import { DataTable } from "../components/DataTable";
+import { SourcePopup } from "../components/SourcePopup";
 import type { Formatter } from "../i18n";
 import { type Column, moneyColumns } from "../lib/csv";
+import { PROVENANCE_HIDDEN, provenanceColumns, useColumnVisibility } from "../lib/provenance";
 
 /**
  * Family — money moved to the people in your household.
@@ -103,6 +105,15 @@ function TransferList({ focus, format }: { focus: Focus; format: Formatter }) {
 
   const rows = state.state === "ready" ? state.data.transfers : [];
 
+  const [source, setSource] = useState<string | null>(null);
+  const openSource = useCallback((row: TransferRow) => {
+    if (row.source_id) setSource(row.source_id);
+  }, []);
+  const { columnVisibility, onColumnVisibilityChange } = useColumnVisibility(
+    "wlw.columns.transfers",
+    PROVENANCE_HIDDEN,
+  );
+
   const columns = useMemo<ColumnDef<TransferRow>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => date(row.original.date) },
@@ -115,8 +126,9 @@ function TransferList({ focus, format }: { focus: Focus; format: Formatter }) {
         accessorFn: (r) => Number(r.amount.amount),
         cell: ({ row }) => money(row.original.amount),
       },
+      ...provenanceColumns<TransferRow>(t, openSource),
     ],
-    [t, money, date],
+    [t, money, date, openSource],
   );
 
   const exportColumns = useMemo<Column<TransferRow>[]>(
@@ -125,6 +137,11 @@ function TransferList({ focus, format }: { focus: Focus; format: Formatter }) {
       { header: t("column.from"), value: (r) => r.bank ?? null },
       { header: t("column.description"), value: (r) => r.narration ?? null },
       ...moneyColumns<TransferRow>(t("column.amount"), (r) => r.amount),
+      { header: t("column.source"), value: (r) => r.source_id ?? null },
+      { header: t("column.createdBy"), value: (r) => r.created_by ?? null },
+      { header: t("column.createdAt"), value: (r) => r.created_at ?? null },
+      { header: t("column.updatedBy"), value: (r) => r.updated_by ?? null },
+      { header: t("column.updatedAt"), value: (r) => r.updated_at ?? null },
     ],
     [t],
   );
@@ -133,20 +150,27 @@ function TransferList({ focus, format }: { focus: Focus; format: Formatter }) {
   if (state.state === "loading") return <p role="status">…</p>;
 
   return (
-    <DataTable
-      rows={rows}
-      columns={columns}
-      exportColumns={exportColumns}
-      format={format}
-      pageSize={25}
-      caption={t("family.transfersTo", { name: focus.name })}
-      provenance={{
-        title: t("family.transfersTo", { name: focus.name }),
-        scope: focus.entity,
-        // The reporting currency is the bridge's decision, not something to read off the first row.
-        reporting_currency: state.data.provenance.reporting_currency,
-        row_count: rows.length,
-      }}
-    />
+    <>
+      <DataTable
+        rows={rows}
+        columns={columns}
+        exportColumns={exportColumns}
+        format={format}
+        pageSize={25}
+        caption={t("family.transfersTo", { name: focus.name })}
+        provenance={{
+          title: t("family.transfersTo", { name: focus.name }),
+          scope: focus.entity,
+          // The reporting currency is the bridge's decision, not something to read off the first row.
+          reporting_currency: state.data.provenance.reporting_currency,
+          row_count: rows.length,
+        }}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={onColumnVisibilityChange}
+      />
+      {source ? (
+        <SourcePopup entity={focus.entity} sourceId={source} format={format} onClose={() => setSource(null)} />
+      ) : null}
+    </>
   );
 }
