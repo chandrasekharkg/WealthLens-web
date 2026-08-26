@@ -253,7 +253,9 @@ def _num(v) -> float | None:
 
 
 def _str(v) -> str | None:
-    return None if v is None or (isinstance(v, float) and _isnan(v)) else str(v)
+    # _isnan (pd.isna) catches NaT and pandas NA too, not just float NaN — so a derived row's NULL timestamp
+    # (CAST(NULL AS TIMESTAMP)) yields None here, never the literal string "NaT".
+    return None if v is None or _isnan(v) else str(v)
 
 
 def _prov(r) -> dict:
@@ -388,6 +390,8 @@ def card_bill_payments(con, *, currency: str) -> list[dict]:
         "resolved": bool(r["resolved"]),
         # how the statement was resolved — 'exact' (bill cleared), 'cycle' (fallback/partial), or 'none'
         "match": _str(r.get("match")),
+        # the payment's own source (the bank statement the debit came from) — traceable whatever the match
+        **_prov(r),
     } for _, r in df.iterrows()]
 
 

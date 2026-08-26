@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatter } from "../i18n";
@@ -15,7 +15,7 @@ const PAYMENTS = {
   rows: [
     { date: "2026-02-05", bank: "axis", amount: money("1000.00"), narration: "UPI/Amazon RBL",
       issuer: "axis", statement_date: "2026-01-31", resolved: true, match: "exact",
-      entity_id: "me", entity_label: "Me" },
+      source_id: "src:axis-bank", created_by: "ingest", entity_id: "me", entity_label: "Me" },
     { date: "2026-03-03", bank: "axis", amount: money("400.00"), narration: "UPI/Ref#8812",
       issuer: "axis", statement_date: "2026-02-28", resolved: true, match: "cycle",
       entity_id: "me", entity_label: "Me" },
@@ -63,6 +63,20 @@ describe("Payments", () => {
     await waitFor(() => expect(screen.getByText("COFFEE SHOP")).toBeTruthy());
     expect(screen.getByText("The bill this payment cleared")).toBeTruthy();
     expect(screen.getByText("GROCERY")).toBeTruthy();
+  });
+
+  it("carries each payment's own source — a hidden-by-default Source column, opening the bank statement", async () => {
+    stub();
+    render(<Payments format={formatter()} />);
+    await screen.findAllByText("View bill");
+    // the provenance group is offered in the Columns picker (hidden by default)
+    const picker = screen.getByText("Columns").closest("details")!;
+    picker.open = true;
+    const source = within(picker).getByLabelText("Source", { selector: "input" });
+    expect(source).toBeTruthy();
+    fireEvent.click(source);
+    // the payment with a source_id now shows a "Where this came from" control
+    expect(screen.getByRole("button", { name: /Where this came from/ })).toBeTruthy();
   });
 
   it("marks a cycle-fallback match honestly, an exact one plainly", async () => {

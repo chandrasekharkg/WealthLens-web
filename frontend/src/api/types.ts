@@ -493,7 +493,8 @@ export interface components {
         };
         /**
          * CardBillPaymentRow
-         * @description A credit-card bill payment on the bank statement — the bank→card drill-down.
+         * @description A credit-card bill payment on the bank statement — the bank→card drill-down. Carries the payment's own
+         *     provenance (the bank statement the debit came from), independent of how the bill was resolved.
          */
         CardBillPaymentRow: {
             /** @description ₹ paid (positive) */
@@ -503,6 +504,10 @@ export interface components {
              * @description The account the payment left from
              */
             bank?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
             /** Date */
             date?: string | null;
             /** Entity Id */
@@ -526,11 +531,17 @@ export interface components {
              * @description True when the card's statement is loaded and openable
              */
             resolved: boolean;
+            /** Source Id */
+            source_id?: string | null;
             /**
              * Statement Date
              * @description The bill this settled — the drill target, when the card is loaded
              */
             statement_date?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
         };
         /** CardBillPayments */
         CardBillPayments: {
