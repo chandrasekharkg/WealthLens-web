@@ -77,17 +77,25 @@ export function Payments({ format }: PaymentsProps) {
         cell: ({ row }) => cardName(row.original.issuer),
       },
       {
-        id: "open",
-        header: "",
+        id: "link",
+        header: t("payments.link"),
         enableSorting: false,
-        cell: ({ row }) =>
-          row.original.resolved ? (
-            <button type="button" className="linklike" onClick={() => open(row.original)}>
+        // Honest linkage: the card is always matched by amount, but the STATEMENT is either an exact
+        // bill-balance clear or a cycle fallback (a partial payment lands on the cycle, not a confirmed bill).
+        cell: ({ row }) => {
+          const r = row.original;
+          if (!r.resolved) return <span data-identifier="none">{t("payments.notLoaded")}</span>;
+          return (
+            <button type="button" className="linklike" onClick={() => open(r)}>
               {t("payments.view")}
+              {r.match === "cycle" ? (
+                <span className="link-inferred" title={t("payments.cycleTip")}>
+                  {" "}· {t("payments.cycle")}
+                </span>
+              ) : null}
             </button>
-          ) : (
-            <span data-identifier="none">{t("payments.notLoaded")}</span>
-          ),
+          );
+        },
       },
     ],
     [t, money, date],
@@ -100,6 +108,7 @@ export function Payments({ format }: PaymentsProps) {
       ...moneyColumns<CardBillPaymentRow>(t("column.amount"), (r) => r.amount),
       { header: t("payments.paidTo"), value: (r) => r.issuer ?? null },
       { header: t("cards.period"), value: (r) => r.statement_date ?? null },
+      { header: t("payments.link"), value: (r) => r.match ?? null },
     ],
     [t],
   );

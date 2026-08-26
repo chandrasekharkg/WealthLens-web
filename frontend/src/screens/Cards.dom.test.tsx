@@ -85,6 +85,8 @@ describe("Cards", () => {
     expect(within(tiles[1]!).getByText("AXIS card")).toBeTruthy();
     // Pre-selected first card → its latest statement itemised.
     await waitFor(() => expect(screen.getByText("ELECTRONICS")).toBeTruthy());
+    // each tile shows the newest statement's closing date, the "as of" for the outstanding figure
+    expect(screen.getAllByText(/as of/).length).toBeGreaterThan(0);
   });
 
   it("switches card and drills into its latest statement, then an older period", async () => {

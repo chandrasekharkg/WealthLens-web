@@ -64,7 +64,7 @@ export type CardsProps = {
 };
 
 export function Cards({ format }: CardsProps) {
-  const { t, money } = format;
+  const { t, money, date } = format;
   const [cards, setCards] = useState<Load<CardsData>>({ state: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -115,6 +115,8 @@ export function Cards({ format }: CardsProps) {
               <span className="card-tile-meta">
                 {owed > 0 ? t("cards.owed") : t("cards.settled")} ·{" "}
                 {t("cards.statements", { count: c.statements })}
+                {/* The newest statement's closing date — the "as of" for the outstanding figure and star. */}
+                {c.last_statement ? ` · ${t("cards.asOf", { date: date(c.last_statement) })}` : ""}
               </span>
               {/* The star: the newest statement's paid-state. */}
               <StatusBadge status={c.status} t={t} />

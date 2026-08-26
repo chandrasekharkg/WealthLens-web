@@ -386,6 +386,8 @@ def card_bill_payments(con, *, currency: str) -> list[dict]:
                   else str(r["issuer"]),
         "statement_date": _date(r.get("statement_date")),
         "resolved": bool(r["resolved"]),
+        # how the statement was resolved — 'exact' (bill cleared), 'cycle' (fallback/partial), or 'none'
+        "match": _str(r.get("match")),
     } for _, r in df.iterrows()]
 
 

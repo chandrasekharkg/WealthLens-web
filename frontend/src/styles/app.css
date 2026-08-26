@@ -878,9 +878,18 @@ input[type="date"] {
 .chart-legend-value { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .chart-area { width: 100%; overflow-x: auto; }
-.chart-area svg { width: 100%; height: auto; min-width: 320px; }
+.chart-area-inner { position: relative; width: 100%; min-width: 320px; }
+.chart-area-inner svg { display: block; width: 100%; height: 100%; }
 .chart-grid { stroke: var(--line); stroke-width: 1; }
-.chart-tick { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+/* Axis labels ride an HTML overlay so they stay at a fixed CSS size (unified with the donut), never stretched
+   by the SVG. Positioned by the percentage coordinates the chart computes. */
+.chart-tick { position: absolute; font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap; pointer-events: none; }
+.chart-tick-y { transform: translateY(-100%); padding-left: 2px; }        /* sit just above the gridline */
+.chart-tick-x { bottom: 0; }
+.chart-tick-x[data-align="start"] { transform: translateX(0); }
+.chart-tick-x[data-align="mid"]   { transform: translateX(-50%); }
+.chart-tick-x[data-align="end"]   { transform: translateX(-100%); }
 
 /* ── Family ───────────────────────────────────────────────────────────────────────────────────────── */
 .family-list { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
@@ -987,3 +996,6 @@ input[type="date"] {
 .password-ring th, .password-ring td { text-align: left; padding: 0.3rem 0.9rem 0.3rem 0; font-size: 0.85rem; }
 .password-ring th { color: var(--muted); font-weight: 600; }
 .password-ring td.numeric { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+/* ── Bill-payment link confidence ────────────────────────────────────────────────────────────────── */
+.link-inferred { color: var(--warn); font-size: 0.85em; cursor: help; }

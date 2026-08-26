@@ -96,27 +96,39 @@ export function StackedAreaChart({
   });
 
   const xLabels = n <= 1 ? [0] : [0, Math.floor((n - 1) / 2), n - 1];
+  // Position labels as PERCENTAGES of the box, so they ride an HTML overlay at real CSS pixel sizes rather
+  // than SVG text stretched by preserveAspectRatio="none" — the axis stays crisp and the same size as the
+  // donut's, at any width. Only the polygons and gridlines live in the (stretched) SVG.
+  const pctX = (i: number) => `${(x(i) / W) * 100}%`;
+  const pctY = (frac: number) => `${(y(frac) / H) * 100}%`;
 
   return (
     <div className="chart-area">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Value over time" preserveAspectRatio="none">
+      <div className="chart-area-inner" style={{ aspectRatio: `${W} / ${H}` }}>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Value over time" preserveAspectRatio="none">
+          {ticks.map((t) => (
+            <line key={t.label} x1={padL} y1={y(t.frac)} x2={W - padR} y2={y(t.frac)} className="chart-grid" />
+          ))}
+          {polys.map((p) => (
+            <polygon key={p.label} points={p.points} fill={p.color} fillOpacity="0.85" />
+          ))}
+        </svg>
         {ticks.map((t) => (
-          <g key={t.label}>
-            <line x1={padL} y1={y(t.frac)} x2={W - padR} y2={y(t.frac)} className="chart-grid" />
-            <text x={padL + 2} y={y(t.frac) - 3} className="chart-tick">
-              {t.label}
-            </text>
-          </g>
-        ))}
-        {polys.map((p) => (
-          <polygon key={p.label} points={p.points} fill={p.color} fillOpacity="0.85" />
+          <span key={t.label} className="chart-tick chart-tick-y" style={{ top: pctY(t.frac), left: pctX(0) }}>
+            {t.label}
+          </span>
         ))}
         {xLabels.map((i) => (
-          <text key={i} x={x(i)} y={H - 6} textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"} className="chart-tick">
+          <span
+            key={i}
+            className="chart-tick chart-tick-x"
+            data-align={i === 0 ? "start" : i === n - 1 ? "end" : "mid"}
+            style={{ left: pctX(i) }}
+          >
             {dateLabels[i]}
-          </text>
+          </span>
         ))}
-      </svg>
+      </div>
     </div>
   );
 }
