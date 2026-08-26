@@ -187,6 +187,12 @@ class Transactions(BaseModel):
     rows: list[TransactionRow] = []
 
 
+CardStatus = Literal["paid", "paid_minimum", "partial", "unpaid", "nil", "pending"]
+"""A statement's paid-state, derived from the action tuple (minimum due / due date) vs the next cycle's
+payments: fully paid / at least the minimum / less than the minimum / nothing / nothing owed / no next cycle
+yet. None when the store lacks the facts to decide."""
+
+
 class CardRow(BaseModel):
     """One credit card in the picker, tagged with whose store it came from."""
 
@@ -196,6 +202,7 @@ class CardRow(BaseModel):
     since: str | None = Field(default=None, description="Date of the first transaction on record")
     last_statement: str | None = Field(default=None, description="Closing date of the newest statement")
     outstanding: Money | None = Field(default=None, description="The newest statement's new balance — ₹ owed")
+    status: CardStatus | None = Field(default=None, description="The newest statement's paid-state (the star)")
     entity_id: str | None = None
     entity_label: str | None = None
 
@@ -218,6 +225,7 @@ class CardStatementSummary(BaseModel):
     spends: Money = Field(description="Σ purchases this period")
     payments: Money = Field(description="Σ credits and bill payments this period")
     transactions: int
+    status: CardStatus | None = Field(default=None, description="This statement's paid-state (the star)")
 
 
 class CardStatements(BaseModel):

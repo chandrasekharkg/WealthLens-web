@@ -580,6 +580,11 @@ export interface components {
              * @description How many statements are loaded for this card
              */
             statements: number;
+            /**
+             * Status
+             * @description The newest statement's paid-state (the star)
+             */
+            status?: ("paid" | "paid_minimum" | "partial" | "unpaid" | "nil" | "pending") | null;
         };
         /**
          * CardStatement
@@ -645,6 +650,11 @@ export interface components {
             spends: components["schemas"]["Money"];
             /** Statement Date */
             statement_date?: string | null;
+            /**
+             * Status
+             * @description This statement's paid-state (the star)
+             */
+            status?: ("paid" | "paid_minimum" | "partial" | "unpaid" | "nil" | "pending") | null;
             /** Transactions */
             transactions: number;
         };

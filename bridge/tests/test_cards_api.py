@@ -88,3 +88,18 @@ def test_statement_period_selects_an_older_month(client):
 def test_statement_for_an_undeclared_entity_is_404(client):
     r = client.get("/api/cards/nobody/axis/statement")
     assert r.status_code == 404
+
+
+def test_each_statement_carries_its_paid_status_and_the_picker_the_newest(client):
+    """Card Star: the paid-state the lens derives from the action tuple vs the next cycle's payments, surfaced
+    on every statement and (as the newest) on the picker row."""
+    picker = {r["issuer"]: r for r in client.get("/api/cards").json()["rows"]}
+    # newest statement of each card has no next cycle to settle it → pending
+    assert picker["axis"]["status"] == "pending"
+    assert picker["icici"]["status"] == "pending"
+
+    stmts = {s["statement_date"]: s["status"] for s in
+             client.get("/api/cards/mine/axis/statements").json()["statements"]}
+    assert stmts["2026-02-28"] == "pending"                 # the newest
+    # Jan closed owing ₹1000; the next cycle paid only ₹800 back → less than the full bill = partial
+    assert stmts["2026-01-31"] == "partial"

@@ -260,6 +260,26 @@
             "description": "How many statements are loaded for this card",
             "title": "Statements",
             "type": "integer"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "paid",
+                  "paid_minimum",
+                  "partial",
+                  "unpaid",
+                  "nil",
+                  "pending"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newest statement's paid-state (the star)",
+            "title": "Status"
           }
         },
         "required": [
@@ -495,6 +515,26 @@
               }
             ],
             "title": "Statement Date"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "paid",
+                  "paid_minimum",
+                  "partial",
+                  "unpaid",
+                  "nil",
+                  "pending"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This statement's paid-state (the star)",
+            "title": "Status"
           },
           "transactions": {
             "title": "Transactions",

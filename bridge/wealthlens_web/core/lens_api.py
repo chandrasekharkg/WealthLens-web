@@ -176,11 +176,25 @@ def _money(v, currency: str) -> Money | None:
     return None if v is None or _isnan(v) else Money(_dec(v), currency)
 
 
+def _paid_status(con) -> dict[tuple[str, str], str]:
+    """{(issuer, 'YYYY-MM-DD') → paid/paid_minimum/partial/unpaid/nil/pending} for every statement — the star
+    on the statement list and the card picker. The lens derives it from the captured action tuple (minimum due /
+    due date) against the NEXT cycle's payment credits; the newest statement, having no next cycle yet, is
+    'pending'."""
+    from wealthlens import lens
+    df = lens.card_paid_status(con=con)
+    return {(str(r["issuer"]), str(r["statement_date"])[:10]): str(r["status"]) for _, r in df.iterrows()}
+
+
 def cards(con, *, currency: str) -> list[dict]:
     """One row per credit card in this store — the picker. `outstanding` is the latest statement's new balance
-    (₹ owed). Cards are a household liability, not owner-scoped, so every card in the store is returned."""
+    (₹ owed) and `status` the newest statement's paid-state (the picker star). Cards are a household liability,
+    not owner-scoped, so every card in the store is returned."""
     from wealthlens import lens
     df = lens.cards(con=con)
+    status = _paid_status(con)
+    def _st(issuer, last):
+        return status.get((str(issuer), last)) if last else None
     return [{
         "account_id": r["account_id"],
         "issuer": r["issuer"],
@@ -188,6 +202,7 @@ def cards(con, *, currency: str) -> list[dict]:
         "since": _date(r.get("since")),
         "last_statement": _date(r.get("last_statement")),
         "outstanding": _money(r.get("outstanding"), currency),
+        "status": _st(r["issuer"], _date(r.get("last_statement"))),
     } for _, r in df.iterrows()]
 
 
@@ -195,6 +210,7 @@ def card_statements(con, *, issuer: str, currency: str) -> list[dict]:
     """The statement list for one card, newest first — the period selector, each row self-summarising."""
     from wealthlens import lens
     df = lens.card_statements(issuer, con=con)
+    status = _paid_status(con)
     return [{
         "statement_date": _date(r["statement_date"]),
         "previous_balance": _money(r.get("previous_balance"), currency),
@@ -202,6 +218,7 @@ def card_statements(con, *, issuer: str, currency: str) -> list[dict]:
         "spends": Money(_dec(r["spends"]), currency),
         "payments": Money(_dec(r["payments"]), currency),
         "transactions": int(r["transactions"]),
+        "status": status.get((str(issuer), _date(r["statement_date"]))) if _date(r["statement_date"]) else None,
     } for _, r in df.iterrows()]
 
 
