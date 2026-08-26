@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   api,
@@ -8,8 +8,10 @@ import {
   type CardStatement,
 } from "../api/client";
 import { DataTable } from "../components/DataTable";
+import { SourcePopup } from "../components/SourcePopup";
 import type { Formatter } from "../i18n";
 import { type Column, moneyColumns } from "../lib/csv";
+import { PROVENANCE_HIDDEN, provenanceColumns, useColumnVisibility } from "../lib/provenance";
 import { CardStatementBody } from "./Cards";
 
 /**
@@ -48,6 +50,16 @@ export function Payments({ format }: PaymentsProps) {
   }, []);
 
   const rows = payments.state === "ready" ? payments.data.rows : [];
+
+  // The source popup (Primitive B) for the payment's own bank-statement source.
+  const [source, setSource] = useState<{ entity: string; sourceId: string } | null>(null);
+  const openSource = useCallback((r: CardBillPaymentRow) => {
+    if (r.source_id && r.entity_id) setSource({ entity: r.entity_id, sourceId: r.source_id });
+  }, []);
+  const { columnVisibility, onColumnVisibilityChange } = useColumnVisibility(
+    "wlw.columns.payments",
+    PROVENANCE_HIDDEN,
+  );
 
   const open = (r: CardBillPaymentRow) => {
     if (!r.resolved || !r.issuer || !r.statement_date || !r.entity_id) return;
@@ -97,8 +109,10 @@ export function Payments({ format }: PaymentsProps) {
           );
         },
       },
+      // The provenance/audit group (Primitive A) — the payment's own bank-statement source, hidden by default.
+      ...provenanceColumns<CardBillPaymentRow>(t, openSource),
     ],
-    [t, money, date],
+    [t, money, date, openSource],
   );
 
   const exportColumns = useMemo<Column<CardBillPaymentRow>[]>(
@@ -109,6 +123,11 @@ export function Payments({ format }: PaymentsProps) {
       { header: t("payments.paidTo"), value: (r) => r.issuer ?? null },
       { header: t("cards.period"), value: (r) => r.statement_date ?? null },
       { header: t("payments.link"), value: (r) => r.match ?? null },
+      { header: t("column.source"), value: (r) => r.source_id ?? null },
+      { header: t("column.createdBy"), value: (r) => r.created_by ?? null },
+      { header: t("column.createdAt"), value: (r) => r.created_at ?? null },
+      { header: t("column.updatedBy"), value: (r) => r.updated_by ?? null },
+      { header: t("column.updatedAt"), value: (r) => r.updated_at ?? null },
     ],
     [t],
   );
@@ -133,6 +152,8 @@ export function Payments({ format }: PaymentsProps) {
           ...payments.data.provenance,
           title: t("payments.title"),
         }}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={onColumnVisibilityChange}
       />
 
       {focus ? (
@@ -146,6 +167,15 @@ export function Payments({ format }: PaymentsProps) {
           {/* Keyed by the payment, so opening another remounts to its loading state — no synchronous reset. */}
           <BillDetail key={focus.key} focus={focus} format={format} />
         </section>
+      ) : null}
+
+      {source ? (
+        <SourcePopup
+          entity={source.entity}
+          sourceId={source.sourceId}
+          format={format}
+          onClose={() => setSource(null)}
+        />
       ) : null}
     </main>
   );

@@ -238,8 +238,9 @@ class CardStatement(BaseModel):
     provenance: Provenance
 
 
-class CardBillPaymentRow(BaseModel):
-    """A credit-card bill payment on the bank statement — the bank→card drill-down."""
+class CardBillPaymentRow(RowProvenance):
+    """A credit-card bill payment on the bank statement — the bank→card drill-down. Carries the payment's own
+    provenance (the bank statement the debit came from), independent of how the bill was resolved."""
 
     date: str | None = None
     bank: str | None = Field(default=None, description="The account the payment left from")
