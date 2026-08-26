@@ -1437,15 +1437,18 @@ export interface components {
         };
         /**
          * SourceDetail
-         * @description One source's full provenance record — the payload behind the source popup. `detail` is the adapter's
-         *     own facts (card min-due/due-date, statement period, …), shape varies by adapter. Empty object = unknown
-         *     id (the popup fails soft).
+         * @description Everything the source popup shows for one fact row's source_id (Primitive B). `document` is the
+         *     collateral view — filename, path, statement period, and the password to copy — reusing the exact shape the
+         *     Workspace document list renders, so the popup opens the file and copies its password the same way. `detail`
+         *     is the adapter's own captured facts (card min-due / statement date, …); `tables` is which store tables the
+         *     source wrote. An unknown id fails soft: source_id None, no document, empty detail, no tables.
          */
         SourceDetail: {
-            /** Adapter */
+            /**
+             * Adapter
+             * @description The parser that read this source (not on DocumentInfo)
+             */
             adapter?: string | null;
-            /** Captured At */
-            captured_at?: string | null;
             /**
              * Detail
              * @default {}
@@ -1453,20 +1456,9 @@ export interface components {
             detail: {
                 [key: string]: unknown;
             };
-            /** Payload Ref */
-            payload_ref?: string | null;
-            /** Period End */
-            period_end?: string | null;
-            /** Period Start */
-            period_start?: string | null;
-            /** Provider */
-            provider?: string | null;
-            /** Row Count */
-            row_count?: number | null;
+            document?: components["schemas"]["DocumentInfo"] | null;
             /** Source Id */
             source_id?: string | null;
-            /** Source Type */
-            source_type?: string | null;
             /**
              * Tables
              * @default []

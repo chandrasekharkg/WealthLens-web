@@ -51,23 +51,6 @@ class SourceTableCount(BaseModel):
     rows: int
 
 
-class SourceDetail(BaseModel):
-    """One source's full provenance record — the payload behind the source popup. `detail` is the adapter's
-    own facts (card min-due/due-date, statement period, …), shape varies by adapter. Empty object = unknown
-    id (the popup fails soft)."""
-    source_id: str | None = None
-    source_type: str | None = None
-    adapter: str | None = None
-    provider: str | None = None
-    payload_ref: str | None = None
-    period_start: str | None = None
-    period_end: str | None = None
-    captured_at: str | None = None
-    row_count: int | None = None
-    detail: dict[str, Any] = {}
-    tables: list[SourceTableCount] = []
-
-
 class WorkspaceInfo(BaseModel):
     label: str
     availability: Availability
@@ -444,6 +427,19 @@ class DocumentInfo(BaseModel):
     period_start: str | None = Field(default=None, description="Statement period start, when the source records one")
     period_end: str | None = Field(default=None, description="Statement period end / statement date")
     password: PasswordRef
+
+
+class SourceDetail(BaseModel):
+    """Everything the source popup shows for one fact row's source_id (Primitive B). `document` is the
+    collateral view — filename, path, statement period, and the password to copy — reusing the exact shape the
+    Workspace document list renders, so the popup opens the file and copies its password the same way. `detail`
+    is the adapter's own captured facts (card min-due / statement date, …); `tables` is which store tables the
+    source wrote. An unknown id fails soft: source_id None, no document, empty detail, no tables."""
+    source_id: str | None = None
+    adapter: str | None = Field(default=None, description="The parser that read this source (not on DocumentInfo)")
+    document: DocumentInfo | None = None
+    detail: dict[str, Any] = {}
+    tables: list[SourceTableCount] = []
 
 
 class SettingsInfo(BaseModel):

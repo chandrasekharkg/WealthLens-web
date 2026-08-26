@@ -14,9 +14,9 @@ const CARDS = {
   excluded: [],
   rows: [
     { account_id: "card:icici", issuer: "icici", statements: 1, since: "2026-02-01",
-      last_statement: "2026-02-11", outstanding: money("5000.00"), entity_id: "me", entity_label: "Me" },
+      last_statement: "2026-02-11", outstanding: money("5000.00"), status: "pending", entity_id: "me", entity_label: "Me" },
     { account_id: "card:axis", issuer: "axis", statements: 2, since: "2026-01-05",
-      last_statement: "2026-02-28", outstanding: money("300.00"), entity_id: "me", entity_label: "Me" },
+      last_statement: "2026-02-28", outstanding: money("300.00"), status: "pending", entity_id: "me", entity_label: "Me" },
   ],
 };
 
@@ -24,9 +24,9 @@ const AXIS_STATEMENTS = {
   entity_id: "me", issuer: "axis",
   statements: [
     { statement_date: "2026-02-28", previous_balance: money("1000.00"), new_balance: money("300.00"),
-      spends: money("100.00"), payments: money("800.00"), transactions: 2 },
+      spends: money("100.00"), payments: money("800.00"), transactions: 2, status: "pending" },
     { statement_date: "2026-01-31", previous_balance: money("500.00"), new_balance: money("1000.00"),
-      spends: money("500.00"), payments: money("0.00"), transactions: 2 },
+      spends: money("500.00"), payments: money("0.00"), transactions: 2, status: "partial" },
   ],
 };
 
@@ -99,6 +99,21 @@ describe("Cards", () => {
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "2026-01-31" } });
     await waitFor(() => expect(screen.getByText("COFFEE SHOP")).toBeTruthy());
     expect(screen.queryByText("BOOKSTORE")).toBeNull();
+  });
+
+  it("stars each statement's paid-state: the open month is Current, an underpaid older one Part paid", async () => {
+    stub();
+    render(<Cards format={formatter()} />);
+    await screen.findAllByRole("listitem");
+
+    fireEvent.click(screen.getByText("AXIS card"));
+    // the latest (open) statement is Current — badged on both the tile and the statement head
+    await waitFor(() => expect(screen.getByText("BOOKSTORE")).toBeTruthy());
+    expect(screen.getAllByText("Current").length).toBeGreaterThanOrEqual(1);
+
+    // the January statement was underpaid → Part paid
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "2026-01-31" } });
+    await waitFor(() => expect(screen.getByText("Part paid")).toBeTruthy());
   });
 
   it("shows an empty-state when no cards are present", async () => {

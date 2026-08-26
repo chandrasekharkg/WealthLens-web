@@ -2615,7 +2615,7 @@
         "type": "object"
       },
       "SourceDetail": {
-        "description": "One source's full provenance record \u2014 the payload behind the source popup. `detail` is the adapter's\nown facts (card min-due/due-date, statement period, \u2026), shape varies by adapter. Empty object = unknown\nid (the popup fails soft).",
+        "description": "Everything the source popup shows for one fact row's source_id (Primitive B). `document` is the\ncollateral view \u2014 filename, path, statement period, and the password to copy \u2014 reusing the exact shape the\nWorkspace document list renders, so the popup opens the file and copies its password the same way. `detail`\nis the adapter's own captured facts (card min-due / statement date, \u2026); `tables` is which store tables the\nsource wrote. An unknown id fails soft: source_id None, no document, empty detail, no tables.",
         "properties": {
           "adapter": {
             "anyOf": [
@@ -2626,18 +2626,8 @@
                 "type": "null"
               }
             ],
+            "description": "The parser that read this source (not on DocumentInfo)",
             "title": "Adapter"
-          },
-          "captured_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Captured At"
           },
           "detail": {
             "additionalProperties": true,
@@ -2645,60 +2635,15 @@
             "title": "Detail",
             "type": "object"
           },
-          "payload_ref": {
+          "document": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/DocumentInfo"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Payload Ref"
-          },
-          "period_end": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period End"
-          },
-          "period_start": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period Start"
-          },
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider"
-          },
-          "row_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Row Count"
+            ]
           },
           "source_id": {
             "anyOf": [
@@ -2710,17 +2655,6 @@
               }
             ],
             "title": "Source Id"
-          },
-          "source_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Type"
           },
           "tables": {
             "default": [],

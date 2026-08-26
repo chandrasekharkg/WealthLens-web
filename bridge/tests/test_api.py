@@ -138,7 +138,8 @@ def test_the_source_popup_resolves_a_fact_rows_provenance_and_tables(app_and_cli
     """Primitive B: a row's source_id resolves to the document behind it and which tables it filled."""
     _, client = app_and_client
     body = client.get("/api/source/alpha/src:test").json()
-    assert body["adapter"] == "test" and body["source_type"] == "file"
+    assert body["adapter"] == "test"
+    assert body["document"]["kind"] == "file"      # the collateral view — what the popup opens/copies from
     assert body["detail"] == {}   # a source with no adapter facts is an empty object, never a null
     tables = {t["table"]: t["rows"] for t in body["tables"]}
     assert tables.get("position_snapshots", 0) >= 1   # it wrote the holding snapshot
@@ -150,7 +151,8 @@ def test_an_unknown_source_id_fails_soft_rather_than_500(app_and_client):
     r = client.get("/api/source/alpha/does-not-exist")
     assert r.status_code == 200
     body = r.json()
-    assert body["source_id"] is None and body["detail"] == {} and body["tables"] == []
+    assert body["source_id"] is None and body["document"] is None
+    assert body["detail"] == {} and body["tables"] == []
 
 
 def test_transactions_carry_their_source_and_audit_columns(app_and_client):

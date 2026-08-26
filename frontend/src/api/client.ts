@@ -39,6 +39,9 @@ export type DiagnoseBundle = components["schemas"]["DiagnoseBundle"];
 export type Opened = components["schemas"]["Opened"];
 export type SettingsInfo = components["schemas"]["SettingsInfo"];
 export type Revealed = components["schemas"]["Revealed"];
+export type SourceDetail = components["schemas"]["SourceDetail"];
+export type DocumentInfo = components["schemas"]["DocumentInfo"];
+export type SourceTableCount = components["schemas"]["SourceTableCount"];
 export type Report = components["schemas"]["Report"];
 export type ReportSummary = components["schemas"]["ReportSummary"];
 export type ReportSection = components["schemas"]["ReportSection"];
@@ -97,6 +100,9 @@ export const api = {
     request<CardStatement>(`/api/cards/${entity}/${issuer}/statement${query({ period })}`),
   holdingDiary: (entity: string, instrument: string) =>
     request<HoldingDiary>(`/api/holdings/${entity}/${instrument}/diary`),
+  /** The provenance behind one fact row's source_id — what the source popup shows (Primitive B). */
+  source: (entity: string, sourceId: string) =>
+    request<SourceDetail>(`/api/source/${entity}/${encodeURIComponent(sourceId)}`),
   performance: () => request<Performance>("/api/performance"),
   family: () => request<Family>("/api/family"),
   familyTransfers: (entity: string, person: string) =>
