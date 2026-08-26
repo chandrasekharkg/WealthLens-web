@@ -279,6 +279,28 @@ def card_bill_payments(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -
 # deliberately absent: it is a lumpy mark, not a market-valued growth series. The UI keeps only colour.
 _STACK_ORDER = ("mutual_fund", "listed_equity", "fixed_deposit", "savings", "bond", "unlisted_equity")
 
+# The human axis-step ladder: a rough step rounds UP to the smallest of these × 10ⁿ. Half-steps stay clean too
+# (½·6 = 3, ½·2.5 = 1.25), so a 3-tick axis reads round both at the top and the middle.
+_NICE_STEPS = (Decimal("1"), Decimal("1.5"), Decimal("2"), Decimal("2.5"), Decimal("3"),
+               Decimal("4"), Decimal("5"), Decimal("6"), Decimal("8"))
+
+
+def _nice_axis_step(raw: Decimal) -> Decimal:
+    """Round a rough axis step UP to a human 'nice' figure (see _NICE_STEPS). Pure Decimal — no float — so a
+    ₹-crore axis is chosen exactly rather than through a lossy log."""
+    if raw <= 0:
+        return Decimal("0")
+    mag = Decimal("1")
+    while mag * 10 <= raw:          # largest power of ten ≤ raw
+        mag *= 10
+    while mag > raw:                # sub-unit raw (not expected on a ₹ axis, but keep the function total)
+        mag /= 10
+    frac = raw / mag
+    for nice in _NICE_STEPS:
+        if frac <= nice:
+            return nice * mag
+    return Decimal("10") * mag
+
 
 def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: int = 60) -> dict:
     """The household portfolio, for the charts: the current value BREAKUP by asset class, and a monthly value
@@ -332,8 +354,15 @@ def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: 
                                 "base": money.Money(base, ccy), "top": money.Money(running, ccy)})
         date_total[d] = running
     axis_amt = max(date_total.values(), default=Decimal("0"))
-    axis_max = money.Money(axis_amt, ccy) if axis_amt > 0 else None
-    axis_ticks = [money.Money(axis_amt * Decimal(f), ccy) for f in ("0", "0.5", "1")] if axis_max else []
+    if axis_amt > 0:
+        # Round to a human axis: pick a NICE step (≥ half the peak) so the three gridlines land on round
+        # figures — 0 / 6L / 12L, not 0 / 5.98 / 11.96. The top tick (2·step) sits at or above the peak, so
+        # every stacked bar still fits under it.
+        step = _nice_axis_step(axis_amt / 2)
+        axis_max = money.Money(step * 2, ccy)
+        axis_ticks = [money.Money(step * Decimal(i), ccy) for i in (0, 1, 2)]
+    else:
+        axis_max, axis_ticks = None, []
 
     return {"reporting_currency": ccy, "total": donut_total, "breakup": breakup_rows,
             "series": series_rows, "axis_max": axis_max, "axis_ticks": axis_ticks}
