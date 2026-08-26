@@ -38,7 +38,15 @@ export function Transactions({ format }: TransactionsProps) {
 
   useEffect(() => load(applied.since, applied.until), [applied, load]);
 
-  const rows = txns.state === "ready" ? txns.data.rows : [];
+  const allRows = txns.state === "ready" ? txns.data.rows : [];
+  // The bank facet: the distinct banks present, so a household can read one account at a time. Derived from the
+  // rows themselves (a bank with no rows in this window is not an option), and applied before the table.
+  const banks = useMemo(
+    () => [...new Set(allRows.map((r) => r.bank).filter((b): b is string => Boolean(b)))].sort(),
+    [allRows],
+  );
+  const [bank, setBank] = useState("");
+  const rows = bank ? allRows.filter((r) => r.bank === bank) : allRows;
   // Whose column only earns its place when more than one member's rows are present.
   const multiEntity = new Set(rows.map((r) => r.entity_id)).size > 1;
 
@@ -119,6 +127,18 @@ export function Transactions({ format }: TransactionsProps) {
           <button type="button" className="linklike" onClick={() => { setSince(""); setUntil(""); setApplied({ since: "", until: "" }); }}>
             {t("txn.clear")}
           </button>
+        ) : null}
+        {/* The bank facet appears only when there is more than one bank to choose between. */}
+        {banks.length > 1 ? (
+          <label className="txn-bank">
+            {t("txn.bank")}
+            <select value={bank} onChange={(e) => setBank(e.target.value)}>
+              <option value="">{t("txn.allBanks")}</option>
+              {banks.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </label>
         ) : null}
       </div>
 

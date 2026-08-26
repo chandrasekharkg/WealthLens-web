@@ -30,6 +30,26 @@ describe("Transactions", () => {
     expect(screen.getByText("-₹750.00")).toBeTruthy(); // pii-ok
   });
 
+  it("offers a bank facet that narrows the ledger to one account", async () => {
+    // two banks present → the facet appears; picking one hides the other's rows.
+    const TWO_BANKS = {
+      ...TXN,
+      rows: [
+        ...TXN.rows,
+        { entity_id: "self", entity_label: "Me", date: "2026-07-04", bank: "hdfc", account_id: "bank:hdfc",
+          narration: "RENT", amount: money("-30000.00"), balance: money("10000.00") }, // pii-ok
+      ],
+    };
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve(TWO_BANKS) } as Response)));
+    render(<Transactions format={formatter()} />);
+    await screen.findByText("RENT");
+    fireEvent.change(screen.getByLabelText("Bank"), { target: { value: "hdfc" } });
+    // the hdfc row stays; the axis rows are filtered out
+    expect(screen.getByText("RENT")).toBeTruthy();
+    expect(screen.queryByText("SWIGGY ORDER")).toBeNull();
+  });
+
   it("re-fetches when a date window is applied", async () => {
     stub();
     render(<Transactions format={formatter()} />);
