@@ -34,6 +34,29 @@ const cardKey = (c: Pick<CardRow, "entity_id" | "issuer">) => `${c.entity_id}/${
 /** "axis" → "AXIS card". The issuer is the canonical short name the store keyed on. */
 const cardName = (issuer: string) => `${issuer.toUpperCase()} card`;
 
+/**
+ * The Card Star: a statement's paid-state, coloured by how settled it is. "Paid" and "minimum paid" are the
+ * good states (the user's rule: paid ≥ minimum earns the star); "part paid" warns; "unpaid" is bad; "nothing
+ * due" and the still-open "current" statement are neutral. The bridge derives the state — this only paints it.
+ */
+const STATUS_TONE: Record<string, string> = {
+  paid: "ok",
+  paid_minimum: "ok",
+  partial: "warn",
+  unpaid: "bad",
+  nil: "muted",
+  pending: "muted",
+};
+
+function StatusBadge({ status, t }: { status: CardRow["status"]; t: Formatter["t"] }) {
+  if (!status) return null;
+  return (
+    <span className="card-status" data-tone={STATUS_TONE[status] ?? "muted"}>
+      {t(`cards.status.${status}` as "cards.status.paid")}
+    </span>
+  );
+}
+
 export type CardsProps = {
   readonly format: Formatter;
 };
@@ -91,6 +114,8 @@ export function Cards({ format }: CardsProps) {
                 {owed > 0 ? t("cards.owed") : t("cards.settled")} ·{" "}
                 {t("cards.statements", { count: c.statements })}
               </span>
+              {/* The star: the newest statement's paid-state. */}
+              <StatusBadge status={c.status} t={t} />
             </button>
           );
         })}
@@ -137,11 +162,14 @@ function Statement({ card, format }: { card: CardRow; format: Formatter }) {
 
   const head = statement.state === "ready" ? statement.data : null;
   const options = periods.state === "ready" ? periods.data.statements : [];
+  // The paid-state of the statement now shown: the selected period, or the latest when none is chosen.
+  const shownStatus = (period ? options.find((o) => o.statement_date === period) : options[0])?.status ?? null;
 
   return (
     <section className="statement">
       <div className="statement-head">
         <h2>{cardName(card.issuer)}</h2>
+        <StatusBadge status={shownStatus} t={t} />
         <label className="statement-period">
           {t("cards.period")}
           <select

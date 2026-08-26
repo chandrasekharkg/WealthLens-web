@@ -951,3 +951,23 @@ input[type="date"] {
 .source-facts dd { margin: 0; overflow-wrap: anywhere; }
 .source-tables { list-style: none; margin: 0; padding: 0; }
 .source-tables li { font-variant-numeric: tabular-nums; }
+
+/* ── Card Star (paid-status badge) ───────────────────────────────────────────────────────────────── */
+.card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.card-status::before { content: "●"; font-size: 0.6rem; }
+.card-status[data-tone="ok"]    { color: var(--ok);    background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.card-status[data-tone="warn"]  { color: var(--warn);  background: var(--warn-bg); }
+.card-status[data-tone="bad"]   { color: var(--debit); background: color-mix(in srgb, var(--debit) 12%, transparent); }
+.card-status[data-tone="muted"] { color: var(--muted); background: var(--hover); }
+.card-tile-name + .card-status, .card-tile .card-status { margin-top: 0.3rem; align-self: flex-start; }
+.statement-head .card-status { margin-right: auto; }

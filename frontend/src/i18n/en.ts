@@ -201,6 +201,13 @@ export const en = {
   "source.none": "No source on this row.",
   "source.close": "Close",
 
+  "cards.status.paid": "Paid in full",
+  "cards.status.paid_minimum": "Minimum paid",
+  "cards.status.partial": "Part paid",
+  "cards.status.unpaid": "Unpaid",
+  "cards.status.nil": "Nothing due",
+  "cards.status.pending": "Current",
+
   "secret.copy": "Copy",
   "secret.copied": "Copied — it will not be shown here.",
   "secret.copyFailed": "Could not reach the clipboard. {reason}",
