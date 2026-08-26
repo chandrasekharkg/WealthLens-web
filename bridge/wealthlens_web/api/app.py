@@ -202,6 +202,20 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                     title=diary.get("name") or instrument_id, scope=m.entity(entity_id).label,
                     reporting_currency=m.reporting_currency, row_count=len(diary.get("lines", []))).as_dict()}
 
+    @app.get("/api/source/{entity_id}/{source_id}", response_model=models.SourceDetail)
+    def source_detail(entity_id: str, source_id: str, named: str | None = Query(default=None)) -> dict:
+        """The provenance record behind a fact row's `source_id` — the source popup (Primitive B): what the
+        document was, when it was captured, and which tables it wrote. An unknown id returns an empty record
+        (every field None, no tables), not a 404, so a stale row's popup degrades to "no longer in the store"
+        rather than erroring."""
+        m = _manifest()
+        path = _target_workspace(m, entity_id, named)
+        from wealthlens import workspace as wl_workspace
+        with wl_workspace.resolve(path).open() as con:
+            detail = lens_api.source_detail(con, source_id)
+            tables = lens_api.source_tables(con, source_id)
+        return {**detail, "tables": tables}
+
     # ── the custodian, made legible ──────────────────────────────────────────────────────────────────
 
     @app.get("/api/workspace/{entity_id}", response_model=models.WorkspaceDetail)

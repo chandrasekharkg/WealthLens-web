@@ -134,6 +134,35 @@ def test_granularity_is_stated_on_every_read(app_and_client):
     assert client.get("/api/transactions").json()["granularity"] == "transactions"
 
 
+def test_the_source_popup_resolves_a_fact_rows_provenance_and_tables(app_and_client):
+    """Primitive B: a row's source_id resolves to the document behind it and which tables it filled."""
+    _, client = app_and_client
+    body = client.get("/api/source/alpha/src:test").json()
+    assert body["adapter"] == "test" and body["source_type"] == "file"
+    assert body["detail"] == {}   # a source with no adapter facts is an empty object, never a null
+    tables = {t["table"]: t["rows"] for t in body["tables"]}
+    assert tables.get("position_snapshots", 0) >= 1   # it wrote the holding snapshot
+
+
+def test_an_unknown_source_id_fails_soft_rather_than_500(app_and_client):
+    """A stale row's popup should read "no longer in the store", not error the page."""
+    _, client = app_and_client
+    r = client.get("/api/source/alpha/does-not-exist")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source_id"] is None and body["detail"] == {} and body["tables"] == []
+
+
+def test_transactions_carry_their_source_and_audit_columns(app_and_client):
+    """Primitive A: every ledger row exposes source_id + the WHO/when audit quartet, populated from the store."""
+    _, client = app_and_client
+    rows = client.get("/api/transactions").json()["rows"]
+    assert rows, "the fixture books a bank transaction per holding"
+    r = rows[0]
+    assert {"source_id", "created_by", "created_at", "updated_by", "updated_at"} <= set(r)
+    assert r["source_id"] == "src:test"
+
+
 def test_an_aggregate_response_contains_no_instrument_rows(app_and_client):
     """Scoped exposure, enforced at the source: there is no field a position could arrive in."""
     _, client = app_and_client

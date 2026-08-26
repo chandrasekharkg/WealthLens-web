@@ -134,6 +134,24 @@ def sources(con) -> list[dict]:
     return df.to_dict("records")
 
 
+def source_detail(con, source_id: str) -> dict:
+    """One source's full provenance — the record behind the "source" popup (Primitive B). The adapter facts
+    live in `detail` (already a dict); empty {} when the id is unknown so the popup fails soft."""
+    from wealthlens import lens
+    d = lens.source_detail(source_id, con=con)
+    if d.get("detail") is None:     # a source with no adapter facts → an empty object, never a null the DTO rejects
+        d["detail"] = {}
+    return d
+
+
+def source_tables(con, source_id: str) -> list[dict]:
+    """Which store tables one source wrote, and how many rows into each — the "tables updated" line on the
+    source popup / Workspace. Empty when the id touched nothing (or is unknown)."""
+    from wealthlens import lens
+    df = lens.source_tables(source_id, con=con)
+    return [{"table": r["table"], "rows": int(r["rows"])} for _, r in df.iterrows()]
+
+
 def transactions(con, *, since: str | None, until: str | None, currency: str) -> list[dict]:
     """Ledger-level rows. The finest granularity, and the one scoped exposure exists to gate."""
     from wealthlens import lens
@@ -149,6 +167,7 @@ def transactions(con, *, since: str | None, until: str | None, currency: str) ->
         "amount": Money(_dec(r["signed_amount"]), currency),
         # A row without a running balance (rare on a real bank account) reads as absent, not zero.
         "balance": _money(r["current_balance"], currency),
+        **_prov(r),
     } for _, r in df.iterrows()]
 
 
@@ -157,11 +176,25 @@ def _money(v, currency: str) -> Money | None:
     return None if v is None or _isnan(v) else Money(_dec(v), currency)
 
 
+def _paid_status(con) -> dict[tuple[str, str], str]:
+    """{(issuer, 'YYYY-MM-DD') → paid/paid_minimum/partial/unpaid/nil/pending} for every statement — the star
+    on the statement list and the card picker. The lens derives it from the captured action tuple (minimum due /
+    due date) against the NEXT cycle's payment credits; the newest statement, having no next cycle yet, is
+    'pending'."""
+    from wealthlens import lens
+    df = lens.card_paid_status(con=con)
+    return {(str(r["issuer"]), str(r["statement_date"])[:10]): str(r["status"]) for _, r in df.iterrows()}
+
+
 def cards(con, *, currency: str) -> list[dict]:
     """One row per credit card in this store — the picker. `outstanding` is the latest statement's new balance
-    (₹ owed). Cards are a household liability, not owner-scoped, so every card in the store is returned."""
+    (₹ owed) and `status` the newest statement's paid-state (the picker star). Cards are a household liability,
+    not owner-scoped, so every card in the store is returned."""
     from wealthlens import lens
     df = lens.cards(con=con)
+    status = _paid_status(con)
+    def _st(issuer, last):
+        return status.get((str(issuer), last)) if last else None
     return [{
         "account_id": r["account_id"],
         "issuer": r["issuer"],
@@ -169,6 +202,7 @@ def cards(con, *, currency: str) -> list[dict]:
         "since": _date(r.get("since")),
         "last_statement": _date(r.get("last_statement")),
         "outstanding": _money(r.get("outstanding"), currency),
+        "status": _st(r["issuer"], _date(r.get("last_statement"))),
     } for _, r in df.iterrows()]
 
 
@@ -176,6 +210,7 @@ def card_statements(con, *, issuer: str, currency: str) -> list[dict]:
     """The statement list for one card, newest first — the period selector, each row self-summarising."""
     from wealthlens import lens
     df = lens.card_statements(issuer, con=con)
+    status = _paid_status(con)
     return [{
         "statement_date": _date(r["statement_date"]),
         "previous_balance": _money(r.get("previous_balance"), currency),
@@ -183,6 +218,7 @@ def card_statements(con, *, issuer: str, currency: str) -> list[dict]:
         "spends": Money(_dec(r["spends"]), currency),
         "payments": Money(_dec(r["payments"]), currency),
         "transactions": int(r["transactions"]),
+        "status": status.get((str(issuer), _date(r["statement_date"]))) if _date(r["statement_date"]) else None,
     } for _, r in df.iterrows()]
 
 
@@ -205,6 +241,7 @@ def card_statement(con, *, issuer: str, period: str | None, currency: str) -> di
             # the funding account for a payment line (the reverse of the bank→card drill-down), or None
             "funded_by_bank": _str(r.get("funded_by_bank")),
             "funded_by_date": _date(r.get("funded_by_date")),
+            **_prov(r),
         } for _, r in df.iterrows()],
     }
 
@@ -216,6 +253,19 @@ def _num(v) -> float | None:
 
 def _str(v) -> str | None:
     return None if v is None or (isinstance(v, float) and _isnan(v)) else str(v)
+
+
+def _prov(r) -> dict:
+    """The provenance + audit columns off a lens fact row — the WHO column set (Primitive A) and the
+    `source_id` the source popup opens on (Primitive B). Every field optional: a lens row that doesn't carry
+    a column, or carries it NULL (a derived/aggregate row with no single source), yields None, never a stand-in.
+    Timestamps are trimmed to the second; the UI formats from there."""
+    get = r.get if hasattr(r, "get") else (lambda k, d=None: d)
+    out = {k: _str(get(k)) for k in ("source_id", "created_by", "updated_by")}
+    for k in ("created_at", "updated_at"):
+        v = _str(get(k))
+        out[k] = v[:19] if v else None
+    return out
 
 
 def _holding_performance(con, instrument: str, currency: str) -> dict | None:
@@ -275,6 +325,7 @@ def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
         "locked": _num(r["locked_bal"]),
         "free": _num(r["free_bal"]),
         "booked": _str(r["booked_event_id"]) is not None,
+        **_prov(r),
     } for _, r in df.iterrows()]
     name = _str(df["name"].iloc[0]) if len(df) else None
     if name is None:   # a holding with no CAS transcript (e.g. one reached only through a merger) still has a name
@@ -315,6 +366,7 @@ def transfers_to(con, *, person: str, currency: str) -> list[dict]:
         "bank": _str(r["bank"]),
         "narration": _str(r["narration"]),
         "amount": Money(_dec(r["amount"]), currency),
+        **_prov(r),
     } for _, r in df.iterrows()]
 
 

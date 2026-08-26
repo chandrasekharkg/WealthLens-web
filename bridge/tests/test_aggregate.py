@@ -328,3 +328,18 @@ def test_performance_pre_sums_the_charts(make_workspace):
     if got["axis_max"]:
         assert got["axis_ticks"][0].amount == Decimal("0")
         assert got["axis_ticks"][-1].amount == got["axis_max"].amount
+        # the top tick sits at or above the peak stack, so every bar fits under it
+        assert got["axis_max"].amount >= Decimal("1000")
+
+
+def test_the_growth_axis_snaps_to_round_gridlines():
+    """The reported eyesore: a ₹11.96L peak drew ticks at 0 / 5.98 / 11.96. The axis now rounds each step to a
+    human figure, so the three gridlines read round (0 / 6L / 12L) and the top still clears the peak."""
+    from wealthlens_web.core.aggregate import _nice_axis_step
+    assert _nice_axis_step(Decimal("598000")) == Decimal("600000")   # ½ of 11.96L → a 6L step (axis 12L)
+    assert _nice_axis_step(Decimal("1000000")) == Decimal("1000000")  # already round → unchanged
+    assert _nice_axis_step(Decimal("110000")) == Decimal("150000")   # 1.1L → 1.5L
+    assert _nice_axis_step(Decimal("0")) == Decimal("0")             # a flat/empty chart has no axis
+    # rounds UP, never down — the peak must never overflow the top gridline
+    for raw in ("1", "99", "12345", "9070000"):
+        assert _nice_axis_step(Decimal(raw)) >= Decimal(raw)

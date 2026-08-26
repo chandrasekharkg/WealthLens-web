@@ -282,6 +282,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/source/{entity_id}/{source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Source Detail
+         * @description The provenance record behind a fact row's `source_id` — the source popup (Primitive B): what the
+         *     document was, when it was captured, and which tables it wrote. An unknown id returns an empty record
+         *     (every field None, no tables), not a 404, so a stale row's popup degrades to "no longer in the store"
+         *     rather than erroring.
+         */
+        get: operations["source_detail_api_source__entity_id___source_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -557,6 +580,11 @@ export interface components {
              * @description How many statements are loaded for this card
              */
             statements: number;
+            /**
+             * Status
+             * @description The newest statement's paid-state (the star)
+             */
+            status?: ("paid" | "paid_minimum" | "partial" | "unpaid" | "nil" | "pending") | null;
         };
         /**
          * CardStatement
@@ -582,6 +610,10 @@ export interface components {
         CardStatementLine: {
             /** @description Signed: a purchase is negative, a payment/credit positive */
             amount: components["schemas"]["Money"];
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
             /** Date */
             date?: string | null;
             /** Description */
@@ -598,6 +630,12 @@ export interface components {
             funded_by_bank?: string | null;
             /** Funded By Date */
             funded_by_date?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
         };
         /**
          * CardStatementSummary
@@ -612,6 +650,11 @@ export interface components {
             spends: components["schemas"]["Money"];
             /** Statement Date */
             statement_date?: string | null;
+            /**
+             * Status
+             * @description This statement's paid-state (the star)
+             */
+            status?: ("paid" | "paid_minimum" | "partial" | "unpaid" | "nil" | "pending") | null;
             /** Transactions */
             transactions: number;
         };
@@ -724,6 +767,10 @@ export interface components {
             booked: boolean;
             /** Closing */
             closing?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
             /** Credit */
             credit?: number | null;
             /** Date */
@@ -745,6 +792,12 @@ export interface components {
              * @description Why the line did/didn't move ownership
              */
             role?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
         };
         /** DocumentInfo */
         DocumentInfo: {
@@ -1382,6 +1435,51 @@ export interface components {
              */
             secret_names: string[];
         };
+        /**
+         * SourceDetail
+         * @description One source's full provenance record — the payload behind the source popup. `detail` is the adapter's
+         *     own facts (card min-due/due-date, statement period, …), shape varies by adapter. Empty object = unknown
+         *     id (the popup fails soft).
+         */
+        SourceDetail: {
+            /** Adapter */
+            adapter?: string | null;
+            /** Captured At */
+            captured_at?: string | null;
+            /**
+             * Detail
+             * @default {}
+             */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Payload Ref */
+            payload_ref?: string | null;
+            /** Period End */
+            period_end?: string | null;
+            /** Period Start */
+            period_start?: string | null;
+            /** Provider */
+            provider?: string | null;
+            /** Row Count */
+            row_count?: number | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Type */
+            source_type?: string | null;
+            /**
+             * Tables
+             * @default []
+             */
+            tables: components["schemas"]["SourceTableCount"][];
+        };
+        /** SourceTableCount */
+        SourceTableCount: {
+            /** Rows */
+            rows: number;
+            /** Table */
+            table: string;
+        };
         /** StoreInfo */
         StoreInfo: {
             availability: components["schemas"]["Availability"];
@@ -1401,6 +1499,10 @@ export interface components {
             balance?: components["schemas"]["Money"] | null;
             /** Bank */
             bank?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
             /** Date */
             date?: string | null;
             /** Entity Id */
@@ -1409,6 +1511,12 @@ export interface components {
             entity_label: string;
             /** Narration */
             narration?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
         };
         /** Transactions */
         Transactions: {
@@ -1443,10 +1551,20 @@ export interface components {
             amount: components["schemas"]["Money"];
             /** Bank */
             bank?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
             /** Date */
             date?: string | null;
             /** Narration */
             narration?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1940,6 +2058,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Report"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    source_detail_api_source__entity_id___source_id__get: {
+        parameters: {
+            query?: {
+                named?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceDetail"];
                 };
             };
             /** @description Validation Error */
