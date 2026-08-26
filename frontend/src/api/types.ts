@@ -418,9 +418,21 @@ export interface paths {
         put?: never;
         /**
          * Open Document
-         * @description Ask the OS to open ONE collateral file. WLW never reads a statement (ADR-0001) — this hands the
-         *     file to the platform's opener. The path is never trusted: `collateral.resolve_document_path` refuses
-         *     anything that escapes the workspace, so even a tampered filename cannot reach outside it.
+         * @description Deliver ONE collateral file to the person who asked for it — the source popup's and workspace
+         *     list's Open. The path is never trusted: `collateral.resolve_document_path` refuses anything that
+         *     escapes the workspace, so even a tampered filename cannot reach outside it.
+         *
+         *     There are two deliveries, chosen by WHERE the browser is — and WLW still never PARSES a statement
+         *     (ADR-0001); what differs is only how the owner's own file reaches the owner:
+         *
+         *     - **Same machine** (a loopback peer — KG on 127.0.0.1): ask the desktop OS to open it, as before.
+         *       The platform's viewer reads the file; the bridge does not.
+         *     - **Across the LAN** (a non-loopback peer — dad reaching aipc.local from his phone): OS-opening here
+         *       would open the file on the SERVER, where he would never see it. So the bridge instead TRANSPORTS
+         *       his own file to his own browser. That is a deliberate, minimal carve-out to ADR-0001 (its
+         *       2026-08-26 amendment): it moves the owner's bytes to the owner and still never interprets them.
+         *       It is guarded exactly like the local open — the same containment check — and, as a POST, sits
+         *       behind the session token a foreign page cannot read.
          */
         post: operations["open_document_api_workspace__entity_id__open_post"];
         delete?: never;

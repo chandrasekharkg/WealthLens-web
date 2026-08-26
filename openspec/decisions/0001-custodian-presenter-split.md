@@ -33,3 +33,18 @@ data need the surface can't meet is fixed upstream in WLC, never by reaching aro
 - The boundary forces `lens.py` to become a real, versioned API (cross-repo task with WLC).
 - Cost: two repos to govern, and integration bugs live at the seam — mitigated by pinning the WLC version
   the bridge is tested against.
+
+## Amendment 2026-08-26 — transporting a file is not reading it (the LAN open)
+
+"WLW never reads a statement" has always meant WLW never **parses or interprets** its contents — that is the
+custodian's job, behind WLC's gates. It did not mean the bytes may never pass through the bridge process.
+Opening a collateral file made that distinction concrete. Asking the server's OS to open the file is right
+only when the browser is on the same machine as the bridge; a household member reaching the app across the
+LAN (e.g. `http://aipc.local:8765` from a phone) would otherwise trigger the file to open on the *server*,
+where they never see it. So for a non-loopback peer the bridge now **streams the file to that browser**.
+
+This is a deliberate, minimal carve-out, and it stays inside the split: the bridge moves the **owner's own
+file to the owner**, still never opening, parsing, or deriving anything from the bytes. It is guarded exactly
+like the local open — `collateral.resolve_document_path` containment — and, being a POST, sits behind the
+session token a foreign page cannot read (ADR-0004). The choice of delivery is made by the request's real
+peer address (`_peer_is_local`), which assumes a direct connection with no reverse proxy rewriting it.

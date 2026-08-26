@@ -252,8 +252,16 @@ def open_document(workspace, *, payload_ref: str | None = None,
     """Ask the OS to open a validated collateral file. `opener` is injected so the act is testable without
     actually launching anything; the default hands the resolved path to the platform's open command."""
     real = resolve_document_path(workspace, payload_ref=payload_ref, provider=provider, filename=filename)
-    (opener or _default_opener)(real)
-    return real
+    return open_on_os(real, opener=opener)
+
+
+def open_on_os(path, opener=None):
+    """Hand an ALREADY-RESOLVED, workspace-contained path to the platform opener — the local case, where the
+    browser is on the same machine as the bridge and the desktop's own viewer is the right place. Split out
+    of `open_document` so a caller that already resolved the path (and may instead STREAM it to a device
+    across the LAN) does not resolve it twice."""
+    (opener or _default_opener)(path)
+    return path
 
 
 def _default_opener(path):

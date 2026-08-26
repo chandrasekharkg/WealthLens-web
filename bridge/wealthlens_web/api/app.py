@@ -12,8 +12,8 @@ from __future__ import annotations
 import dataclasses
 import pathlib
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from wealthlens_web import engine as _engine
@@ -287,18 +287,36 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         return {"what": what, "value": value}
 
     @app.post("/api/workspace/{entity_id}/open", response_model=models.Opened)
-    def open_document(entity_id: str, body: dict) -> dict:
-        """Ask the OS to open ONE collateral file. WLW never reads a statement (ADR-0001) — this hands the
-        file to the platform's opener. The path is never trusted: `collateral.resolve_document_path` refuses
-        anything that escapes the workspace, so even a tampered filename cannot reach outside it."""
+    def open_document(entity_id: str, body: dict, request: Request):
+        """Deliver ONE collateral file to the person who asked for it — the source popup's and workspace
+        list's Open. The path is never trusted: `collateral.resolve_document_path` refuses anything that
+        escapes the workspace, so even a tampered filename cannot reach outside it.
+
+        There are two deliveries, chosen by WHERE the browser is — and WLW still never PARSES a statement
+        (ADR-0001); what differs is only how the owner's own file reaches the owner:
+
+        - **Same machine** (a loopback peer — KG on 127.0.0.1): ask the desktop OS to open it, as before.
+          The platform's viewer reads the file; the bridge does not.
+        - **Across the LAN** (a non-loopback peer — dad reaching aipc.local from his phone): OS-opening here
+          would open the file on the SERVER, where he would never see it. So the bridge instead TRANSPORTS
+          his own file to his own browser. That is a deliberate, minimal carve-out to ADR-0001 (its
+          2026-08-26 amendment): it moves the owner's bytes to the owner and still never interprets them.
+          It is guarded exactly like the local open — the same containment check — and, as a POST, sits
+          behind the session token a foreign page cannot read.
+        """
         target = _target_workspace(_manifest(), entity_id, None)
         try:
-            real = collateral.open_document(
+            real = collateral.resolve_document_path(
                 target, payload_ref=body.get("payload_ref"),
                 provider=body.get("provider"), filename=body.get("filename"))
         except collateral.DocumentNotFound as e:
             raise HTTPException(status_code=404, detail={"error": "document", "reason": str(e)}) from None
-        return {"path": str(real)}
+
+        if _peer_is_local(request):
+            collateral.open_on_os(real)
+            return {"path": str(real)}
+        return FileResponse(real, media_type=_media_type(real),
+                            headers={"Content-Disposition": _inline_disposition(real.name)})
 
     @app.get("/api/jobs", response_model=list[models.Job])
     def list_jobs() -> list[dict]:
@@ -457,6 +475,37 @@ def _events(job: verbs.Job):
             break
         time.sleep(0.05)
     yield f"event: done\ndata: {_json.dumps(_job(job))}\n\n"
+
+
+# ── delivering a collateral file ───────────────────────────────────────────────────────────────────────
+
+def _peer_is_local(request: Request) -> bool:
+    """True when the browser making this request is on the SAME machine as the bridge — a loopback peer.
+    Only then is asking the server's OS to open a file the right thing; a device across the LAN has a
+    non-loopback peer address and must be handed the bytes itself. This reads the socket's real peer
+    address, so it assumes a direct connection (no reverse proxy rewriting it) — which is how the bridge is
+    run. A peer that is not an IP at all (a test/proxy sentinel) is treated as remote, the safer default:
+    it delivers to the caller rather than opening a file on the server they cannot see."""
+    import ipaddress
+    host = request.client.host if request.client else ""
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _media_type(path: pathlib.Path) -> str:
+    import mimetypes
+    return mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+
+
+def _inline_disposition(name: str) -> str:
+    """A Content-Disposition that lets the browser show the file inline (a PDF opens in its viewer) while
+    still carrying the real name for a Save. RFC 5987 encodes the non-ASCII form; the quoted ASCII fallback
+    is for clients that ignore `filename*`."""
+    from urllib.parse import quote
+    ascii_name = name.encode("ascii", "ignore").decode() or "document"
+    return f"inline; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(name)}"
 
 
 # ── serialisation ────────────────────────────────────────────────────────────────────────────────────

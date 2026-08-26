@@ -20,7 +20,7 @@ const DETAIL: SourceDetail = {
     period_end: "2026-06-30",
     password: { kind: "named", name: "pan" },
   },
-  detail: {},
+  detail: { statement_date: "2026-06-30", account_masked: "••5845" },
   tables: [
     { table: "position_snapshots", rows: 8 },
     { table: "holding_events", rows: 4 },
@@ -48,6 +48,10 @@ describe("SourcePopup — Primitive B", () => {
     expect(screen.getByText(/holding_events · 4 row/)).toBeTruthy();
     // a named password gets a Copy control (the value is never rendered)
     expect(screen.getByRole("button", { name: /Copy/ })).toBeTruthy();
+    // the statement's own printed facts, standardised into `detail` by every adapter
+    expect(screen.getByText("Statement date")).toBeTruthy();
+    expect(screen.getByText("Account")).toBeTruthy();
+    expect(screen.getByText("••5845")).toBeTruthy();   // masked identifier, last-4 only
   });
 
   it("fails soft on a source that is no longer in the store", async () => {

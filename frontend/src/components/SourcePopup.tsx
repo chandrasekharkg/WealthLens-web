@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { api, type SourceDetail } from "../api/client";
+import { api, apiReason, isSessionExpired, type SourceDetail } from "../api/client";
 import type { Formatter } from "../i18n";
+import { presentDocument } from "../present";
 import { CopySecret } from "./CopySecret";
 
 /**
@@ -51,13 +52,21 @@ export function SourcePopup({
   }, [onClose]);
 
   const doc = load.state === "ready" ? load.data.document : null;
+  // The statement's OWN printed facts, standardised into `detail` by every adapter (WLC capture_io.statement_detail):
+  // the printed statement date, and the masked account/card/folio (last-4 only, `••1234`). Shown when present.
+  const detail = (load.state === "ready" ? load.data.detail : {}) as Record<string, unknown>;
+  const asString = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
+  const statementDate = asString(detail.statement_date);
+  const accountMasked = asString(detail.account_masked);
   const openFile = async () => {
     if (!doc) return;
     setOpenNote(null);
     try {
-      await api.openDocument(entity, doc);
+      const result = await api.openDocument(entity, doc);
+      // Across the LAN the bridge streamed the file to us rather than opening it on the server; show it here.
+      if (result.delivery === "streamed") presentDocument(result.blob, result.filename);
     } catch (error: unknown) {
-      setOpenNote(t("ws.openFailed", { reason: error instanceof Error ? error.message : "" }));
+      setOpenNote(isSessionExpired(error) ? t("error.sessionExpired") : t("ws.openFailed", { reason: apiReason(error) }));
     }
   };
 
@@ -127,6 +136,18 @@ export function SourcePopup({
               <>
                 <dt>{t("column.period")}</dt>
                 <dd>{periodOf(doc)}</dd>
+              </>
+            ) : null}
+            {statementDate ? (
+              <>
+                <dt>{t("source.statementDate")}</dt>
+                <dd>{date(statementDate)}</dd>
+              </>
+            ) : null}
+            {accountMasked ? (
+              <>
+                <dt>{t("source.account")}</dt>
+                <dd>{accountMasked}</dd>
               </>
             ) : null}
             {doc?.captured_at ? (
