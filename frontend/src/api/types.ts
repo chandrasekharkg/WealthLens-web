@@ -1534,6 +1534,11 @@ export interface components {
         TransactionRow: {
             /** Account Id */
             account_id?: string | null;
+            /**
+             * Account Label
+             * @description Legible per-account identity, e.g. 'SBI ••1375' (canonical-folded)
+             */
+            account_label?: string | null;
             /** @description Signed: negative left the household */
             amount: components["schemas"]["Money"];
             balance?: components["schemas"]["Money"] | null;

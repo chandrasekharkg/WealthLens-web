@@ -153,16 +153,44 @@ def source_tables(con, source_id: str) -> list[dict]:
     return [{"table": r["table"], "rows": int(r["rows"])} for _, r in df.iterrows()]
 
 
+def _account_fold(con) -> dict[str, str]:
+    """`account_id → canonical account_id` from the accounts table, so a merged pair (e.g. a Citi account that
+    became an Axis one) reads as ONE account in the ledger facet rather than two."""
+    try:
+        return {aid: (canon or aid) for aid, canon in
+                con.execute("SELECT account_id, canonical_id FROM accounts").fetchall()}
+    except Exception:  # noqa: BLE001 — the label is a nicety; never let it break the ledger
+        return {}
+
+
+def _account_label(account_id: str | None, fold: dict[str, str]) -> str | None:
+    """A bank account_id → a legible, per-account label: `bank:sbi:1375` → "SBI ••1375", `bank:union` →
+    "UNION" (no captured number). Canonical-folded first. The last-4 is the account's own printed tail — the
+    same masked-identity convention used everywhere (never more than four digits). None passes through."""
+    if not account_id:
+        return None
+    parts = fold.get(account_id, account_id).split(":")   # type:provider[:last4]
+    if len(parts) < 2:
+        return account_id
+    provider = parts[1].upper()
+    tail = parts[2] if len(parts) > 2 and parts[2] else ""
+    return f"{provider} ••{tail}" if tail else provider
+
+
 def transactions(con, *, since: str | None, until: str | None, currency: str) -> list[dict]:
     """Ledger-level rows. The finest granularity, and the one scoped exposure exists to gate."""
     from wealthlens import lens
     # bank_only: the card:* subledger has no running balance and lives in the card views; a "bank
     # transactions" ledger that mixed it in would show a NaN balance on every card line.
     df = lens.transactions(since=since, until=until, bank_only=True, con=con)
+    fold = _account_fold(con)
     return [{
         "date": str(r["value_date"])[:10],
         "bank": r["bank"],
         "account_id": r["account_id"],
+        # The legible per-account identity for the ledger facet + From column — one field carries display,
+        # filter key, and (its leading token) the bank group. Canonical-folded so a merged pair is one account.
+        "account_label": _account_label(r["account_id"], fold),
         "narration": r["narration"],
         # Signed: negative left the household. The sign is the fact, so it is not split into a type column.
         "amount": Money(_dec(r["signed_amount"]), currency),

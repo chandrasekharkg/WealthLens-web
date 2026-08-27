@@ -39,14 +39,25 @@ export function Transactions({ format }: TransactionsProps) {
   useEffect(() => load(applied.since, applied.until), [applied, load]);
 
   const allRows = useMemo(() => (txns.state === "ready" ? txns.data.rows : []), [txns]);
-  // The bank facet: the distinct banks present, so a household can read one account at a time. Derived from the
-  // rows themselves (a bank with no rows in this window is not an option), and applied before the table.
-  const banks = useMemo(
-    () => [...new Set(allRows.map((r) => r.bank).filter((b): b is string => Boolean(b)))].sort(),
+  // The account facet: the distinct ACCOUNTS present (e.g. "SBI ••1375"), so a household with several accounts
+  // in one bank — dad's four SBI accounts, some from mergers — can read one at a time. Grouped by bank into
+  // <optgroup>s. Derived from the rows themselves (an account with no rows in this window is not an option).
+  const accountLabels = useMemo(
+    () => [...new Set(allRows.map((r) => r.account_label).filter((a): a is string => Boolean(a)))].sort(),
     [allRows],
   );
-  const [bank, setBank] = useState("");
-  const rows = bank ? allRows.filter((r) => r.bank === bank) : allRows;
+  const accountGroups = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    for (const label of accountLabels) {
+      const bank = label.split(" ")[0] ?? label; // the leading token IS the bank ("SBI ••1375" -> "SBI")
+      const list = groups.get(bank) ?? [];
+      list.push(label);
+      groups.set(bank, list);
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [accountLabels]);
+  const [account, setAccount] = useState("");
+  const rows = account ? allRows.filter((r) => r.account_label === account) : allRows;
   // Whose column only earns its place when more than one member's rows are present.
   const multiEntity = new Set(rows.map((r) => r.entity_id)).size > 1;
 
@@ -66,7 +77,7 @@ export function Transactions({ format }: TransactionsProps) {
       ...(multiEntity
         ? [{ id: "whose", accessorKey: "entity_label", header: t("column.whose") } as ColumnDef<TransactionRow>]
         : []),
-      { id: "account", accessorFn: (r) => r.bank ?? r.account_id ?? "", header: t("column.from") },
+      { id: "account", accessorFn: (r) => r.account_label ?? r.bank ?? r.account_id ?? "", header: t("column.from") },
       { id: "narration", accessorKey: "narration", header: t("column.description") },
       {
         id: "amount",
@@ -92,7 +103,7 @@ export function Transactions({ format }: TransactionsProps) {
     () => [
       { header: t("column.date"), value: (r) => r.date ?? null },
       { header: t("column.whose"), value: (r) => r.entity_label },
-      { header: t("column.from"), value: (r) => r.bank ?? r.account_id ?? null },
+      { header: t("column.from"), value: (r) => r.account_label ?? r.bank ?? r.account_id ?? null },
       { header: t("column.description"), value: (r) => r.narration ?? null },
       ...moneyColumns<TransactionRow>(t("column.amount"), (r) => r.amount),
       ...moneyColumns<TransactionRow>(t("column.balance"), (r) => r.balance),
@@ -128,15 +139,24 @@ export function Transactions({ format }: TransactionsProps) {
             {t("txn.clear")}
           </button>
         ) : null}
-        {/* The bank facet appears only when there is more than one bank to choose between. */}
-        {banks.length > 1 ? (
-          <label className="txn-bank">
-            {t("txn.bank")}
-            <select value={bank} onChange={(e) => setBank(e.target.value)}>
-              <option value="">{t("txn.allBanks")}</option>
-              {banks.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
+        {/* The account facet appears only when there is more than one account to choose between. Accounts nest
+            under their bank; a bank with a single account shows as one flat option (no redundant group). */}
+        {accountLabels.length > 1 ? (
+          <label className="txn-account">
+            {t("txn.account")}
+            <select value={account} onChange={(e) => setAccount(e.target.value)}>
+              <option value="">{t("txn.allAccounts")}</option>
+              {accountGroups.map(([bank, labels]) =>
+                labels.length > 1 ? (
+                  <optgroup key={bank} label={bank}>
+                    {labels.map((label) => (
+                      <option key={label} value={label}>{label.slice(bank.length + 1) || label}</option>
+                    ))}
+                  </optgroup>
+                ) : (
+                  <option key={bank} value={labels[0]}>{labels[0]}</option>
+                ),
+              )}
             </select>
           </label>
         ) : null}

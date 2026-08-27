@@ -359,13 +359,15 @@ export const en = {
 
   "nav.transactions": "Bank ledger",
   "txn.title": "Bank ledger",
-  "txn.subtitle": "Every line across your bank accounts — filter by text or bank, sort any column, narrow by date. Outflows are negative.",
+  "txn.subtitle": "Every line across your bank accounts — filter by text or account, sort any column, narrow by date. Outflows are negative.",
   "txn.from": "From",
   "txn.to": "To",
   "txn.apply": "Apply",
   "txn.clear": "Clear dates",
   "txn.bank": "Bank",
   "txn.allBanks": "All banks",
+  "txn.account": "Account",
+  "txn.allAccounts": "All accounts",
   "txn.none": "No bank transactions in this window.",
 } as const;
 

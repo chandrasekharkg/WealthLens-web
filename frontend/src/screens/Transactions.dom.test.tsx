@@ -10,9 +10,9 @@ const TXN = {
   granularity: "transactions", reporting_currency: "INR", is_partial: false, excluded: [],
   rows: [
     { entity_id: "self", entity_label: "Me", date: "2026-07-05", bank: "axis", account_id: "bank:axis",
-      narration: "SWIGGY ORDER", amount: money("-750.00"), balance: money("42000.00") }, // pii-ok
+      account_label: "AXIS", narration: "SWIGGY ORDER", amount: money("-750.00"), balance: money("42000.00") }, // pii-ok
     { entity_id: "self", entity_label: "Me", date: "2026-07-03", bank: "axis", account_id: "bank:axis",
-      narration: "SALARY CREDIT", amount: money("120000.00"), balance: money("42750.00") }, // pii-ok
+      account_label: "AXIS", narration: "SALARY CREDIT", amount: money("120000.00"), balance: money("42750.00") }, // pii-ok
   ],
 };
 
@@ -30,23 +30,30 @@ describe("Transactions", () => {
     expect(screen.getByText("-₹750.00")).toBeTruthy(); // pii-ok
   });
 
-  it("offers a bank facet that narrows the ledger to one account", async () => {
-    // two banks present → the facet appears; picking one hides the other's rows.
-    const TWO_BANKS = {
+  it("offers an account facet — accounts grouped by bank — that narrows to one account", async () => {
+    // several accounts present (two of them in the same bank) → the facet appears, grouped under the bank;
+    // picking one account hides every other account's rows.
+    const MANY = {
       ...TXN,
       rows: [
-        ...TXN.rows,
-        { entity_id: "self", entity_label: "Me", date: "2026-07-04", bank: "hdfc", account_id: "bank:hdfc",
-          narration: "RENT", amount: money("-30000.00"), balance: money("10000.00") }, // pii-ok
+        ...TXN.rows, // two AXIS rows
+        { entity_id: "self", entity_label: "Me", date: "2026-07-04", bank: "sbi", account_id: "bank:sbi:1375",
+          account_label: "SBI ••1375", narration: "RENT", amount: money("-30000.00"), balance: money("10000.00") }, // pii-ok
+        { entity_id: "self", entity_label: "Me", date: "2026-07-02", bank: "sbi", account_id: "bank:sbi:5845",
+          account_label: "SBI ••5845", narration: "INTEREST", amount: money("512.00"), balance: money("60000.00") }, // pii-ok
       ],
     };
     vi.stubGlobal("fetch", vi.fn(() =>
-      Promise.resolve({ ok: true, json: () => Promise.resolve(TWO_BANKS) } as Response)));
+      Promise.resolve({ ok: true, json: () => Promise.resolve(MANY) } as Response)));
     render(<Transactions format={formatter()} />);
     await screen.findByText("RENT");
-    fireEvent.change(screen.getByLabelText("Bank"), { target: { value: "hdfc" } });
-    // the hdfc row stays; the axis rows are filtered out
+    const facet = screen.getByLabelText("Account");
+    // the two SBI accounts are grouped under an "SBI" optgroup
+    expect(facet.querySelector('optgroup[label="SBI"]')).toBeTruthy();
+    fireEvent.change(facet, { target: { value: "SBI ••1375" } }); // pii-ok
+    // only the picked account's row stays; the other SBI account and the AXIS rows are filtered out
     expect(screen.getByText("RENT")).toBeTruthy();
+    expect(screen.queryByText("INTEREST")).toBeNull();
     expect(screen.queryByText("SWIGGY ORDER")).toBeNull();
   });
 

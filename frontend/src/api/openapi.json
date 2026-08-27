@@ -2883,6 +2883,18 @@
             ],
             "title": "Account Id"
           },
+          "account_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Legible per-account identity, e.g. 'SBI \u2022\u20221375' (canonical-folded)",
+            "title": "Account Label"
+          },
           "amount": {
             "$ref": "#/components/schemas/Money",
             "description": "Signed: negative left the household"

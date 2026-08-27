@@ -145,6 +145,7 @@ class TransactionRow(RowProvenance):
     date: str | None = None
     bank: str | None = None
     account_id: str | None = None
+    account_label: str | None = Field(default=None, description="Legible per-account identity, e.g. 'SBI ••1375' (canonical-folded)")
     narration: str | None = None
     amount: Money = Field(description="Signed: negative left the household")
     balance: Money | None = None

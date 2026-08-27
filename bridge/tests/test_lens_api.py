@@ -58,3 +58,15 @@ def test_a_nameless_instrument_reports_name_as_none_not_nan(tmp_path):
     by_id = {r["instrument_id"]: r for r in rows}
     assert by_id["INE000A01001"]["name"] is None
     assert by_id["INE000B01002"]["name"] == "A NAMED SECURITY"   # fabricated  pii-ok
+
+
+def test_account_label_folds_and_humanises():
+    """The bank-ledger account label: humanised bank + masked last-four, canonical-folded so a merged pair
+    reads as the ONE account it became. Pure function — no store needed."""
+    from wealthlens_web.core import lens_api
+
+    assert lens_api._account_label("bank:sbi:1375", {}) == "SBI ••1375"   # fabricated  pii-ok
+    assert lens_api._account_label("bank:union", {}) == "UNION"                      # no captured number
+    # a merged pair (a Citi account that became an Axis one) reads as the single canonical account
+    assert lens_api._account_label("bank:citi", {"bank:citi": "bank:axis"}) == "AXIS"
+    assert lens_api._account_label(None, {}) is None
