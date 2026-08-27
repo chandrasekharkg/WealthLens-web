@@ -51,14 +51,20 @@ export function Collateral({
           ? date(doc.period_start)
           : "—";
 
-  // Group by folder (provider). Insertion order preserves the store's own newest-first ordering; a document
-  // with no provider lands in an "unfiled" group rather than vanishing.
+  // The date a document sorts by: its 'to' (period_end) when it has a span, else its single date (a lone
+  // period_start is treated as the 'to'). ISO strings sort lexically; a dateless document sorts to the bottom.
+  const sortDate = (doc: Doc) => doc.period_end ?? doc.period_start ?? "";
+
+  // Group by folder (provider); a document with no provider lands in an "unfiled" group rather than vanishing.
+  // Within each folder, order newest-first by `sortDate` — the store's own insertion order is not reliably
+  // date-ordered (e.g. equateplus annual statements), and a household reads its documents most-recent-first.
   const folders = useMemo(() => {
     const map = new Map<string, Doc[]>();
     for (const doc of documents) {
       const key = doc.provider ?? "";
       (map.get(key) ?? map.set(key, []).get(key)!).push(doc);
     }
+    for (const docs of map.values()) docs.sort((a, b) => sortDate(b).localeCompare(sortDate(a)));
     return map;
   }, [documents]);
 

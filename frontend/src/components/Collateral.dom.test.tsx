@@ -15,6 +15,8 @@ const doc = (over: Partial<Doc> & Pick<Doc, "source_id">): Doc => ({
   payload_ref: over.payload_ref ?? null,
   rows: over.rows ?? null,
   captured_at: null,
+  period_start: over.period_start ?? null,
+  period_end: over.period_end ?? null,
   password: over.password ?? { kind: "none", name: null },
 });
 
@@ -78,6 +80,24 @@ describe("collateral as expanded folders", () => {
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "religare" } });
     expect(screen.queryByText("kotak.pdf")).toBeNull();
     expect(screen.queryByText("cas.pdf")).toBeNull();
+  });
+
+  it("orders a folder newest 'to' first — a lone date counts as the 'to'", () => {
+    render(
+      <Collateral
+        entity="me"
+        format={formatter("en-IN")}
+        onOpen={() => {}}
+        documents={[
+          doc({ source_id: "y2018", provider: "equateplus", filename: "y2018.pdf", period_end: "2018-01-01" }),
+          doc({ source_id: "y2026", provider: "equateplus", filename: "y2026.pdf", period_end: "2026-07-28" }),
+          // a single date, recorded as period_start only — must sort as if it were the 'to'
+          doc({ source_id: "y2020", provider: "equateplus", filename: "y2020.pdf", period_start: "2020-01-01" }),
+        ]}
+      />,
+    );
+    const names = [...document.querySelectorAll("tbody tr td:first-child")].map((td) => td.textContent);
+    expect(names).toEqual(["y2026.pdf", "y2020.pdf", "y2018.pdf"]);
   });
 
   it("opens a document that has only a payload_ref (no parsed filename)", () => {
