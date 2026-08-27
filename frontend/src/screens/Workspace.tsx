@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { api, ApiError, type WorkspaceDetail } from "../api/client";
+import { api, ApiError, apiReason, isSessionExpired, type WorkspaceDetail } from "../api/client";
+import { presentDocument } from "../present";
 import { Collateral } from "../components/Collateral";
 import { CopySecret } from "../components/CopySecret";
 import { SourcePopup } from "../components/SourcePopup";
@@ -43,11 +44,11 @@ export function Workspace({ entities, format }: WorkspaceProps) {
   const openDocument = async (doc: WorkspaceDetail["documents"][number]) => {
     setOpenNote(null);
     try {
-      await api.openDocument(entity, doc);                          // the OS opens it; WLW never reads it
+      // On this machine the OS opens it (WLW never reads it); across the LAN the bridge streams it to us.
+      const result = await api.openDocument(entity, doc);
+      if (result.delivery === "streamed") presentDocument(result.blob, result.filename);
     } catch (error: unknown) {
-      const detailed = error instanceof ApiError ? error.detail : null;
-      const reason = (detailed as { detail?: { reason?: string } } | null)?.detail?.reason ?? "";
-      setOpenNote(t("ws.openFailed", { reason }));
+      setOpenNote(isSessionExpired(error) ? t("error.sessionExpired") : t("ws.openFailed", { reason: apiReason(error) }));
     }
   };
 
@@ -59,6 +60,10 @@ export function Workspace({ entities, format }: WorkspaceProps) {
       setSaved(true);
       load(entity);
     } catch (error: unknown) {
+      if (isSessionExpired(error)) {
+        setProblem(t("error.sessionExpired"));
+        return;
+      }
       const detailed = error instanceof ApiError ? error.detail : null;
       setProblem((detailed as { detail?: { reason?: string } } | null)?.detail?.reason ?? t("error.load"));
     }

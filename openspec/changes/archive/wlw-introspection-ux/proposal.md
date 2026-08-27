@@ -249,6 +249,11 @@ match-`none` lens tests).
 **Former known-limitations — both since fixed:** payment→card amount-matching now has a **deterministic tie-break**
 (leg date + issuer; funding lookup by debit date + row_id), so two cards paid the identical amount the same day
 resolve stably; and a document recorded by **`payload_ref` alone** (no parsed filename) is now openable from
-Collateral and the source popup (the bridge already treated payload_ref as the authoritative locator). Deferred
-design item remaining: standardise `sources.detail.{statement_date, account_masked}` (tracked in the WLC
-`statement-metadata-completeness` archive). Both repos clean + in sync.
+Collateral and the source popup (the bridge already treated payload_ref as the authoritative locator).
+
+**Former deferred design item — now ✅ done:** `sources.detail.{statement_date, account_masked}` is
+standardised across **every** WLC file adapter via the shared `capture_io.statement_detail(...)` /
+`mask_account(...)` helpers (masked ids are last-4-only `••1234`, public-repo-safe). The source popup renders
+them as **"Statement date"** + **"Account"** rows, fed by the existing `detail` passthrough (no bridge change).
+Verified end-to-end (WLC 823, WLW bridge 220, 137 frontend, tsc + lint clean); the demo Nair card statement
+carries the canonical keys so the popup shows them live. Both repos clean + in sync.

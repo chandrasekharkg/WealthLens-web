@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { api } from "../api/client";
+import { api, isSessionExpired } from "../api/client";
 import type { Formatter } from "../i18n";
 
 /**
@@ -58,9 +58,14 @@ export function CopySecret({
       await writeClipboard(value);
       setNote(t("secret.copied"));
     } catch (error: unknown) {
-      // Clipboard access is permission-gated in several browsers, so a failure here is ordinary and must
-      // say what happened rather than leaving a button that silently did nothing.
-      setNote(t("secret.copyFailed", { reason: error instanceof Error ? error.message : "" }));
+      // A stale token after a server restart is the one failure with a specific fix — say "reload" rather
+      // than the opaque "POST … failed". Otherwise: clipboard access is permission-gated in several
+      // browsers, so an ordinary failure must still say what happened, not leave a silent button.
+      setNote(
+        isSessionExpired(error)
+          ? t("error.sessionExpired")
+          : t("secret.copyFailed", { reason: error instanceof Error ? error.message : "" }),
+      );
     }
   };
 

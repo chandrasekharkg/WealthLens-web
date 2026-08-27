@@ -41,6 +41,7 @@ export const en = {
 
   "error.load": "Could not load this view.",
   "error.retry": "Try again",
+  "error.sessionExpired": "The session expired — reload the page and try again.",
 
   "empty.noEntities": "No family members are declared yet.",
   "empty.noData": "Nothing has been imported for this member yet.",
@@ -199,6 +200,8 @@ export const en = {
   "source.view": "Where this came from",
   "source.title": "Source",
   "source.adapter": "Read by",
+  "source.statementDate": "Statement date",
+  "source.account": "Account",
   "source.captured": "Captured",
   "source.tablesWrote": "What it recorded",
   "source.tableRows": "{table} · {rows} row(s)",
