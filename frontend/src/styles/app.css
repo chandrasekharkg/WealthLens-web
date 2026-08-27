@@ -918,12 +918,13 @@ input[type="date"] {
 .txn-dates { display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem; margin: 0.5rem 0 1rem; }
 .txn-dates label { display: inline-flex; flex-direction: column; gap: 0.2rem; font-size: 0.8rem; color: var(--muted); }
 .txn-dates input,
-.txn-dates select { font: inherit; padding: 0.3rem 0.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.txn-dates select { font: inherit; padding: 0.3rem 0.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); box-sizing: border-box; height: 2.1rem; }
 .txn-dates button:not(.linklike) { font: inherit; padding: 0.35rem 0.9rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent-soft); color: var(--accent); cursor: pointer; }
 /* The account facet sits apart from the date group: label BESIDE the dropdown (not stacked), pushed to the far
    end, with room for an "SBI ••1375" label so it never gets squeezed into one narrow column. */
 .txn-account { flex-direction: row; align-items: center; gap: 0.45rem; margin-left: auto; }
-.txn-account select { min-width: 9.5rem; }
+/* Match the date inputs exactly (same width + height) so the facet reads as a peer control, not a bolt-on. */
+.txn-account select { width: 8rem; }
 @media (max-width: 640px) { .txn-account { margin-left: 0; } }
 
 /* The unrecognized-statement on-ramp (Import > Add your bank). */
