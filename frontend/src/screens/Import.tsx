@@ -12,14 +12,43 @@ import type { Formatter } from "../i18n";
  * rather than reading as breakage.
  */
 
+// WLC emits STRUCTURED warnings ({type, …}) so `import --json` and the exit code can branch on them without
+// parsing prose; older/other paths may emit a plain string. Accept both.
+type Warning = string | { type?: string; [key: string]: unknown };
 type FileVerdict = {
   file?: string;
   status?: string;
   loaded?: number;
-  warnings?: string[];
+  warnings?: Warning[];
   message?: string;
   error?: string;
 };
+
+/** One structured warning → the sentence a household reads. A bare `.join(", ")` on the objects printed
+ *  "[object Object]"; this renders each by its `type`, with a readable fallback for an unknown shape. */
+function warningText(w: Warning): string {
+  if (typeof w === "string") return w;
+  // Never stringify an `unknown` directly — that is the "[object Object]" bug. Coerce to number/string only.
+  const num = (v: unknown) =>
+    typeof v === "number" ? v.toLocaleString("en-IN") : typeof v === "string" ? v : "";
+  const str = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : "");
+  switch (w.type) {
+    case "footing_break":
+      return `didn't foot — Σ ≠ opening→closing by ₹${num(w.delta)} (some rows may be missing)`;
+    case "footing_unverified":
+      return "whole-statement footing not verified (no opening/closing balance in this layout)";
+    case "low_confidence": {
+      const also = str(w.also_matched);
+      return `low confidence${also ? ` — also matched ${also}` : ""}`;
+    }
+    case "units_incomplete":
+      return `${num(w.unknown)} row(s) missing a quantity`;
+    case "rows_rejected":
+      return `${num(w.rows)} row(s) not loaded (carried neither a quantity nor a value)`;
+    default:
+      return str(w.type) || JSON.stringify(w);
+  }
+}
 
 export type ImportProps = {
   readonly entities: readonly {
@@ -396,8 +425,9 @@ function Verdict({
         {t(`file.status.${file.status ?? "unknown"}` as "file.status.unknown")}
       </td>
       <td>{file.loaded === undefined ? "—" : number(file.loaded)}</td>
-      {/* Verbatim: no file's warning may be dropped, however many it has. */}
-      <td>{(file.warnings ?? []).join(", ") || file.error || file.message || ""}</td>
+      {/* Verbatim: no file's warning may be dropped, however many it has — each rendered as a sentence,
+          never a raw object. */}
+      <td>{(file.warnings ?? []).map(warningText).join("; ") || file.error || file.message || ""}</td>
     </tr>
   );
   const fileTable = (rows: FileVerdict[]) => (
