@@ -19,10 +19,32 @@ import { SourcePopup } from "./SourcePopup";
 
 type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error" };
 
-/** A role or, for a non-transaction line, its kind — one legible tag per row. */
+/** A role or, for a non-transaction line, its kind — one legible tag per row. The raw fallback. */
 function tagOf(line: DiaryLine, t: Formatter["t"]): string {
   if (line.line_kind !== "transaction") return t(`kind.${line.line_kind}` as "kind.balance");
   return line.role ? t(`role.${line.role}` as "role.movement") : "";
+}
+
+// Colour by economic direction: something arrived, something left, a net-zero status change, or "we're not sure".
+const VERDICT_TONE: Record<string, "in" | "out" | "neutral" | "review"> = {
+  buy: "in", transfer_in: "in", transmission_in: "in", bonus: "in", merge_in: "in", demerge_in: "in",
+  sell: "out", transfer_out: "out", transmission_out: "out", writeoff: "out", forfeit: "out", merge_out: "out",
+  review: "review",
+};
+const KNOWN_VERDICTS = new Set([
+  "buy", "sell", "transfer_in", "transfer_out", "transmission_in", "transmission_out", "merge_in", "merge_out",
+  "demerge_in", "bonus", "split", "writeoff", "forfeit", "conversion", "dividend", "pledge", "custody",
+  "settlement_leg", "balance", "superseded", "review",
+]);
+
+/** The interpreted verdict of a line — the household-terms read of what the move IS — with a raw-tag fallback. */
+function verdictOf(line: DiaryLine, t: Formatter["t"]): { label: string; tone: string } {
+  if (line.needs_review) return { label: t("verdict.review"), tone: "review" };
+  const v = line.verdict;
+  if (v && KNOWN_VERDICTS.has(v)) {
+    return { label: t(`verdict.${v}` as "verdict.buy"), tone: VERDICT_TONE[v] ?? "neutral" };
+  }
+  return { label: tagOf(line, t), tone: "neutral" }; // an unrecognised verb → the old role/kind tag
 }
 
 export function HoldingDiaryPanel({
@@ -69,14 +91,33 @@ export function HoldingDiaryPanel({
       {
         id: "type",
         header: t("column.type"),
-        accessorFn: (r) => tagOf(r, t),
+        accessorFn: (r) => verdictOf(r, t).label,
+        // The interpreted verdict, toned by direction — and an honest "Needs review" (warning tone) for an
+        // off-market/CA line we couldn't name, rather than a silent `unmapped`.
         cell: ({ row }) => {
           const l = row.original;
-          const tag = tagOf(l, t);
-          return tag ? <span data-role={l.role ?? l.line_kind}>{tag}</span> : "";
+          const { label, tone } = verdictOf(l, t);
+          if (!label) return "";
+          return (
+            <span
+              data-verdict={l.verdict ?? l.role ?? l.line_kind}
+              data-tone={tone}
+              title={l.needs_review ? t("diary.needsReview") : undefined}
+            >
+              {label}
+            </span>
+          );
         },
       },
       { id: "description", accessorKey: "description", header: t("column.description") },
+      {
+        id: "broker",
+        header: t("column.broker"),
+        // The DP/broker of the demat the line touched — the "who" you hunt these moves by. Blank until the
+        // broker name is captured/back-filled for that account.
+        accessorFn: (r) => r.broker ?? "",
+        cell: ({ row }) => row.original.broker ?? <span data-empty>—</span>,
+      },
       { id: "debit", header: t("column.debit"), meta: { numeric: true },
         accessorFn: (r) => r.debit ?? 0, cell: ({ row }) => num(row.original.debit) },
       { id: "credit", header: t("column.credit"), meta: { numeric: true },
@@ -104,8 +145,9 @@ export function HoldingDiaryPanel({
   const exportColumns = useMemo<Column<DiaryLine>[]>(
     () => [
       { header: t("column.date"), value: (r) => r.date ?? null },
-      { header: t("column.type"), value: (r) => tagOf(r, t) },
+      { header: t("column.type"), value: (r) => verdictOf(r, t).label },
       { header: t("column.description"), value: (r) => r.description ?? null },
+      { header: t("column.broker"), value: (r) => r.broker ?? null },
       { header: t("column.debit"), value: (r) => r.debit ?? null },
       { header: t("column.credit"), value: (r) => r.credit ?? null },
       { header: t("column.balance"), value: (r) => r.closing ?? null },

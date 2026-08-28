@@ -803,6 +803,11 @@ export interface components {
              * @description True when this line reached the quantity ledger
              */
             booked: boolean;
+            /**
+             * Broker
+             * @description DP/broker name of the demat this line touched
+             */
+            broker?: string | null;
             /** Closing */
             closing?: number | null;
             /** Created At */
@@ -823,6 +828,12 @@ export interface components {
             line_kind: string;
             /** Locked */
             locked?: number | null;
+            /**
+             * Needs Review
+             * @description An off-market/CA line WLC could not classify — flag it
+             * @default false
+             */
+            needs_review: boolean;
             /** Pledged */
             pledged?: number | null;
             /**
@@ -836,6 +847,11 @@ export interface components {
             updated_at?: string | null;
             /** Updated By */
             updated_by?: string | null;
+            /**
+             * Verdict
+             * @description Interpreted category (UI renders label + tone)
+             */
+            verdict?: string | null;
         };
         /** DocumentInfo */
         DocumentInfo: {

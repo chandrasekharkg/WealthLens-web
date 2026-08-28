@@ -343,27 +343,55 @@ def _holding_lineage(con, instrument: str) -> list[dict]:
     } for _, r in df.iterrows()]
 
 
+def _diary_verdict(role, action, line_kind, description) -> tuple[str, bool]:
+    """One diary line → a stable VERDICT category (the UI renders the label + tone) and whether it NEEDS THE
+    USER'S EYE. This is the interpretation layer over the raw role/action: it names a move in the household's
+    terms (a transfer, a pledge, a transmission, a corporate action) and, crucially, flags an off-market/CA line
+    we could not classify as `review` rather than hiding it behind a bare `unmapped`. The reason-code taxonomy
+    (openspec/changes/reconcile-off-market-transfers/reason-codes.md) is the vocabulary these categories map to."""
+    lk = _str(line_kind)
+    r = _str(role)
+    d = (_str(description) or "").upper()
+    if lk == "balance":
+        return "balance", False
+    if r == "unmapped":                         # an off-market / CA line WLC couldn't name — the honest "tell me"
+        return "review", True
+    if r in ("custody", "settlement_leg"):       # a status change, never an ownership move
+        if any(k in d for k in ("MP ", "MRP", "PLEDGE", "MARGIN")):
+            return "pledge", False               # SEBI margin pledge — earmark, net-zero (design.md R3)
+        return r, False
+    if r == "movement" and action:               # a real ownership move: the verb IS the verdict
+        return _str(action) or "movement", False
+    return r or "info", False
+
 def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
     """One holding's full detail — its performance summary, its identity lineage (succession chain), and the
     complete CAS transcript with the `role` on each line. Balances in the transcript are unit quantities, not
-    money, so they are plain numbers; the performance figures are Money."""
+    money, so they are plain numbers; the performance figures are Money. Each line also carries an interpreted
+    `verdict` + `needs_review` (the diary-narrative layer) and the `broker` of the demat it touched."""
     from wealthlens import lens
     df = lens.holding_diary(instrument, con=con)
-    lines = [{
-        "date": _date(r["date"]),
-        "line_kind": r["line_kind"],
-        "role": _str(r["role"]),
-        "action": _str(r["action"]),
-        "description": _str(r["description"]),
-        "debit": _num(r["debit"]),
-        "credit": _num(r["credit"]),
-        "closing": _num(r["closing"]),
-        "pledged": _num(r["pledged_bal"]),
-        "locked": _num(r["locked_bal"]),
-        "free": _num(r["free_bal"]),
-        "booked": _str(r["booked_event_id"]) is not None,
-        **_prov(r),
-    } for _, r in df.iterrows()]
+    lines = []
+    for _, r in df.iterrows():
+        verdict, needs_review = _diary_verdict(r["role"], r["action"], r["line_kind"], r["description"])
+        lines.append({
+            "date": _date(r["date"]),
+            "line_kind": r["line_kind"],
+            "role": _str(r["role"]),
+            "action": _str(r["action"]),
+            "description": _str(r["description"]),
+            "debit": _num(r["debit"]),
+            "credit": _num(r["credit"]),
+            "closing": _num(r["closing"]),
+            "pledged": _num(r["pledged_bal"]),
+            "locked": _num(r["locked_bal"]),
+            "free": _num(r["free_bal"]),
+            "booked": _str(r["booked_event_id"]) is not None,
+            "broker": _str(r["broker"]),                 # the DP/broker name of the demat (the "who")
+            "verdict": verdict,                          # interpreted category (UI → label + tone)
+            "needs_review": needs_review,                # an unclassified off-market/CA line — flag it honestly
+            **_prov(r),
+        })
     name = _str(df["name"].iloc[0]) if len(df) else None
     if name is None:   # a holding with no CAS transcript (e.g. one reached only through a merger) still has a name
         row = con.execute("SELECT name FROM instruments WHERE instrument_id = ? LIMIT 1", [instrument]).fetchone()

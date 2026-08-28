@@ -833,6 +833,20 @@ input[type="date"] {
 [data-role="unmapped"], [data-role="unchained"], [data-role="rejected"] { color: var(--debit); }
 [data-role="balance"] { background: transparent; }
 
+/* Diary verdict pills — the interpreted read of each line (verdictOf), same pill shape as the raw role tag but
+   toned by what happened to the value: something arrived (in), something left (out), or "we couldn't tell". */
+[data-verdict] {
+  font-size: 0.72rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--hover);
+  color: var(--muted);
+}
+[data-verdict][data-tone="in"]     { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+[data-verdict][data-tone="out"]    { background: color-mix(in srgb, var(--debit) 12%, transparent); color: var(--debit); }
+[data-verdict][data-tone="review"] { background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+
 /* Holding detail: the performance strip and identity lineage above the transcript. */
 .perf-strip {
   display: flex;

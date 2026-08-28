@@ -853,6 +853,18 @@
             "title": "Booked",
             "type": "boolean"
           },
+          "broker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "DP/broker name of the demat this line touched",
+            "title": "Broker"
+          },
           "closing": {
             "anyOf": [
               {
@@ -956,6 +968,12 @@
             ],
             "title": "Locked"
           },
+          "needs_review": {
+            "default": false,
+            "description": "An off-market/CA line WLC could not classify \u2014 flag it",
+            "title": "Needs Review",
+            "type": "boolean"
+          },
           "pledged": {
             "anyOf": [
               {
@@ -1011,6 +1029,18 @@
               }
             ],
             "title": "Updated By"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Interpreted category (UI renders label + tone)",
+            "title": "Verdict"
           }
         },
         "required": [

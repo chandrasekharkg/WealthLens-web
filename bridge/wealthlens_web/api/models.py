@@ -286,6 +286,9 @@ class DiaryLine(RowProvenance):
     locked: float | None = None
     free: float | None = None
     booked: bool = Field(description="True when this line reached the quantity ledger")
+    broker: str | None = Field(default=None, description="DP/broker name of the demat this line touched")
+    verdict: str | None = Field(default=None, description="Interpreted category (UI renders label + tone)")
+    needs_review: bool = Field(default=False, description="An off-market/CA line WLC could not classify — flag it")
 
 
 class HoldingPerformance(BaseModel):
