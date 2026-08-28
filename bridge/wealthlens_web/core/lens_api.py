@@ -115,6 +115,7 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
             "last_valued_on": _date(r.get("last_valued_on")),
             "disposition": _str(r.get("disposition")),
             "closed_on": _date(r.get("closed_on")),
+            "reconciliation": _str(r.get("reconciliation")),
             "subtype": _str(r.get("subtype")),
             "amfi_code": _str(r.get("amfi_code")),
             "jurisdiction": _str(r.get("jurisdiction")),

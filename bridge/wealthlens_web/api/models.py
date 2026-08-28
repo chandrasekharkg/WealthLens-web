@@ -134,6 +134,9 @@ class PositionRow(RowProvenance):
     last_valued_on: str | None = None           # the PIT anchor for an unexplained zero
     disposition: str | None = None              # NULL = live; else written_off / sold / succeeded / unknown
     closed_on: str | None = None
+    # NULL = confirmed by (or not gated on) a latest CAS; 'superseded' = still counted, but a newer statement
+    # of its own demat dropped it and we could not explain where it went — an honest "load the missing CAS".
+    reconciliation: str | None = None
     subtype: str | None = None
     amfi_code: str | None = None
     jurisdiction: str | None = None

@@ -2394,6 +2394,17 @@
             ],
             "title": "Quantity"
           },
+          "reconciliation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconciliation"
+          },
           "source_id": {
             "anyOf": [
               {

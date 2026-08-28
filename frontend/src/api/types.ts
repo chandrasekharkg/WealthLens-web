@@ -1327,6 +1327,8 @@ export interface components {
             name?: string | null;
             /** Quantity */
             quantity?: number | null;
+            /** Reconciliation */
+            reconciliation?: string | null;
             /** Source Id */
             source_id?: string | null;
             /** Subtype */

@@ -181,6 +181,25 @@ export function Reports({ reportId, format }: ReportsProps) {
           );
         },
       },
+      {
+        id: "reconciliation",
+        header: t("column.reconciliation"),
+        // FACT vs INTROSPECTION, made visible. Blank = the position is confirmed by (or is not gated on) a
+        // latest CAS — take it as fact. `superseded` = still counted, but a newer statement of its OWN demat
+        // dropped it and the engine could not say where it went: a warning-toned prompt to load the missing
+        // CAS, never a silent removal. The value stays in the total; this only tells you which rows to trust.
+        accessorFn: (r) => r.reconciliation ?? "",
+        cell: ({ row }) => {
+          const v = row.original.reconciliation;
+          if (!v) return <span data-empty>—</span>;
+          const known = v === "superseded";
+          return (
+            <span data-reconciliation={v} data-tone="warning">
+              {known ? t("reconciliation.superseded") : v}
+            </span>
+          );
+        },
+      },
       { id: "basis", accessorKey: "basis", header: t("column.basis") },
       // Addable columns — hidden by default, offered through the Columns picker. Each formats by what it IS
       // (a date, a count, a code), and shows a muted dash where the store had nothing to say.
@@ -259,6 +278,7 @@ export function Reports({ reportId, format }: ReportsProps) {
       { header: `${t("column.value")} currency`, value: (r) => r.value.currency },
       { header: t("column.acquired"), value: (r) => r.first_acquired_on ?? null },
       { header: t("column.disposition"), value: (r) => r.disposition ?? null },
+      { header: t("column.reconciliation"), value: (r) => r.reconciliation ?? null },
       { header: t("column.basis"), value: (r) => r.basis ?? null },
       { header: t("column.source"), value: (r) => r.source_id ?? null },
       { header: t("column.createdBy"), value: (r) => r.created_by ?? null },

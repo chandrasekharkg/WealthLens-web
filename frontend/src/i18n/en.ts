@@ -69,6 +69,7 @@ export const en = {
   "column.lastValued": "Last valued",
   "column.disposition": "Status",
   "column.closed": "Closed on",
+  "column.reconciliation": "Reconciliation",
   "column.subtype": "Sub-type",
   "column.amfi": "AMFI code",
   "column.jurisdiction": "Jurisdiction",
@@ -77,6 +78,9 @@ export const en = {
   "disposition.sold": "Sold",
   "disposition.succeeded": "Succeeded",
   "disposition.unknown": "Unexplained",
+  // Still counted, but a newer statement of its own demat no longer lists it and we cannot explain where it
+  // went — load that account's latest CAS to confirm whether it was sold, moved, or is genuinely still held.
+  "reconciliation.superseded": "Superseded — load latest CAS",
   "identifier.none": "not applicable",
 
   "import.title": "Import statements",

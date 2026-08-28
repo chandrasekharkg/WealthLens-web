@@ -375,6 +375,20 @@ th.numeric button[data-sort] {
 }
 
 /*
+ * Reconciliation flag: the FACT-vs-introspection marker. A blank cell is a position the latest CAS confirms —
+ * trust it. `superseded` wears the same pill shape as a disposition badge; its `data-tone="warning"` supplies
+ * the warn background, so it reads as a prompt to load that account's latest CAS, not an alarm. The pill wins
+ * shape over the caveat-box `[data-tone="warning"]` rule by coming later, exactly like `disposition="unknown"`.
+ */
+[data-reconciliation] {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.82em;
+  border: 1px solid currentColor;
+}
+
+/*
  * The caption repeats the section heading on screen and is the ONLY label on paper — so it is present in
  * the DOM, hidden visually here, and restored by print.css.
  */
