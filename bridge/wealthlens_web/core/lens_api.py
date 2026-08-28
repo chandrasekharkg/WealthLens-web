@@ -99,7 +99,9 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
         out.append({
             "name": _str(r["name"]),
             "asset_class": r["asset_class"],
-            "account_id": r["account_id"],
+            # Coerce through _str: a position with no account (a priced-only / derived row at some PIT dates)
+            # arrives as a pandas NaN, and a bare NaN fails the str|None response model with a 500.
+            "account_id": _str(r["account_id"]),
             "instrument_id": _str(r.get("instrument_id")),
             "quantity": (None if r["quantity"] is None or _isnan(r["quantity"]) else float(r["quantity"])),
             "value": Money(_dec(r["value_inr"]), row_ccy),
@@ -167,7 +169,7 @@ def _account_label(account_id: str | None, fold: dict[str, str]) -> str | None:
     """A bank account_id → a legible, per-account label: `bank:sbi:1375` → "SBI ••1375", `bank:union` →
     "UNION" (no captured number). Canonical-folded first. The last-4 is the account's own printed tail — the
     same masked-identity convention used everywhere (never more than four digits). None passes through."""
-    if not account_id:
+    if not account_id or _isnan(account_id):   # None, "", or a pandas NaN (an account-less row) → no label
         return None
     parts = fold.get(account_id, account_id).split(":")   # type:provider[:last4]
     if len(parts) < 2:
@@ -187,7 +189,7 @@ def transactions(con, *, since: str | None, until: str | None, currency: str) ->
     return [{
         "date": str(r["value_date"])[:10],
         "bank": r["bank"],
-        "account_id": r["account_id"],
+        "account_id": _str(r["account_id"]),
         # The legible per-account identity for the ledger facet + From column — one field carries display,
         # filter key, and (its leading token) the bank group. Canonical-folded so a merged pair is one account.
         "account_label": _account_label(r["account_id"], fold),
