@@ -41,6 +41,7 @@ export function Import({ entities, format, onImported }: ImportProps) {
   const [notes, setNotes] = useState<string[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -128,17 +129,37 @@ export function Import({ entities, format, onImported }: ImportProps) {
         </select>
       </p>
 
-      <p>
-        <label htmlFor="files">{t("import.drop")}</label>{" "}
+      {/* A real drop target: dad can drag a whole folder of statements at once, or click to choose. Each file
+          uploads to the inbox as it arrives and they accumulate, so several drops/picks build one batch that
+          Import then processes together. */}
+      <div
+        className="dropzone"
+        data-dragover={dragOver || undefined}
+        onDragOver={(event) => {
+          event.preventDefault();
+          if (!dragOver) setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragOver(false);
+          void upload(event.dataTransfer.files);
+        }}
+      >
+        <label htmlFor="files">{t("import.drop")}</label>
         <input
           id="files"
           type="file"
           multiple
           onChange={(event) => {
             void upload(event.target.files);
+            // Clear the value so choosing the SAME file(s) again still fires onChange — a second pick adds to
+            // the batch rather than being ignored as "no change".
+            event.target.value = "";
           }}
         />
-      </p>
+        <p className="dropzone-hint">{t("import.dropHint")}</p>
+      </div>
 
       {/* Where statements come from is part of the screen, because that is where onboarding actually
           stalls — not at the drop target (UX-VALIDATION P6). */}

@@ -81,7 +81,8 @@ export const en = {
 
   "import.title": "Import statements",
   "import.chooseEntity": "For",
-  "import.drop": "Choose statement files",
+  "import.drop": "Drop statements here, or click to choose",
+  "import.dropHint": "Add several at once — each is staged as it lands, then Import processes them together.",
   "import.uploading": "Uploading {name}…",
   "import.uploaded": "{name} is in the inbox.",
   "import.renamed": "{name} was already there, so this one was kept as {saved}.",
