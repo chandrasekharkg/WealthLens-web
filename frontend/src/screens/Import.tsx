@@ -44,6 +44,10 @@ export function Import({ entities, format, onImported }: ImportProps) {
 
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
+    // Replace this file's "Uploading…" line in place when it lands, rather than appending a second note — a
+    // lingering "Uploading X…" beside "X is in the inbox" read as still-in-progress (the user waited on it).
+    // Uploads are sequential, so the last note is always the one for the file in hand.
+    const settle = (text: string) => setNotes((prev) => [...prev.slice(0, -1), text]);
     for (const file of Array.from(files)) {
       setNotes((prev) => [...prev, t("import.uploading", { name: file.name })]);
       const body = new FormData();
@@ -64,18 +68,17 @@ export function Import({ entities, format, onImported }: ImportProps) {
           detail?: { reason?: string };
         };
         if (!response.ok) {
-          setNotes((prev) => [...prev, landed.detail?.reason ?? t("error.load")]);
+          settle(landed.detail?.reason ?? t("error.load"));
           continue;
         }
-        setNotes((prev) => [
-          ...prev,
+        settle(
           landed.renamed_from
             ? // Say it plainly: otherwise the user finds "s (2).pdf" later and has to guess why.
               t("import.renamed", { name: landed.renamed_from, saved: landed.filename ?? "" })
             : t("import.uploaded", { name: landed.filename ?? file.name }),
-        ]);
+        );
       } catch {
-        setNotes((prev) => [...prev, t("error.load")]);
+        settle(t("error.load"));
       }
     }
   };
@@ -352,6 +355,44 @@ function Verdict({
   const imported = Number(job.result?.imported ?? 0);
   const attention = Number(job.result?.attention ?? 0);
 
+  // Show detail only about files that DID something — loaded rows, a warning/error, or a status that needs
+  // action (locked / unrecognised). The rest are the re-walk of an already-loaded corpus (0 new rows); a
+  // single-file import otherwise printed a line per provider with "0". Collapse them into a count — never
+  // dropped, openable below (no statement the engine touched disappears).
+  const changed = files.filter(
+    (file) =>
+      (file.loaded ?? 0) > 0 ||
+      (file.warnings?.length ?? 0) > 0 ||
+      Boolean(file.error) ||
+      (file.status !== undefined && file.status !== "imported" && file.status !== "skipped"),
+  );
+  const quiet = files.filter((file) => !changed.includes(file));
+
+  const fileRow = (file: FileVerdict, index: number) => (
+    <tr key={file.file ?? `row-${index}`}>
+      <td>{file.file}</td>
+      <td data-status={file.status}>
+        {t(`file.status.${file.status ?? "unknown"}` as "file.status.unknown")}
+      </td>
+      <td>{file.loaded === undefined ? "—" : number(file.loaded)}</td>
+      {/* Verbatim: no file's warning may be dropped, however many it has. */}
+      <td>{(file.warnings ?? []).join(", ") || file.error || file.message || ""}</td>
+    </tr>
+  );
+  const fileTable = (rows: FileVerdict[]) => (
+    <table>
+      <thead>
+        <tr>
+          <th>{t("column.file")}</th>
+          <th>{t("column.outcome")}</th>
+          <th>{t("column.rows")}</th>
+          <th>{t("column.warnings")}</th>
+        </tr>
+      </thead>
+      <tbody>{rows.map(fileRow)}</tbody>
+    </table>
+  );
+
   return (
     <section aria-label={t("import.verdict")}>
       <h2>{t("import.verdict")}</h2>
@@ -359,31 +400,17 @@ function Verdict({
         {t("import.imported", { count: number(imported) })} ·{" "}
         {t("import.attention", { count: number(attention) })}
       </p>
-      <table>
-        <thead>
-          <tr>
-            <th>{t("column.file")}</th>
-            <th>{t("column.outcome")}</th>
-            <th>{t("column.rows")}</th>
-            <th>{t("column.warnings")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {/* Index as the fallback key: a random one would be unstable across renders and remount
-              every row. The engine names each file, so the fallback is for a malformed payload only. */}
-          {files.map((file, index) => (
-            <tr key={file.file ?? `row-${index}`}>
-              <td>{file.file}</td>
-              <td data-status={file.status}>
-                {t(`file.status.${file.status ?? "unknown"}` as "file.status.unknown")}
-              </td>
-              <td>{file.loaded === undefined ? "—" : number(file.loaded)}</td>
-              {/* Verbatim: no file's warning may be dropped, however many it has. */}
-              <td>{(file.warnings ?? []).join(", ") || file.error || file.message || ""}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {changed.length > 0 ? (
+        fileTable(changed)
+      ) : (
+        <p role="status">{t("import.allQuiet")}</p>
+      )}
+      {quiet.length > 0 ? (
+        <details className="import-quiet">
+          <summary>{t("import.quietSummary", { count: number(quiet.length) })}</summary>
+          {fileTable(quiet)}
+        </details>
+      ) : null}
     </section>
   );
 }

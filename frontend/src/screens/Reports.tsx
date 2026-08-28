@@ -59,9 +59,13 @@ export type ReportsProps = {
 
 export function Reports({ reportId, format }: ReportsProps) {
   const { t, money, date, number } = format;
-  const [dateField, setDateField] = useState("");
   const [asOf, setAsOf] = useState("");
+  // A half-typed date (submitted before it is complete) and a request that failed are two different problems,
+  // each surfaced rather than silently swallowed — the second is what read as "the PIT showed nothing".
+  const [badDate, setBadDate] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   // The holding whose full transcript is open below the report, or none.
   const [diary, setDiary] = useState<{ entity: string; instrument: string; name: string } | null>(null);
   // The source popup (Primitive B) for whichever row's Source was clicked.
@@ -73,8 +77,14 @@ export function Reports({ reportId, format }: ReportsProps) {
   const load = useCallback((id: string, on: string) => {
     void api
       .report(id, on || undefined)
-      .then(setReport)
-      .catch(() => setReport(null));
+      .then((r) => {
+        setReport(r);
+        setLoadError(false);
+      })
+      // Distinguish a failed request from a report whose sections are legitimately empty. A failure surfaces an
+      // error and KEEPS the last report on screen, rather than nulling it — silently blanking everything is what
+      // made a date query that errored look like "the PIT returned nothing".
+      .catch(() => setLoadError(true));
   }, []);
 
   useEffect(() => load(reportId, asOf), [reportId, asOf, load]);
@@ -273,19 +283,41 @@ export function Reports({ reportId, format }: ReportsProps) {
           data-print="hide"
           onSubmit={(event) => {
             event.preventDefault();
-            setAsOf(dateField);          // applies on submit, not on every keystroke
+            const input = event.currentTarget.elements.namedItem("as-of") as HTMLInputElement;
+            // Apply only a COMPLETE, in-range date (or an empty field = today). The input is UNCONTROLLED so a
+            // half-typed date isn't wiped mid-edit (a controlled value={} was cleared when the browser reported
+            // the transient partial as invalid) — and a still-invalid entry is refused here, not applied blank.
+            if (!input.validity.valid) {
+              setBadDate(true);
+              return;
+            }
+            setBadDate(false);
+            setAsOf(input.value); // "" = today; a complete date = that point-in-time
           }}
         >
           <label htmlFor="as-of">{t("reports.asOfLabel")}</label>
           <input
             id="as-of"
+            name="as-of"
             type="date"
-            value={dateField}
-            onChange={(event) => setDateField(event.target.value)}
+            max={today}
+            defaultValue={asOf}
+            onInput={() => setBadDate(false)}
           />
           <button type="submit">{t("reports.apply")}</button>
+          {badDate ? (
+            <span role="alert" className="as-of-error" data-tone="warning">
+              {t("reports.invalidDate")}
+            </span>
+          ) : null}
         </form>
       </div>
+
+      {loadError ? (
+        <p role="alert" className="report-error" data-tone="warning">
+          {t("reports.loadError")}
+        </p>
+      ) : null}
 
       {/*
         ONE provenance header for the whole report, rather than one above every section.

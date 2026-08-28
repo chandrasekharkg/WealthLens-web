@@ -36,6 +36,31 @@ afterEach(() => vi.unstubAllGlobals());
 
 const entities = [{ id: "self", label: "Me", available: true }];
 
+describe("the import verdict collapses the re-walk", () => {
+  it("shows the file that changed and folds the unchanged re-walk into a count", async () => {
+    const job = {
+      id: "j2", verb: "import", entity_id: "self", state: "finished", outcome: "imported",
+      gate: null, message: null, changed_something: true, exit_code: 0,
+      result: { imported: 1, attention: 0, files: [
+        { file: "new-statement.pdf", status: "imported", loaded: 5 },  // pii-ok — the one file that changed
+        { file: "old-a.pdf", status: "skipped", loaded: 0 },           // pii-ok — re-walked, unchanged
+        { file: "old-b.pdf", status: "skipped", loaded: 0 },           // pii-ok
+        { file: "old-c.pdf", status: "imported", loaded: 0 },          // pii-ok — re-parsed, no new rows
+      ] },
+    };
+    vi.stubGlobal("fetch", vi.fn((url: string) => {
+      const body = url.startsWith("/api/jobs") ? job : {};
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(body) } as Response);
+    }));
+    render(<Import entities={entities} format={formatter()} />);
+    fireEvent.click(screen.getByText("Import now"));
+    // the file that actually changed is shown up front …
+    await waitFor(() => expect(screen.getByText("new-statement.pdf")).toBeTruthy());
+    // … and the three unchanged re-walk files are folded into a count, not three "0" lines
+    expect(screen.getByText("Already up to date (3)")).toBeTruthy();
+  });
+});
+
 describe("the unrecognized-statement on-ramp", () => {
   it("turns an unrecognized file into a 1→2→3 add-your-bank panel, not a dead end", async () => {
     stub();

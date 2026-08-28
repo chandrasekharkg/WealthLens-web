@@ -149,6 +149,17 @@ describe("honesty survives the regrouping", () => {
   });
 });
 
+describe("a failed load is not silent", () => {
+  it("surfaces an error banner rather than blanking the screen when the request fails", async () => {
+    // The old behaviour nulled the report on any error, so a date query that failed looked like "nothing" —
+    // indistinguishable from an empty report. A failure must now announce itself.
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("network"))));
+    render(<Reports reportId="market" format={formatter("en-IN")} />);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Couldn't load this report");
+  });
+});
+
 describe("the columns picker", () => {
   it("offers hidden columns and reveals one when ticked, remembering the choice everywhere", async () => {
     const store = new Map<string, string>();
