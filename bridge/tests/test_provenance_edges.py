@@ -53,6 +53,40 @@ def test_a_derived_holdings_row_yields_none_audit_not_the_string_nat(tmp_path):
     assert not any("NaT" in str(v) or "NaN" in str(v) for r in rows for v in r.values())
 
 
+def test_a_position_with_no_account_serialises_account_id_as_none_not_nan(tmp_path, monkeypatch):
+    """A priced position with no account arrives from the engine as a pandas NaN account_id. It must serialise
+    as None — a bare NaN failed the `str | None` response model with a 500, which surfaced as a report that
+    would not load on the point-in-time dates where such a row exists."""
+    import pandas as pd
+    from wealthlens import lens, workspace as wl_workspace
+    from wealthlens_web.core import lens_api
+
+    ws, con = _store(tmp_path)
+    con.execute("CHECKPOINT wl")
+    con.close()
+
+    df = pd.DataFrame([{
+        "name": "ORPHAN CO", "asset_class": "listed_equity", "account_id": float("nan"),
+        "instrument_id": "INE000A01001", "quantity": 10.0, "value_inr": 1000.0, "currency": "INR",
+        "as_of": "2020-08-28", "basis": "statement", "isin": "INE000A01001",
+    }])
+    monkeypatch.setattr(lens, "holdings", lambda **_: df)
+
+    with wl_workspace.resolve(ws).open() as c:
+        rows = lens_api.positions(c, on="2020-08-28", owner="self", currency="INR")
+
+    assert rows[0]["account_id"] is None                                  # NaN coerced, not passed through
+    assert not any(isinstance(v, float) and v != v for r in rows for v in r.values())   # no NaN anywhere
+
+
+def test_account_label_tolerates_a_nan_account(tmp_path):
+    """`_account_label` once called `.split` on a NaN and crashed; an account-less row must yield no label."""
+    from wealthlens_web.core import lens_api
+
+    assert lens_api._account_label(float("nan"), {}) is None
+    assert lens_api._account_label(None, {}) is None
+
+
 def test_a_bill_payment_carries_the_source_of_its_bank_debit(tmp_path):
     """The Payments table's own provenance: a bill payment is one bank debit, so it traces to the bank
     statement that debit was parsed from — regardless of whether the bill matched exactly or by cycle."""
