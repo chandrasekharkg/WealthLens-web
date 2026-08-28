@@ -14,6 +14,12 @@ an annotation mechanism. This change is where a household — dad, non-technical
   flag is a prompt with an action, never an alarm without one.
 - **Fact vs interpretation stays visually distinct** — the reconciliation pill established the pattern:
   blank = confirmed fact; toned pill = introspection with a next step.
+- **Sameness is evidence, not events.** A stock or MF held unchanged for ten years produces ~120 monthly
+  balance lines with the same quantity — on a real store, balance lines are 62% of the whole diary (5,267
+  of 8,447 rows). Those rows are not noise semantically: each is a statement CONFIRMING the position — the
+  strongest possible evidence. But as ROWS they are pure clutter for exactly the holdings that deserve the
+  least attention. So an unchanged run renders as ONE line of confidence, never a page of repetition —
+  and the diary's default view becomes the EVENTFUL timeline, which is what a person opened it to see.
 
 ## The four surfaces
 
@@ -26,6 +32,15 @@ an annotation mechanism. This change is where a household — dad, non-technical
   feedback control. This is the TER answer: visible in the one place someone examines a fund.
 - **Pledge badge**: when a custody span is open, the holding header shows "pledged since ‹date›" (the span,
   not the instruction rows); the rows remain in the transcript for the curious.
+- **Balance-run collapse** (the sameness principle, concretely): consecutive `balance` lines with an
+  identical position (quantity + pledged/locked breakdown) fold into ONE span row —
+  *"Unchanged at 1,200 units — confirmed by 120 statements, Jan 2016 → Aug 2026"* — expandable to the raw
+  rows on click (nothing is hidden, it is folded; CSV export keeps every row). A balance line that CHANGES
+  anything (quantity, a pledge appearing, a lock expiring) breaks the run and stands alone: change is an
+  event, and events always show. For the ten-year untouched fund, the whole transcript becomes ~3 lines —
+  acquired, the confirmation span, today — which is the truthful shape of that holding's story. The fold is
+  presenter-side grouping over the same DTO rows (`line_kind='balance'` runs keyed on the position tuple);
+  no engine change, no data loss.
 
 ### 2. The review queue (new — the interpretation-era heart)
 One surface aggregating every open question the engine produces, each phrased in household terms WITH its
