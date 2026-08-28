@@ -109,8 +109,9 @@ OpenSpec change first; significant choices become ADRs (immutable once decided �
       The reported "silent drop" turned out not to exist: an unconvertible quote is omitted from the ledger
       price tier deliberately (never converted at 1.0) and the position is still valued by its statement or
       its cost. Verified in the engine and now pinned by a test.
-- [ ] **Fleet event pending:** WLC's schema is now 3.10. Existing stores read 3.9 and need a rebuild +
-      promote before an aggregator will include them (ADR-0017).
+- [ ] **Fleet event pending:** WLC's schema is now 3.11. Stores on an older schema need a rebuild +
+      promote before an aggregator will include them (ADR-0017). (This line drifts — `wealthlens version`
+      is the authority for the current schema number.)
 - [x] WLC: **a machine-readable job contract** — shipped (WLC `455c0e0`). `--json` on rebuild, verify and
       promote; an `outcome` (ok / attention / refused / failed) separate from the exit code; every refusal
       names its gate; under `--json` the envelope owns stdout and narration goes to stderr.
