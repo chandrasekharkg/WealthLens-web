@@ -65,7 +65,6 @@ export function Reports({ reportId, format }: ReportsProps) {
   const [badDate, setBadDate] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   // The holding whose full transcript is open below the report, or none.
   const [diary, setDiary] = useState<{ entity: string; instrument: string; name: string } | null>(null);
   // The source popup (Primitive B) for whichever row's Source was clicked.
@@ -281,13 +280,16 @@ export function Reports({ reportId, format }: ReportsProps) {
         <form
           className="as-of"
           data-print="hide"
+          // noValidate: we do the checking ourselves and show our own hint, so the browser never pops its bare
+          // "Invalid value" bubble over a half-typed date (e.g. only the year filled). `input.validity` is still
+          // computed, so the check below still works.
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             const input = event.currentTarget.elements.namedItem("as-of") as HTMLInputElement;
-            // Apply only a COMPLETE, in-range date (or an empty field = today). The input is UNCONTROLLED so a
-            // half-typed date isn't wiped mid-edit (a controlled value={} was cleared when the browser reported
-            // the transient partial as invalid) — and a still-invalid entry is refused here, not applied blank.
-            if (!input.validity.valid) {
+            // The input is UNCONTROLLED so a half-typed date isn't wiped mid-edit. A partial date reports
+            // `badInput` and an empty value — refuse it with our own hint; an empty field means "today".
+            if (input.validity.badInput) {
               setBadDate(true);
               return;
             }
@@ -300,7 +302,6 @@ export function Reports({ reportId, format }: ReportsProps) {
             id="as-of"
             name="as-of"
             type="date"
-            max={today}
             defaultValue={asOf}
             onInput={() => setBadDate(false)}
           />
