@@ -61,6 +61,28 @@ describe("the import verdict collapses the re-walk", () => {
   });
 });
 
+describe("adding multiple files", () => {
+  it("uploads every file dropped onto the dropzone, as one accumulating batch", async () => {
+    const uploaded: string[] = [];
+    vi.stubGlobal("fetch", vi.fn((url: string, opts?: RequestInit) => {
+      if (url === "/api/upload") {
+        const name = ((opts?.body as FormData).get("file") as File).name;
+        uploaded.push(name);
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ filename: name }) } as Response);
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response);
+    }));
+    render(<Import entities={entities} format={formatter()} />);
+    const zone = document.querySelector(".dropzone")!;
+    const files = [new File(["a"], "canara-jan.pdf"), new File(["b"], "canara-feb.pdf")]; // pii-ok — placeholders
+    fireEvent.drop(zone, { dataTransfer: { files } });
+    // each dropped file is uploaded to the inbox, in order, and reported as landed
+    await waitFor(() => expect(uploaded).toEqual(["canara-jan.pdf", "canara-feb.pdf"]));
+    expect(screen.getByText("canara-jan.pdf is in the inbox.")).toBeTruthy();
+    expect(screen.getByText("canara-feb.pdf is in the inbox.")).toBeTruthy();
+  });
+});
+
 describe("the unrecognized-statement on-ramp", () => {
   it("turns an unrecognized file into a 1→2→3 add-your-bank panel, not a dead end", async () => {
     stub();

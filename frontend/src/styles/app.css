@@ -1008,3 +1008,19 @@ input[type="date"] {
 
 /* ── Bill-payment link confidence ────────────────────────────────────────────────────────────────── */
 .link-inferred { color: var(--warn); font-size: 0.85em; cursor: help; }
+
+/* ── Import dropzone — drag a batch of statements, or click to choose ─────────────────────────────── */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  border: 2px dashed var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dropzone[data-dragover] { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone label { font-weight: 600; cursor: pointer; }
+.dropzone-hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
