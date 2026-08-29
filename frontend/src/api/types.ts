@@ -822,6 +822,11 @@ export interface components {
             debit?: number | null;
             /** Description */
             description?: string | null;
+            /**
+             * Diary Id
+             * @description Stable content-hash id of the diary line — the anchor a review-queue item or story entry deep-links to, and the key a user annotation binds to.
+             */
+            diary_id?: string | null;
             /** Free */
             free?: number | null;
             /** Line Kind */

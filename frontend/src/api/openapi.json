@@ -942,6 +942,18 @@
             ],
             "title": "Description"
           },
+          "diary_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable content-hash id of the diary line \u2014 the anchor a review-queue item or story entry deep-links to, and the key a user annotation binds to.",
+            "title": "Diary Id"
+          },
           "free": {
             "anyOf": [
               {

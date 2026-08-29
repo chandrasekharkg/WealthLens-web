@@ -376,6 +376,7 @@ def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
     for _, r in df.iterrows():
         verdict, needs_review = _diary_verdict(r["role"], r["action"], r["line_kind"], r["description"])
         lines.append({
+            "diary_id": _str(r["diary_id"]),             # stable content-hash id — the anchor / annotation key
             "date": _date(r["date"]),
             "line_kind": r["line_kind"],
             "role": _str(r["role"]),

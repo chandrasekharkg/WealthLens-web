@@ -277,6 +277,11 @@ class CardBillPayments(BaseModel):
 class DiaryLine(RowProvenance):
     """One line of a holding's CAS transcript. Balances are UNIT quantities, not money."""
 
+    diary_id: str | None = Field(
+        default=None,
+        description="Stable content-hash id of the diary line — the anchor a review-queue item or story "
+        "entry deep-links to, and the key a user annotation binds to.",
+    )
     date: str | None = None
     line_kind: str
     role: str | None = Field(default=None, description="Why the line did/didn't move ownership")
