@@ -9,6 +9,14 @@ the **custodian**. That boundary is the first law, and most rules below exist to
 → what we build and in what order · [openspec/decisions/](openspec/decisions/) → why · [openspec/specs/](openspec/specs/)
 → what, testably.
 
+## Working notes for KG's agents
+
+This is a **public repo — synthetic data only** in commits and fixtures (the pre-push PII scan enforces it);
+never name a real host, store path, or person here. KG's home-lab context — machines, SSH, deploy playbooks,
+the new-repo house rules — lives in the local **`kg-home`** skill (`~/.claude/skills/kg-home/`), not in this
+repo. Two facts that ARE public and matter here: `./wealthlens-serve` runs the app locally, and a **deploy
+needs a serve RESTART** for bridge (Python) changes — a rebuild alone only refreshes `dist/`.
+
 ---
 
 ## 1. Testability is proven before a feature is written
