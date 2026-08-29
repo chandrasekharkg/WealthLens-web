@@ -26,6 +26,18 @@ import { PROVENANCE_HIDDEN, provenanceColumns } from "../lib/provenance";
 
 type Row = ReportSection["rows"][number];
 
+// The diary a URL points at: ?holding=<entity>/<instrument>. Returns the open-diary descriptor (name is a
+// placeholder the panel replaces from fetched data) or null. Read once, as a state initializer.
+function diaryFromUrl(): { entity: string; instrument: string; name: string } | null {
+  const holding = new URLSearchParams(window.location.search).get("holding");
+  if (!holding) return null;
+  const slash = holding.indexOf("/");
+  if (slash < 0) return null;
+  const instrument = holding.slice(slash + 1);
+  if (!instrument) return null;
+  return { entity: holding.slice(0, slash), instrument, name: instrument };
+}
+
 // Hidden by default: the everyday columns show, the rest are one click away in the Columns picker. Kept at
 // module scope so it is one shared object, never rebuilt per render.
 const HIDDEN_BY_DEFAULT: Record<string, boolean> = {
@@ -65,11 +77,19 @@ export function Reports({ reportId, format }: ReportsProps) {
   const [badDate, setBadDate] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
-  // The holding whose full transcript is open below the report, or none.
-  const [diary, setDiary] = useState<{ entity: string; instrument: string; name: string } | null>(null);
+  // The holding whose full transcript is open below the report, or none. Its INITIAL value is read once from
+  // the URL — ?holding=<entity>/<instrument> — so a shared/bookmarked link opens straight to that diary. The
+  // panel derives the holding's name from the data it fetches, so the URL needn't carry it.
+  const [diary, setDiary] = useState<{ entity: string; instrument: string; name: string } | null>(
+    () => diaryFromUrl(),
+  );
   // Trial affordance: flip the diary between an inline section and a popup. Popup is the intended default;
   // the choice persists across opens so a reviewer can compare without re-toggling each time.
   const [diaryMode, setDiaryMode] = useState<"inline" | "popup">("popup");
+  // A specific diary line to open focused — the URL's ?line= on load, or a future review-queue deep-link.
+  const [focusLine, setFocusLine] = useState<string | null>(
+    () => (diaryFromUrl() ? new URLSearchParams(window.location.search).get("line") : null),
+  );
   // The source popup (Primitive B) for whichever row's Source was clicked.
   const [source, setSource] = useState<{ entity: string; sourceId: string } | null>(null);
   const openSource = useCallback((row: Row) => {
@@ -91,6 +111,23 @@ export function Reports({ reportId, format }: ReportsProps) {
 
   useEffect(() => load(reportId, asOf), [reportId, asOf, load]);
 
+  // Deep-link OUT: keep the URL in step with what's open, so a diary (and the line in focus) is bookmarkable,
+  // reload-surviving, and shareable — the same link opens the same view on another machine. replaceState, so
+  // it never floods the back button.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (diary) {
+      q.set("holding", `${diary.entity}/${diary.instrument}`);
+      if (focusLine) q.set("line", focusLine);
+      else q.delete("line");
+    } else {
+      q.delete("holding");
+      q.delete("line");
+    }
+    const qs = q.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [diary, focusLine]);
+
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
       {
@@ -105,13 +142,14 @@ export function Reports({ reportId, format }: ReportsProps) {
               type="button"
               className="linklike"
               title={t("diary.open")}
-              onClick={() =>
+              onClick={() => {
+                setFocusLine(null); // a fresh open from the name isn't focusing any particular line
                 setDiary({
                   entity: row.original.entity_id ?? "",
                   instrument: row.original.instrument_id as string,
                   name: row.original.name ?? (row.original.instrument_id as string),
-                })
-              }
+                });
+              }}
             >
               {row.original.name}
             </button>
@@ -411,6 +449,7 @@ export function Reports({ reportId, format }: ReportsProps) {
           onClose={() => setDiary(null)}
           presentation={diaryMode}
           onSetPresentation={setDiaryMode}
+          focusDiaryId={focusLine}
         />
       ) : null}
 

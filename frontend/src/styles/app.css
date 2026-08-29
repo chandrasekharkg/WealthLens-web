@@ -1047,6 +1047,14 @@ input[type="date"] {
 .diary-transcript-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .diary-collapse { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--muted); }
 
+/* Deep-link focus: a row addressed by ?line=… flashes, then settles into a quiet standing highlight so it
+   stays findable after the flash fades (a reader arriving from a link needs to SEE which row they came for). */
+tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFlash 1.6s ease-out; }
+@keyframes rowFlash {
+  0%   { background: var(--accent); }
+  100% { background: var(--accent-soft); }
+}
+
 /* ── Card Star (paid-status badge) ───────────────────────────────────────────────────────────────── */
 .card-status {
   display: inline-flex;

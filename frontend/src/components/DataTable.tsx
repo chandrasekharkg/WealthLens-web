@@ -9,7 +9,7 @@ import {
   type RowData,
   useReactTable,
 } from "@tanstack/react-table";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import "../styles/print.css";
 
@@ -65,6 +65,13 @@ export type DataTableProps<Row> = {
    */
   readonly columnVisibility?: VisibilityState;
   readonly onColumnVisibilityChange?: (next: VisibilityState) => void;
+  /**
+   * A stable id per row (e.g. a diary line's `diary_id`). Given this, the table can be asked to focus a row.
+   * Optional — a table that never deep-links leaves both this and `focusRowId` unset and behaves as before.
+   */
+  readonly getRowId?: (row: Row) => string | undefined;
+  /** The row to bring into view and highlight — the table pages to it, scrolls to it, and flashes it. */
+  readonly focusRowId?: string | null;
 };
 
 function download(csv: string, filename: string) {
@@ -88,6 +95,8 @@ export function DataTable<Row>({
   format,
   columnVisibility,
   onColumnVisibilityChange,
+  getRowId,
+  focusRowId,
 }: DataTableProps<Row>) {
   // Falls back to the shipped catalog so a caller that has not threaded `format` still renders words
   // rather than keys — the table is used from several screens and should not break one by omission.
@@ -134,12 +143,39 @@ export function DataTable<Row>({
             typeof updater === "function" ? updater(columnVisibility ?? {}) : updater,
           )
       : undefined,
+    // When a caller supplies row ids, adopt them as the table's row id so `focusRowId` can address a row;
+    // fall back to the index for any row without one (never collides with a real id).
+    ...(getRowId ? { getRowId: (row: Row, index: number) => getRowId(row) ?? String(index) } : {}),
     initialState: { pagination: { pageIndex: 0, pageSize } },
   });
 
   const leaving = rowsThatLeave(table);
   const shown = printing ? leaving : table.getPaginationRowModel().rows;
   const columnsHidden = columnsThatLeave(table).length < table.getAllLeafColumns().length;
+
+  // Deep-link focus: page to the requested row, then scroll it into view and flash it. Two effects because
+  // paging is a state change — the row is only in the DOM to scroll to on the render AFTER the page is set.
+  const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSizeNow = table.getState().pagination.pageSize || 1;
+  useEffect(() => {
+    if (!focusRowId || !getRowId) return;
+    const idx = table.getSortedRowModel().rows.findIndex((r) => r.id === focusRowId);
+    if (idx >= 0) table.setPageIndex(Math.floor(idx / pageSizeNow));
+    // Re-runs only when the target changes; paging + scroll are handled by the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRowId]);
+  useEffect(() => {
+    if (!focusRowId) return;
+    const sel =
+      typeof CSS !== "undefined" && CSS.escape ? CSS.escape(focusRowId) : focusRowId.replace(/"/g, '\\"');
+    const el = tbodyRef.current?.querySelector(`[data-row-id="${sel}"]`);
+    // scrollIntoView is absent under jsdom (and could be on any non-DOM host) — the row is still marked
+    // focused for the highlight; the scroll is a best-effort nicety, guarded so it never throws.
+    if (el && typeof (el as HTMLElement).scrollIntoView === "function") {
+      (el as HTMLElement).scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [focusRowId, pageIndex]);
 
   const exportCsv = () => {
     const csv = toCsv(
@@ -233,9 +269,13 @@ export function DataTable<Row>({
               </tr>
             ))}
           </thead>
-          <tbody>
+          <tbody ref={tbodyRef}>
             {shown.map((row) => (
-              <tr key={row.id}>
+              <tr
+                key={row.id}
+                data-row-id={getRowId ? row.id : undefined}
+                data-focused={getRowId && focusRowId && row.id === focusRowId ? "true" : undefined}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}

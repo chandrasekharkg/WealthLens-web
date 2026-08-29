@@ -68,6 +68,27 @@ describe("HoldingDiaryPanel", () => {
     await waitFor(() => expect(screen.queryByText("Confirmed")).toBeNull());
   });
 
+  it("focuses a deep-linked line — marks it, and expands the fold when the target was folded away", async () => {
+    // A run of five identical balances (folds to one, keeping the LAST) plus a movement. Focus the FIRST
+    // balance — a line the fold absorbs — so the panel must expand to reveal it, then mark it focused.
+    const runLines = [
+      { diary_id: "dhd-first", date: "2026-01-31", line_kind: "balance", role: null, action: null,
+        description: "ALPHA", debit: null, credit: null, closing: 100, pledged: null, locked: null, free: 100, booked: false },
+      ...Array.from({ length: 4 }, (_, k) => ({
+        diary_id: `dhd-run-${k}`, date: `2026-0${k + 2}-28`, line_kind: "balance", role: null, action: null,
+        description: "ALPHA", debit: null, credit: null, closing: 100, pledged: null, locked: null, free: 100, booked: false })),
+    ];
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ ...DIARY, lines: runLines }) } as Response)));
+    render(<HoldingDiaryPanel entity="self" instrument="INE000A01001" name="ALPHA LTD"
+      format={formatter()} onClose={() => {}} focusDiaryId="dhd-first" />);
+    // The focused row is present and marked — the fold auto-expanded because the target was a folded-away row.
+    await waitFor(() => {
+      const focused = document.querySelector('[data-row-id="dhd-first"][data-focused="true"]');
+      expect(focused).toBeTruthy();
+    });
+  });
+
   it("shows an empty-state when the holding has no transcript", async () => {
     vi.stubGlobal("fetch", vi.fn(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve({ ...DIARY, lines: [] }) } as Response)));

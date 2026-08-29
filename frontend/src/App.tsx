@@ -65,7 +65,11 @@ export function App() {
   const { t } = defaultFormatter;
   const [version, setVersion] = useState<Load<Version>>({ state: "loading" });
   const [netWorth, setNetWorth] = useState<Load<NetWorth>>({ state: "loading" });
-  const [screen, setScreen] = useState<Screen>("overview");
+  // A ?holding=… deep-link lives on Reports (the diary opens there), so land there when one is present —
+  // otherwise the link would open Overview and the diary would never mount. Read once, as an initializer.
+  const [screen, setScreen] = useState<Screen>(() =>
+    new URLSearchParams(window.location.search).get("holding") ? "reports" : "overview",
+  );
   const [railOpen, setRailOpen] = useState(true);
 
   /**

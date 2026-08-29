@@ -115,6 +115,7 @@ export function HoldingDiaryPanel({
   onClose,
   presentation = "inline",
   onSetPresentation,
+  focusDiaryId,
 }: {
   readonly entity: string;
   readonly instrument: string;
@@ -125,6 +126,8 @@ export function HoldingDiaryPanel({
   readonly presentation?: "inline" | "popup";
   /** When given, the head shows a live inline⇄popup switch (the trial affordance). */
   readonly onSetPresentation?: (mode: "inline" | "popup") => void;
+  /** A diary line to open scrolled-to and highlighted — the review-queue / story-strip deep-link anchor. */
+  readonly focusDiaryId?: string | null;
 }) {
   const { t, number, money } = format;
   const [diary, setDiary] = useState<Load<HoldingDiary>>({ state: "loading" });
@@ -139,6 +142,9 @@ export function HoldingDiaryPanel({
   }, [entity, instrument]);
 
   const lines = useMemo(() => (diary.state === "ready" ? diary.data.lines : []), [diary]);
+  // Prefer the name the fetch resolved (a URL-opened diary is handed only the instrument id as a placeholder;
+  // the fetched holding carries the real name), falling back to the prop until the data arrives.
+  const shownName = (diary.state === "ready" && diary.data.name) || name;
   const num = useCallback(
     (v: number | null | undefined) => (v === null || v === undefined ? "" : number(v)),
     [number],
@@ -148,8 +154,14 @@ export function HoldingDiaryPanel({
   // count of rows the fold absorbs drives the toggle's label so the reader knows what's hidden and that it's
   // one click away — never a silent truncation.
   const folded = useMemo(() => foldBalanceRuns(lines), [lines]);
-  const rows: DiaryRow[] = collapsed ? folded : lines;
   const absorbed = lines.length - folded.length;
+  // A deep-link may target a line the fold absorbed (an earlier row of a run — the fold keeps only the latest).
+  // When it does, show every row so the anchor is actually there to scroll to; the fold is a view and the
+  // anchor wins. Derived (not a setState) so it reverts on its own when the focus clears — the user's collapse
+  // preference is never overwritten, only overridden while a hidden line is being pointed at.
+  const targetFolded = focusDiaryId ? folded.some((r) => r.diary_id === focusDiaryId) : true;
+  const effectiveCollapsed = collapsed && targetFolded;
+  const rows: DiaryRow[] = effectiveCollapsed ? folded : lines;
 
   const [source, setSource] = useState<string | null>(null);
   const openSource = useCallback((row: DiaryLine) => {
@@ -248,6 +260,7 @@ export function HoldingDiaryPanel({
 
   const exportColumns = useMemo<Column<DiaryRow>[]>(
     () => [
+      { header: "diary_id", value: (r) => r.diary_id ?? null },
       { header: t("column.date"), value: (r) => r.date ?? null },
       { header: t("column.type"), value: (r) => verdictOf(r, t).label },
       { header: t("column.description"), value: (r) => r.description ?? null },
@@ -340,7 +353,7 @@ export function HoldingDiaryPanel({
           {absorbed > 0 ? (
             // The fold is honest: the reader is told how many rows it absorbs and that the toggle reveals them.
             <label className="diary-collapse">
-              <input type="checkbox" checked={collapsed} onChange={(e) => setCollapsed(e.target.checked)} />
+              <input type="checkbox" checked={effectiveCollapsed} onChange={(e) => setCollapsed(e.target.checked)} />
               {t("diary.collapseRuns", { count: absorbed })}
             </label>
           ) : null}
@@ -360,9 +373,9 @@ export function HoldingDiaryPanel({
           exportColumns={exportColumns}
           format={format}
           pageSize={50}
-          caption={t("diary.title", { name })}
+          caption={t("diary.title", { name: shownName })}
           provenance={{
-            title: t("diary.title", { name }),
+            title: t("diary.title", { name: shownName }),
             scope: entity,
             // The reporting currency is the bridge's decision — previously a "—" placeholder.
             reporting_currency: diary.state === "ready" ? diary.data.provenance.reporting_currency : "—",
@@ -370,6 +383,8 @@ export function HoldingDiaryPanel({
           }}
           columnVisibility={columnVisibility}
           onColumnVisibilityChange={onColumnVisibilityChange}
+          getRowId={(r) => r.diary_id ?? undefined}
+          focusRowId={focusDiaryId ?? null}
         />
       )}
 
@@ -382,7 +397,7 @@ export function HoldingDiaryPanel({
   if (presentation === "popup") {
     return (
       <Modal
-        title={t("diary.title", { name })}
+        title={t("diary.title", { name: shownName })}
         onClose={onClose}
         closeLabel={t("diary.close")}
         size="wide"
@@ -396,7 +411,7 @@ export function HoldingDiaryPanel({
   return (
     <section className="statement statement-drill diary-panel">
       <div className="statement-head">
-        <h2>{t("diary.title", { name })}</h2>
+        <h2>{t("diary.title", { name: shownName })}</h2>
         <div className="modal-head-tail">
           {modeSwitch}
           <button type="button" className="linklike" onClick={onClose}>
