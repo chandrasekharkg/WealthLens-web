@@ -69,6 +69,17 @@ deep-link + the name-as-doorway keeps it *attached to context* everywhere, which
 
 ## The four surfaces
 
+### Multi-demat holdings — consolidate, and SAY SO (decided 2026-08-29)
+The diary is keyed by instrument, so a holding across several brokers (dad's GAIL: 3 brokers / 5 demats /
+154 lines; KG's Oil India: 3 demats) is ONE consolidated transcript. Decision: this is a feature for an
+*analysis* view — do NOT build per-demat filtering. Instead **name the consolidation** and give a compact
+**per-broker holdings strip** under the performance card (shipped, `721b2ef`): "Held across N demat
+accounts — the transcript below is consolidated", then one chip per demat — shares · broker (DP-ID fallback
+when unnamed) · ••last4 · since-date when the ledger knows it · a ⚑ on a superseded slice. A strip, never a
+table (a table would eat the real estate this saves). Data is `HoldingDiary.positions`, built from
+`lens.holdings()` filtered to the instrument, so it matches the market report's per-demat rows and inherits
+supersession (KG's Oil India shows 2 current demats, not 3 — one stale carry-forward retired).
+
 ### 1. Holding drill-down (extend `HoldingDiaryPanel`, now a popup — see Reachability)
 - **Story strip** at the top: the `holding_story` timeline (acquired → additions → pledged-since →
   corp actions → exits/renames), each entry with its basis tone (booked / derived / inferred / answered).
