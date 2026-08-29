@@ -136,9 +136,10 @@ Built and trialable, verified in the browser against the synthetic demo family:
 - The sameness balance-run collapse is baked into the panel (folds ≥3 identical consecutive balance lines to
   one "Confirmed" row; a labelled toggle reveals every row; data untouched; unit-tested).
 
-Still to do in step 0: `<InstrumentLink>` (name-as-doorway everywhere), URL state, and — DEFERRED, needs a
-bridge field — `focusDiaryId` anchoring: `DiaryLine` has no `diary_id` in the DTO yet, so review-queue /
-story-strip deep-linking waits on WLC exposing the stable line id.
+`diary_id` is now exposed on the `DiaryLine` DTO (WLC `lens.holding_diary` → bridge model → generated types,
+commits b9532d1 / 75d5f5d) — so `focusDiaryId` anchoring, the review-queue → line deep-link, and the
+annotation binding key are all UNBLOCKED. Still to do in step 0: `<InstrumentLink>` (name-as-doorway
+everywhere), URL state, and wiring `focusDiaryId` into the panel (scroll-to + highlight on open).
 
 ## Sequencing (mirrors the engine's)
 0. **The reachability refactor** — shared `Modal`, diary-as-popup, `<InstrumentLink>`, URL state. Pure
