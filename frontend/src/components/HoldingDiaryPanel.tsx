@@ -1,10 +1,11 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import type { ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type DiaryLine, type HoldingDiary } from "../api/client";
 import type { Formatter } from "../i18n";
 import { type Column } from "../lib/csv";
+import { type DiaryMeaning, diaryMeaning, diaryMeaningText } from "../lib/diaryMeaning";
 import { PROVENANCE_HIDDEN, provenanceColumns, useColumnVisibility } from "../lib/provenance";
 import { DataTable } from "./DataTable";
 import { Modal } from "./Modal";
@@ -134,6 +135,29 @@ export function HoldingDiaryPanel({
   // Sameness-fold on by default: the confidence view is what a reader wants first; the toggle reveals every row.
   const [collapsed, setCollapsed] = useState(true);
 
+  // The plain-language meaning tooltip: which line, and where to float the card. Positioned `fixed` from the
+  // trigger's rect so the scrollable transcript never clips it. Shown on hover (desktop) or tap (touch).
+  const [tip, setTip] = useState<{ m: DiaryMeaning; x: number; y: number } | null>(null);
+  const showTip = useCallback(
+    (el: HTMLElement, line: DiaryLine) => {
+      const r = el.getBoundingClientRect();
+      setTip({ m: diaryMeaning(line, t), x: r.left + r.width / 2, y: r.top });
+    },
+    [t],
+  );
+  const hideTip = useCallback(() => setTip(null), []);
+  // A fixed tooltip goes stale when the page scrolls under it — dismiss it on any scroll or resize.
+  useEffect(() => {
+    if (!tip) return;
+    const off = () => setTip(null);
+    window.addEventListener("scroll", off, true);
+    window.addEventListener("resize", off);
+    return () => {
+      window.removeEventListener("scroll", off, true);
+      window.removeEventListener("resize", off);
+    };
+  }, [tip]);
+
   useEffect(() => {
     void api
       .holdingDiary(entity, instrument)
@@ -196,17 +220,24 @@ export function HoldingDiaryPanel({
         // "Confirmed" — the sameness is the strongest evidence, so it renders as its own quiet verdict.
         cell: ({ row }) => {
           const l = row.original;
+          // The verdict chip carries the plain-language meaning tooltip — hover, or tap on touch. aria-label
+          // gives a screen reader the same sentence without adding a tab stop per row.
+          const tipHandlers = {
+            className: "verdict-chip",
+            tabIndex: -1,
+            "aria-label": diaryMeaningText(l, t),
+            onMouseEnter: (e: ReactMouseEvent<HTMLElement>) => showTip(e.currentTarget, l),
+            onMouseLeave: hideTip,
+            onClick: (e: ReactMouseEvent<HTMLElement>) =>
+              setTip((cur) => (cur ? null : { m: diaryMeaning(l, t), x: e.currentTarget.getBoundingClientRect().left + e.currentTarget.getBoundingClientRect().width / 2, y: e.currentTarget.getBoundingClientRect().top })),
+          };
           if (l._run) {
-            return <span data-verdict="confirmed" data-tone="neutral">{t("diary.confirmed")}</span>;
+            return <span data-verdict="confirmed" data-tone="neutral" {...tipHandlers}>{t("diary.confirmed")}</span>;
           }
           const { label, tone } = verdictOf(l, t);
           if (!label) return "";
           return (
-            <span
-              data-verdict={l.verdict ?? l.role ?? l.line_kind}
-              data-tone={tone}
-              title={l.needs_review ? t("diary.needsReview") : undefined}
-            >
+            <span data-verdict={l.verdict ?? l.role ?? l.line_kind} data-tone={tone} {...tipHandlers}>
               {label}
             </span>
           );
@@ -255,7 +286,7 @@ export function HoldingDiaryPanel({
         } },
       ...provenanceColumns<DiaryRow>(t, openSource),
     ],
-    [t, format, num, openSource],
+    [t, format, num, openSource, showTip, hideTip],
   );
 
   const exportColumns = useMemo<Column<DiaryRow>[]>(
@@ -417,6 +448,16 @@ export function HoldingDiaryPanel({
 
       {source ? (
         <SourcePopup entity={entity} sourceId={source} format={format} onClose={() => setSource(null)} />
+      ) : null}
+
+      {tip ? (
+        // The plain-language meaning card — floated above the hovered/tapped verdict chip. `fixed` + the
+        // trigger's own coordinates keep it out of the transcript's horizontal scroll clip.
+        <div className="diary-tip" style={{ left: tip.x, top: tip.y }} aria-hidden="true">
+          {tip.m.event ? <p className="diary-tip-event">{tip.m.event}</p> : null}
+          <p className="diary-tip-status">{tip.m.status}</p>
+          <p className="diary-tip-foot">{t("diary.mean.foot")}</p>
+        </div>
       ) : null}
     </>
   );

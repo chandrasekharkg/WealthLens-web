@@ -98,6 +98,29 @@ describe("HoldingDiaryPanel", () => {
     });
   });
 
+  it("shows a plain-language tooltip on a diary line's verdict chip", async () => {
+    const { fireEvent } = await import("@testing-library/react");
+    const lines = [
+      { date: "2021-06-10", line_kind: "transaction", role: "superseded", action: null, verdict: "superseded",
+        description: "By Bonus Issue Issuer Instruction", debit: null, credit: 50, closing: 150,
+        pledged: null, locked: null, free: null, booked: false, needs_review: false },
+    ];
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ ...DIARY, lines }) } as Response)));
+    render(<HoldingDiaryPanel entity="self" instrument="INE000A01001" name="ALPHA LTD"
+      format={formatter()} onClose={() => {}} />);
+    // the chip shows the verdict ("Booked elsewhere"); hovering it reveals the constructed meaning
+    const chip = await screen.findByText("Booked elsewhere");
+    fireEvent.mouseEnter(chip);
+    // the floated card (aria-hidden — the chip's aria-label carries it for SR) shows the constructed meaning
+    await waitFor(() => expect(document.querySelector(".diary-tip")).toBeTruthy());
+    const tipText = document.querySelector(".diary-tip")?.textContent ?? "";
+    expect(tipText).toMatch(/Bonus issue/);
+    expect(tipText).toMatch(/already records it/);
+    fireEvent.mouseLeave(chip);
+    await waitFor(() => expect(document.querySelector(".diary-tip")).toBeNull());
+  });
+
   it("shows an empty-state when the holding has no transcript", async () => {
     vi.stubGlobal("fetch", vi.fn(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve({ ...DIARY, lines: [] }) } as Response)));
