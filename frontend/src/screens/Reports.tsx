@@ -67,6 +67,9 @@ export function Reports({ reportId, format }: ReportsProps) {
   const [report, setReport] = useState<Report | null>(null);
   // The holding whose full transcript is open below the report, or none.
   const [diary, setDiary] = useState<{ entity: string; instrument: string; name: string } | null>(null);
+  // Trial affordance: flip the diary between an inline section and a popup. Popup is the intended default;
+  // the choice persists across opens so a reviewer can compare without re-toggling each time.
+  const [diaryMode, setDiaryMode] = useState<"inline" | "popup">("popup");
   // The source popup (Primitive B) for whichever row's Source was clicked.
   const [source, setSource] = useState<{ entity: string; sourceId: string } | null>(null);
   const openSource = useCallback((row: Row) => {
@@ -406,6 +409,8 @@ export function Reports({ reportId, format }: ReportsProps) {
           name={diary.name}
           format={format}
           onClose={() => setDiary(null)}
+          presentation={diaryMode}
+          onSetPresentation={setDiaryMode}
         />
       ) : null}
 

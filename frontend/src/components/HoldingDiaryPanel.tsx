@@ -1,4 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type DiaryLine, type HoldingDiary } from "../api/client";
@@ -6,6 +7,7 @@ import type { Formatter } from "../i18n";
 import { type Column } from "../lib/csv";
 import { PROVENANCE_HIDDEN, provenanceColumns, useColumnVisibility } from "../lib/provenance";
 import { DataTable } from "./DataTable";
+import { Modal } from "./Modal";
 import { SourcePopup } from "./SourcePopup";
 
 /**
@@ -15,9 +17,67 @@ import { SourcePopup } from "./SourcePopup";
  * statements carried for it, transactional and not, in order. The `role` says why each line did or didn't
  * move ownership — the pledges, settlement legs and unmapped items the quantity ledger deduplicates away are
  * exactly what has reporting value here. Balances are UNIT quantities, not money, so they format as numbers.
+ *
+ * Two capabilities live here beyond the raw table. (1) Sameness is evidence, not events: a holding held
+ * unchanged for years prints one identical balance line per statement — dozens of rows that say the same
+ * thing. Consecutive balance lines at an identical position fold into ONE confidence row ("Unchanged at N —
+ * confirmed by C statements"); anything that CHANGES breaks the run and stands alone, because change is the
+ * event. The fold is a view (a toggle turns it off to see every row); it never touches the data. (2) The
+ * panel is presentation-agnostic — it renders inline (a section in the page flow) or as a popup (the shared
+ * Modal), chosen by the caller, so the same component can be trialed both ways.
  */
 
 type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error" };
+
+/** A run of identical consecutive balance lines, folded to one row (see `foldBalanceRuns`). */
+type BalanceRun = { count: number; from: string | null; to: string | null };
+type DiaryRow = DiaryLine & { _run?: BalanceRun };
+
+// The position a balance line asserts — total plus the band breakdown. Two balance lines are "the same
+// confirmation" iff every component matches; a pledge appearing or a lock expiring changes the key and so
+// breaks the run, which is exactly right: that IS an event.
+function positionKey(l: DiaryLine): string {
+  return `${l.closing ?? ""}|${l.pledged ?? ""}|${l.locked ?? ""}|${l.free ?? ""}`;
+}
+
+// Fold runs of >= FOLD_MIN consecutive identical balance lines into a single representative row (the most
+// recent, so the shown position is current) annotated with the span. Shorter runs, transaction lines, and any
+// balance line whose position differs from its neighbour pass through untouched — order is preserved.
+const FOLD_MIN = 3;
+function foldBalanceRuns(lines: DiaryLine[]): DiaryRow[] {
+  const out: DiaryRow[] = [];
+  for (let i = 0; i < lines.length; ) {
+    const line = lines[i];
+    if (!line) {
+      i += 1;
+      continue;
+    }
+    if (line.line_kind !== "balance") {
+      out.push(line);
+      i += 1;
+      continue;
+    }
+    const key = positionKey(line);
+    let j = i + 1;
+    while (j < lines.length) {
+      const next = lines[j];
+      if (!next || next.line_kind !== "balance" || positionKey(next) !== key) break;
+      j += 1;
+    }
+    const count = j - i;
+    const rep = lines[j - 1] ?? line; // the latest confirmation carries the current position
+    if (count >= FOLD_MIN) {
+      out.push({ ...rep, _run: { count, from: line.date ?? null, to: rep.date ?? null } });
+    } else {
+      for (let k = i; k < j; k += 1) {
+        const r = lines[k];
+        if (r) out.push(r);
+      }
+    }
+    i = j;
+  }
+  return out;
+}
 
 /** A role or, for a non-transaction line, its kind — one legible tag per row. The raw fallback. */
 function tagOf(line: DiaryLine, t: Formatter["t"]): string {
@@ -53,15 +113,23 @@ export function HoldingDiaryPanel({
   name,
   format,
   onClose,
+  presentation = "inline",
+  onSetPresentation,
 }: {
   readonly entity: string;
   readonly instrument: string;
   readonly name: string;
   readonly format: Formatter;
   readonly onClose: () => void;
+  /** How to frame the panel: `inline` a section in the page flow, `popup` the shared Modal. */
+  readonly presentation?: "inline" | "popup";
+  /** When given, the head shows a live inline⇄popup switch (the trial affordance). */
+  readonly onSetPresentation?: (mode: "inline" | "popup") => void;
 }) {
   const { t, number, money } = format;
   const [diary, setDiary] = useState<Load<HoldingDiary>>({ state: "loading" });
+  // Sameness-fold on by default: the confidence view is what a reader wants first; the toggle reveals every row.
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     void api
@@ -70,11 +138,18 @@ export function HoldingDiaryPanel({
       .catch(() => setDiary({ state: "error" }));
   }, [entity, instrument]);
 
-  const lines = diary.state === "ready" ? diary.data.lines : [];
+  const lines = useMemo(() => (diary.state === "ready" ? diary.data.lines : []), [diary]);
   const num = useCallback(
     (v: number | null | undefined) => (v === null || v === undefined ? "" : number(v)),
     [number],
   );
+
+  // What the table shows: the sameness-folded view by default, the raw lines when the reader expands. The
+  // count of rows the fold absorbs drives the toggle's label so the reader knows what's hidden and that it's
+  // one click away — never a silent truncation.
+  const folded = useMemo(() => foldBalanceRuns(lines), [lines]);
+  const rows: DiaryRow[] = collapsed ? folded : lines;
+  const absorbed = lines.length - folded.length;
 
   const [source, setSource] = useState<string | null>(null);
   const openSource = useCallback((row: DiaryLine) => {
@@ -85,17 +160,33 @@ export function HoldingDiaryPanel({
     PROVENANCE_HIDDEN,
   );
 
-  const columns = useMemo<ColumnDef<DiaryLine>[]>(
+  const columns = useMemo<ColumnDef<DiaryRow>[]>(
     () => [
-      { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => format.date(row.original.date) },
+      {
+        id: "date",
+        accessorKey: "date",
+        header: t("column.date"),
+        // A folded run spans dates; show the range so the confidence row reads as a period, not a moment.
+        cell: ({ row }) => {
+          const l = row.original;
+          if (l._run && l._run.from && l._run.to && l._run.from !== l._run.to) {
+            return `${format.date(l._run.from)} – ${format.date(l._run.to)}`;
+          }
+          return format.date(l.date);
+        },
+      },
       {
         id: "type",
         header: t("column.type"),
-        accessorFn: (r) => verdictOf(r, t).label,
+        accessorFn: (r) => (r._run ? t("diary.confirmed") : verdictOf(r, t).label),
         // The interpreted verdict, toned by direction — and an honest "Needs review" (warning tone) for an
-        // off-market/CA line we couldn't name, rather than a silent `unmapped`.
+        // off-market/CA line we couldn't name, rather than a silent `unmapped`. A folded run reads as
+        // "Confirmed" — the sameness is the strongest evidence, so it renders as its own quiet verdict.
         cell: ({ row }) => {
           const l = row.original;
+          if (l._run) {
+            return <span data-verdict="confirmed" data-tone="neutral">{t("diary.confirmed")}</span>;
+          }
           const { label, tone } = verdictOf(l, t);
           if (!label) return "";
           return (
@@ -109,7 +200,20 @@ export function HoldingDiaryPanel({
           );
         },
       },
-      { id: "description", accessorKey: "description", header: t("column.description") },
+      {
+        id: "description",
+        header: t("column.description"),
+        accessorFn: (r) =>
+          r._run
+            ? t("diary.runSummary", { qty: num(r.closing) || "0", count: r._run.count })
+            : r.description ?? "",
+        // A folded run says what it is in words: unchanged at N, confirmed by C statements.
+        cell: ({ row }) => {
+          const l = row.original;
+          if (l._run) return t("diary.runSummary", { qty: num(l.closing) || "0", count: l._run.count });
+          return l.description ?? "";
+        },
+      },
       {
         id: "broker",
         header: t("column.broker"),
@@ -137,12 +241,12 @@ export function HoldingDiaryPanel({
           }
           return num(l.closing);
         } },
-      ...provenanceColumns<DiaryLine>(t, openSource),
+      ...provenanceColumns<DiaryRow>(t, openSource),
     ],
     [t, format, num, openSource],
   );
 
-  const exportColumns = useMemo<Column<DiaryLine>[]>(
+  const exportColumns = useMemo<Column<DiaryRow>[]>(
     () => [
       { header: t("column.date"), value: (r) => r.date ?? null },
       { header: t("column.type"), value: (r) => verdictOf(r, t).label },
@@ -162,14 +266,20 @@ export function HoldingDiaryPanel({
     [t],
   );
 
-  return (
-    <section className="statement statement-drill diary-panel">
-      <div className="statement-head">
-        <h2>{t("diary.title", { name })}</h2>
-        <button type="button" className="linklike" onClick={onClose}>
-          {t("diary.close")}
-        </button>
-      </div>
+  // The inline⇄popup switch, shown in the head only when the caller wants to trial the two framings.
+  const modeSwitch: ReactNode = onSetPresentation ? (
+    <div className="seg" role="group" aria-label={t("diary.viewMode")}>
+      <button type="button" aria-pressed={presentation === "inline"} onClick={() => onSetPresentation("inline")}>
+        {t("diary.inline")}
+      </button>
+      <button type="button" aria-pressed={presentation === "popup"} onClick={() => onSetPresentation("popup")}>
+        {t("diary.popup")}
+      </button>
+    </div>
+  ) : null;
+
+  const body: ReactNode = (
+    <>
       <p className="cards-subtitle">{t("diary.subtitle")}</p>
 
       {diary.state === "ready" && diary.data.performance ? (
@@ -224,7 +334,18 @@ export function HoldingDiaryPanel({
         </div>
       ) : null}
 
-      {diary.state === "ready" && lines.length > 0 ? <h3>{t("diary.transcript")}</h3> : null}
+      {diary.state === "ready" && lines.length > 0 ? (
+        <div className="diary-transcript-head">
+          <h3>{t("diary.transcript")}</h3>
+          {absorbed > 0 ? (
+            // The fold is honest: the reader is told how many rows it absorbs and that the toggle reveals them.
+            <label className="diary-collapse">
+              <input type="checkbox" checked={collapsed} onChange={(e) => setCollapsed(e.target.checked)} />
+              {t("diary.collapseRuns", { count: absorbed })}
+            </label>
+          ) : null}
+        </div>
+      ) : null}
 
       {diary.state === "error" ? (
         <p role="alert">{t("error.load")}</p>
@@ -234,7 +355,7 @@ export function HoldingDiaryPanel({
         <p>{t("diary.none")}</p>
       ) : (
         <DataTable
-          rows={lines}
+          rows={rows}
           columns={columns}
           exportColumns={exportColumns}
           format={format}
@@ -245,7 +366,7 @@ export function HoldingDiaryPanel({
             scope: entity,
             // The reporting currency is the bridge's decision — previously a "—" placeholder.
             reporting_currency: diary.state === "ready" ? diary.data.provenance.reporting_currency : "—",
-            row_count: lines.length,
+            row_count: rows.length,
           }}
           columnVisibility={columnVisibility}
           onColumnVisibilityChange={onColumnVisibilityChange}
@@ -255,6 +376,35 @@ export function HoldingDiaryPanel({
       {source ? (
         <SourcePopup entity={entity} sourceId={source} format={format} onClose={() => setSource(null)} />
       ) : null}
+    </>
+  );
+
+  if (presentation === "popup") {
+    return (
+      <Modal
+        title={t("diary.title", { name })}
+        onClose={onClose}
+        closeLabel={t("diary.close")}
+        size="wide"
+        headExtra={modeSwitch}
+      >
+        {body}
+      </Modal>
+    );
+  }
+
+  return (
+    <section className="statement statement-drill diary-panel">
+      <div className="statement-head">
+        <h2>{t("diary.title", { name })}</h2>
+        <div className="modal-head-tail">
+          {modeSwitch}
+          <button type="button" className="linklike" onClick={onClose}>
+            {t("diary.close")}
+          </button>
+        </div>
+      </div>
+      {body}
     </section>
   );
 }

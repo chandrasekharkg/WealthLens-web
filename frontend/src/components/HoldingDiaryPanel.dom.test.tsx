@@ -47,6 +47,27 @@ describe("HoldingDiaryPanel", () => {
     expect(screen.getByText(/OLD BANK LTD/)).toBeTruthy();
   });
 
+  it("folds a run of identical balance lines into one confidence row, and the toggle reveals them", async () => {
+    const { fireEvent } = await import("@testing-library/react");
+    // Five identical monthly confirmations at 100 units — the sameness the fold collapses to one row.
+    const runLines = Array.from({ length: 5 }, (_, k) => ({
+      date: `2026-0${k + 1}-28`, line_kind: "balance", role: null, action: null,
+      description: "ALPHA", debit: null, credit: null, closing: 100, pledged: null, locked: null, free: 100, booked: false,
+    }));
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ ...DIARY, lines: runLines }) } as Response)));
+    render(<HoldingDiaryPanel entity="self" instrument="INE000A01001" name="ALPHA LTD"
+      format={formatter()} onClose={() => {}} />);
+    // Collapsed by default: one "Confirmed" row standing for all five statements, none of the raw rows.
+    await waitFor(() => expect(screen.getByText("Confirmed")).toBeTruthy());
+    expect(screen.getByText(/confirmed by 5 statements/)).toBeTruthy();
+    // The toggle is offered and names how many rows it absorbs; unchecking it reveals every row.
+    const toggle = screen.getByRole("checkbox", { name: /Collapse/ });
+    expect(toggle).toBeTruthy();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(screen.queryByText("Confirmed")).toBeNull());
+  });
+
   it("shows an empty-state when the holding has no transcript", async () => {
     vi.stubGlobal("fetch", vi.fn(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve({ ...DIARY, lines: [] }) } as Response)));
