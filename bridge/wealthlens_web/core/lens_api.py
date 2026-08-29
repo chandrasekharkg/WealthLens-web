@@ -328,6 +328,47 @@ def _holding_performance(con, instrument: str, currency: str) -> dict | None:
     }
 
 
+def _mask_demat(account_id: str | None) -> str | None:
+    """A demat id → its masked tail, e.g. `demat:IN301774:10959207` → `••9207`. The client id is never shown
+    in full (the same four-digit convention as elsewhere). None/empty passes through."""
+    if not account_id or _isnan(account_id):
+        return None
+    tail = account_id.split(":")[-1]
+    return "••" + tail[-4:] if tail else None
+
+
+def _holding_positions(con, instrument: str) -> list[dict]:
+    """The per-demat breakdown for the CONSOLIDATED diary: which broker holds how many units, since when.
+
+    The transcript below merges every broker's lines into one dated stream (the diary filters by instrument,
+    not account), which is the intended analysis view. This strip is what tells the reader that — built from
+    `lens.holdings()` so it matches the market report's per-demat rows exactly (and inherits supersession),
+    with the broker NAME joined from `accounts` (falling back to the DP-ID when the name isn't captured) and
+    the demat id masked to its last four. Largest holding first."""
+    from wealthlens import lens
+    rows = lens.holdings(con=con)
+    rows = rows[rows["instrument_id"] == instrument]
+    out = []
+    for _, r in rows.iterrows():
+        acct = _str(r.get("account_id"))
+        broker = None
+        if acct:
+            got = con.execute("SELECT institution FROM accounts WHERE account_id = ? LIMIT 1", [acct]).fetchone()
+            broker = _str(got[0]) if got else None
+            if not broker:                                  # DP-ID fallback: better than a blank chip
+                parts = acct.split(":")
+                broker = parts[1] if len(parts) > 1 else acct
+        out.append({
+            "broker": broker,
+            "account_masked": _mask_demat(acct),
+            "shares": _num(r.get("quantity")),
+            "since": _date(r.get("first_acquired_on")),
+            "reconciliation": _str(r.get("reconciliation")),
+        })
+    out.sort(key=lambda p: -(p["shares"] or 0))
+    return out
+
+
 def _holding_lineage(con, instrument: str) -> list[dict]:
     """The succession chain a holding belongs to — former names, mergers, ISIN changes."""
     from wealthlens import lens
@@ -402,6 +443,7 @@ def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
         "instrument": instrument,
         "name": name,
         "performance": _holding_performance(con, instrument, currency),
+        "positions": _holding_positions(con, instrument),
         "lineage": _holding_lineage(con, instrument),
         "lines": lines,
     }

@@ -1043,6 +1043,24 @@ input[type="date"] {
 }
 .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
 
+/* The per-broker holdings strip — a compact row of chips under the performance card, never a table (a table
+   would eat the real estate this is meant to save). Wraps on narrow widths. */
+.holding-strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 0.6rem; margin: 0.75rem 0 0.25rem; }
+.holding-strip-label { font-size: 0.8rem; color: var(--muted); margin-right: 0.15rem; }
+.holding-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  font-size: 0.82rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.holding-chip b { font-variant-numeric: tabular-nums; }
+.holding-chip-who { color: var(--muted); }
+.holding-chip-since { color: var(--muted); }
+
 /* The transcript heading row carries the sameness-collapse toggle. */
 .diary-transcript-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .diary-collapse { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--muted); }

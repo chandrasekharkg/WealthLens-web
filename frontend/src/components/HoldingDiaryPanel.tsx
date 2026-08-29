@@ -330,6 +330,33 @@ export function HoldingDiaryPanel({
         </dl>
       ) : null}
 
+      {diary.state === "ready" && (diary.data.positions ?? []).length > 0 ? (
+        // The per-broker holdings strip. The transcript below MERGES every demat's lines (the diary is keyed
+        // by instrument, not account) — this strip is what says so, and shows who holds how many, since when.
+        // `?? []` guards a new frontend talking to an older bridge that predates this field (deploy skew).
+        <div className="holding-strip">
+          <span className="holding-strip-label">
+            {(diary.data.positions ?? []).length > 1
+              ? t("diary.heldAcross", { count: (diary.data.positions ?? []).length })
+              : t("diary.heldIn")}
+          </span>
+          {(diary.data.positions ?? []).map((p, i) => (
+            <span className="holding-chip" key={`${p.broker ?? "?"}-${p.account_masked ?? i}`}>
+              <b>{num(p.shares) || "—"}</b> {t("diary.sharesShort")}
+              <span className="holding-chip-who">
+                {" · "}
+                {p.broker ?? t("diary.unknownBroker")}
+                {p.account_masked ? ` ${p.account_masked}` : ""}
+              </span>
+              {p.since ? <span className="holding-chip-since"> · {t("diary.since", { date: format.date(p.since) })}</span> : null}
+              {p.reconciliation === "superseded" ? (
+                <span data-role="unmapped" title={t("verdict.review")}> ⚑</span>
+              ) : null}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
       {diary.state === "ready" && diary.data.lineage.length > 0 ? (
         <div className="lineage">
           <h3>{t("lineage.heading")}</h3>

@@ -11,6 +11,10 @@ const DIARY = {
     gain: { amount: "5000.00", currency: "INR" }, realised: null, unrealised: null,
     abs_return_pct: 50, xirr_pct: 12.3, corp_action: false, synthetic_dates: false,
   },
+  positions: [
+    { broker: "ZERODHA", account_masked: "••1857", shares: 100, since: "2020-05-10", reconciliation: null },
+    { broker: "HDFC SECURITIES", account_masked: "••6e07", shares: 60, since: null, reconciliation: null },
+  ],
   lineage: [
     { date: "2020-07-31", from_isin: "INE000OLD001", from_name: "OLD BANK LTD",
       to_isin: "INE000NEW002", to_name: "NEW BANK LTD", action: "merger", ratio: "1:1", note: "OLD merged into NEW" },
@@ -45,6 +49,11 @@ describe("HoldingDiaryPanel", () => {
     expect(screen.getByText("12.3%")).toBeTruthy();
     expect(screen.getByText("Identity history")).toBeTruthy();
     expect(screen.getByText(/OLD BANK LTD/)).toBeTruthy();
+    // the per-broker holdings strip announces the consolidation and lists each demat's shares/broker
+    expect(screen.getByText(/Held across 2 demat accounts/)).toBeTruthy();
+    expect(screen.getByText(/ZERODHA/)).toBeTruthy();
+    expect(screen.getByText(/HDFC SECURITIES/)).toBeTruthy();
+    expect(screen.getByText(/since 10 May 2020/)).toBeTruthy();
   });
 
   it("folds a run of identical balance lines into one confidence row, and the toggle reveals them", async () => {

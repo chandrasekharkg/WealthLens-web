@@ -1598,6 +1598,14 @@
               }
             ]
           },
+          "positions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/HoldingPosition"
+            },
+            "title": "Positions",
+            "type": "array"
+          },
           "provenance": {
             "$ref": "#/components/schemas/Provenance"
           }
@@ -1700,6 +1708,73 @@
           }
         },
         "title": "HoldingPerformance",
+        "type": "object"
+      },
+      "HoldingPosition": {
+        "description": "One demat account's slice of a holding \u2014 the per-broker breakdown a consolidated diary needs, because\nthe transcript below merges every broker's lines. Shares are UNIT quantities, not money.",
+        "properties": {
+          "account_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last 4 of the demat id, e.g. \u2022\u20221857",
+            "title": "Account Masked"
+          },
+          "broker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "DP/broker name of the demat (falls back to its DP-ID)",
+            "title": "Broker"
+          },
+          "reconciliation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "e.g. 'superseded' \u2014 this demat's slice is unconfirmed",
+            "title": "Reconciliation"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Units currently held in this demat",
+            "title": "Shares"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First acquired date in this demat, when the ledger knows it",
+            "title": "Since"
+          }
+        },
+        "title": "HoldingPosition",
         "type": "object"
       },
       "Identifier": {

@@ -1056,6 +1056,11 @@ export interface components {
             /** Name */
             name?: string | null;
             performance?: components["schemas"]["HoldingPerformance"] | null;
+            /**
+             * Positions
+             * @default []
+             */
+            positions: components["schemas"]["HoldingPosition"][];
             provenance: components["schemas"]["Provenance"];
         };
         /**
@@ -1087,6 +1092,38 @@ export interface components {
              * @description Money-weighted return
              */
             xirr_pct?: number | null;
+        };
+        /**
+         * HoldingPosition
+         * @description One demat account's slice of a holding — the per-broker breakdown a consolidated diary needs, because
+         *     the transcript below merges every broker's lines. Shares are UNIT quantities, not money.
+         */
+        HoldingPosition: {
+            /**
+             * Account Masked
+             * @description Last 4 of the demat id, e.g. ••1857
+             */
+            account_masked?: string | null;
+            /**
+             * Broker
+             * @description DP/broker name of the demat (falls back to its DP-ID)
+             */
+            broker?: string | null;
+            /**
+             * Reconciliation
+             * @description e.g. 'superseded' — this demat's slice is unconfirmed
+             */
+            reconciliation?: string | null;
+            /**
+             * Shares
+             * @description Units currently held in this demat
+             */
+            shares?: number | null;
+            /**
+             * Since
+             * @description First acquired date in this demat, when the ledger knows it
+             */
+            since?: string | null;
         };
         /** Identifier */
         Identifier: {

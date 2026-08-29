@@ -313,6 +313,17 @@ class HoldingPerformance(BaseModel):
     synthetic_dates: bool = Field(default=False, description="Buy dates were inferred — XIRR is approximate")
 
 
+class HoldingPosition(BaseModel):
+    """One demat account's slice of a holding — the per-broker breakdown a consolidated diary needs, because
+    the transcript below merges every broker's lines. Shares are UNIT quantities, not money."""
+
+    broker: str | None = Field(default=None, description="DP/broker name of the demat (falls back to its DP-ID)")
+    account_masked: str | None = Field(default=None, description="Last 4 of the demat id, e.g. ••1857")
+    shares: float | None = Field(default=None, description="Units currently held in this demat")
+    since: str | None = Field(default=None, description="First acquired date in this demat, when the ledger knows it")
+    reconciliation: str | None = Field(default=None, description="e.g. 'superseded' — this demat's slice is unconfirmed")
+
+
 class LineageEdge(BaseModel):
     """One recorded change in a holding's identity — a merger, demerger, or ISIN change."""
 
@@ -333,6 +344,7 @@ class HoldingDiary(BaseModel):
     instrument: str
     name: str | None = None
     performance: HoldingPerformance | None = None
+    positions: list[HoldingPosition] = []
     lineage: list[LineageEdge] = []
     lines: list[DiaryLine] = []
     provenance: Provenance
