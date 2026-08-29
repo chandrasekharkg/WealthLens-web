@@ -12,9 +12,10 @@ the **custodian**. That boundary is the first law, and most rules below exist to
 ## Working notes for KG's agents
 
 This is a **public repo — synthetic data only** in commits and fixtures (the pre-push PII scan enforces it);
-never name a real host, store path, or person here. KG's home-lab context — machines, SSH, deploy playbooks,
-the new-repo house rules — lives in the local **`kg-home`** skill (`~/.claude/skills/kg-home/`), not in this
-repo. Two facts that ARE public and matter here: `./wealthlens-serve` runs the app locally, and a **deploy
+never name a real host, store path, or person here. On a KG home machine a private, home-only skill is
+symlinked at **`.claude/skills/kgc_home_skill.md`** (never in git) — read it for machines, SSH, deploy
+playbooks, and house rules; if the symlink isn't present, this isn't a home checkout and that context doesn't
+apply. Two facts that ARE public and matter here: `./wealthlens-serve` runs the app locally, and a **deploy
 needs a serve RESTART** for bridge (Python) changes — a rebuild alone only refreshes `dist/`.
 
 ---
