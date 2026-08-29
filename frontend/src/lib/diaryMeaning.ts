@@ -67,10 +67,15 @@ function statusKey(line: DiaryLine): string {
 
 /** Compose the plain-language meaning of a diary line. `t` resolves the catalog copy. */
 export function diaryMeaning(line: DiaryLine, t: Formatter["t"]): DiaryMeaning {
-  const ek = eventKey(line.description);
+  const sk = statusKey(line);
+  // Only a real TRANSACTION line gets an event line. On a balance/confirmation or disclosure line the
+  // description is the security's own NAME or fee metadata — and a post-split holding is literally named
+  // "… AFTER SUB-DIVISION SHARES", a merged one "… AFTER AMALGAMATION". Reading that name as an EVENT would
+  // put "Stock split" on a row whose status is "nothing moved" — a contradiction. So suppress it there.
+  const ek = sk === "balance" || sk === "disclosure" ? null : eventKey(line.description);
   return {
     event: ek ? t(`diary.mean.event.${ek}` as "diary.mean.event.bonus") : null,
-    status: t(`diary.mean.status.${statusKey(line)}` as "diary.mean.status.in"),
+    status: t(`diary.mean.status.${sk}` as "diary.mean.status.in"),
   };
 }
 

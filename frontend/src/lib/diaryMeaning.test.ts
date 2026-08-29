@@ -25,6 +25,16 @@ describe("diaryMeaning", () => {
     expect(diaryMeaning(line({ role: "custody", description: "MP Accept CTRBO" }), t).event).toMatch(/Margin pledge/);
   });
 
+  it("does NOT read a corporate-action word in a security's NAME as an event on a balance line", () => {
+    // a post-split holding is literally named "… AFTER SUB-DIVISION SHARES"; a balance row carries that name
+    // in its description — it must NOT read as a 'Stock split' event contradicting "nothing moved".
+    const m = diaryMeaning(
+      line({ line_kind: "balance", verdict: "balance",
+        description: "ACME LIMITED - EQUITY NEW EQUITY SHARES OF RE 1 AFTER SUB-DIVISION SHARES" }), t);
+    expect(m.event).toBeNull();
+    expect(m.status).toMatch(/nothing moved/);
+  });
+
   it("falls back cleanly — no event line when the description names nothing known", () => {
     expect(diaryMeaning(line({ verdict: "buy", description: "Some opaque code XYZ" }), t).event).toBeNull();
     expect(diaryMeaning(line({ verdict: "buy", description: "Some opaque code XYZ" }), t).status).toMatch(/came IN/);
