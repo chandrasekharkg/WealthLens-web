@@ -21,9 +21,55 @@ an annotation mechanism. This change is where a household — dad, non-technical
   least attention. So an unchanged run renders as ONE line of confidence, never a page of repetition —
   and the diary's default view becomes the EVENTFUL timeline, which is what a person opened it to see.
 
+## Reachability — the diary as a lens, not a destination
+
+Today's asymmetry is the whole problem this section fixes. `SourcePopup` — the *simpler* "where did this come
+from" view — is already **Primitive B**: a self-contained modal (`role="dialog"`, backdrop, Escape-to-close,
+fresh mount per open, prop surface `{entity, sourceId, format, onClose}`) reached from six screens.
+`HoldingDiaryPanel` — the *richer* "whole story of this holding" view — renders as an inline `<section>`
+(`.statement-drill`, pushed into the page flow) and is mounted from exactly ONE screen (Reports). The more
+valuable view is the harder to reach, and it isn't even a popup. The diary already has the right prop shape
+(`{entity, instrument, name, format, onClose}`, self-fetching) — what's missing is the shell and the doorways.
+
+### Make it Primitive A (symmetric with the source popup)
+1. **Extract a shared modal shell.** There is no reusable dialog today — `SourcePopup` hand-rolls its
+   backdrop / `aria-modal` / Escape / focus-trap, and any second popup would duplicate it. Extract a `Modal`
+   (backdrop-click + Escape close, focus trap, scroll lock, mounted-fresh semantics) and render BOTH popups
+   in it — the diary becomes a popup and the source popup sheds its bespoke chrome in the same change.
+2. **The diary renders in the shell unchanged.** Same component, same self-fetch; only its outer `<section>`
+   becomes the modal body. Reports keeps working (it just opens the popup instead of growing a section).
+3. **Add an optional anchor.** `HoldingDiaryPanel` gains `focusDiaryId?: string` — open scrolled to that line,
+   briefly highlighted. This is what turns "reach the diary" into "reach THIS line," and it's what the review
+   queue and the story strip both need.
+
+### The doorways (the intuitive ways in)
+- **The instrument name is a doorway** — the same principle as "the Source link is a doorway." Wherever a
+  holding's name appears (Reports ✓, Family's per-member net worth, any future holdings list), the name is a
+  button that opens the diary popup. One small `<InstrumentLink entity instrument name/>` used everywhere, so
+  reachability is a property of the *name*, not of the screen that happens to show it.
+- **URL-addressable** — `?holding=<entity>/<instrument>[&line=<diary_id>]` opens the popup on load. Every open
+  becomes bookmarkable, reload-surviving, and **shareable** (dad can be sent a link straight to the holding
+  whose question he needs to answer). It also makes every navigation below free — they just set the URL.
+- **The review queue IS the diary, filtered** — an open question is a diary line. Clicking a queue item opens
+  the diary popup anchored (`focusDiaryId`) to that line, in context of its neighbours — no separate detail
+  view to build, and the answer is given right where the line lives.
+- **The two popups cross-link** — SourcePopup already lists "which store tables it wrote"; extend it to the
+  holdings a document touched → click one → its diary. And the diary's own Source link → SourcePopup. Provenance
+  becomes a graph a person can walk both directions (statement → holdings, holding → statements).
+- **Story-first depth (never the 120-row wall)** — the popup opens on the FOLDED story (the ~3-line sameness
+  view: acquired · confirmation span · today), with "full transcript" one expand away. Reaching in is a glance
+  by default; the balance-run collapse is what makes the popup usable as a quick-look, not a data dump.
+- **The story strip entries are anchors** — inside the popup, clicking a story entry scrolls the transcript to
+  the span it summarises (the strip is the index, the transcript is the full text — same `focusDiaryId` path).
+
+### The anti-pattern to avoid
+Do **not** add a "Diary" tab to the nav. The diary is a lens you pull over a holding, not a place you visit —
+a destination would force "which holding?" up front and strand it away from the numbers it explains. Popup +
+deep-link + the name-as-doorway keeps it *attached to context* everywhere, which is the whole point.
+
 ## The four surfaces
 
-### 1. Holding drill-down (extend `HoldingDiaryPanel`)
+### 1. Holding drill-down (extend `HoldingDiaryPanel`, now a popup — see Reachability)
 - **Story strip** at the top: the `holding_story` timeline (acquired → additions → pledged-since →
   corp actions → exits/renames), each entry with its basis tone (booked / derived / inferred / answered).
   The transcript table stays below for the full detail — the story is navigation, not replacement.
@@ -69,14 +115,26 @@ the primary field — the verdict comes from the vocabulary, so answers stay com
 - A "coverage" figure joins the provenance line of the diary-backed reports: "story 94% understood ·
   3 open questions" — the per-store honesty number, rendered where the numbers it qualifies live.
 
+## Frontend refactor (prerequisite — see Reachability)
+- Extract a shared `Modal` shell; render `SourcePopup` (Primitive B) and `HoldingDiaryPanel` (Primitive A) in
+  it. `SourcePopup` sheds its bespoke backdrop/dialog chrome in the same change (net line reduction).
+- `HoldingDiaryPanel` gains `focusDiaryId?` (open anchored to a line) and its story-first default view.
+- New `<InstrumentLink>` — the name-as-doorway, used wherever a holding appears.
+- URL state `?holding=<entity>/<instrument>[&line=<diary_id>]` drives the popup (open/close = set/clear query).
+
 ## Contract additions (bridge)
 - `GET /api/holdings/{entity}/{instrument}/story` — the timeline (read-only; ships first).
 - `GET /api/review-queue/{entity}` — the aggregated open questions with action descriptors.
 - `POST /api/annotations/{entity}` — the answer (writes the corpus document via a verb; last).
 - Diary line DTO gains `understanding: understood|answered|open` alongside the existing verdict fields.
+- SourcePopup's detail gains the holdings a document touched (for the two-way provenance cross-link).
 
 ## Sequencing (mirrors the engine's)
+0. **The reachability refactor** — shared `Modal`, diary-as-popup, `<InstrumentLink>`, URL state. Pure
+   frontend, ships FIRST and independently: it makes today's diary reachable before any interpretation lands,
+   and every surface below mounts into it.
 1. Story strip + fund-costs line + pledge badge (read-only, engine step 2).
-2. Review queue, read-only actions only — upload deep-links (engine step 3's rename lands with it).
+2. Review queue, read-only actions only — upload deep-links (engine step 3's rename lands with it); queue
+   items open the diary popup anchored to their line.
 3. Feedback control + annotations (engine step 4).
 4. CDSL rows appear everywhere automatically as parity lands (#8) — no UI change by design.
