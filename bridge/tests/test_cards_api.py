@@ -101,5 +101,6 @@ def test_each_statement_carries_its_paid_status_and_the_picker_the_newest(client
     stmts = {s["statement_date"]: s["status"] for s in
              client.get("/api/cards/mine/axis/statements").json()["statements"]}
     assert stmts["2026-02-28"] == "pending"                 # the newest
-    # Jan closed owing ₹1000; the next cycle paid only ₹800 back → less than the full bill = partial
-    assert stmts["2026-01-31"] == "partial"
+    # Jan closed owing ₹1000; the credits that follow sum to only ₹800 → the bill is not covered = unpaid
+    # (the simplified credits-vs-debits model is binary: covered → paid, else unpaid; no partial/minimum tier)
+    assert stmts["2026-01-31"] == "unpaid"

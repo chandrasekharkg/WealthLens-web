@@ -209,10 +209,11 @@ def _money(v, currency: str) -> Money | None:
 
 
 def _paid_status(con) -> dict[tuple[str, str], str]:
-    """{(issuer, 'YYYY-MM-DD') → paid/paid_minimum/partial/unpaid/nil/pending} for every statement — the star
-    on the statement list and the card picker. The lens derives it from the captured action tuple (minimum due /
-    due date) against the NEXT cycle's payment credits; the newest statement, having no next cycle yet, is
-    'pending'."""
+    """{(issuer, 'YYYY-MM-DD') → paid/unpaid/nil/pending} for every statement — the star on the statement list
+    and the card picker. The lens derives it simply: a statement is `paid` once the credits on all LATER
+    statements sum to at least what it owed (`new_balance`) — narration-free, so any payment rail counts and a
+    bill settled in instalments still reads paid; the newest statement, with no later cycle to confirm it, is
+    'pending'; `nil` when nothing was owed."""
     from wealthlens import lens
     df = lens.card_paid_status(con=con)
     return {(str(r["issuer"]), str(r["statement_date"])[:10]): str(r["status"]) for _, r in df.iterrows()}

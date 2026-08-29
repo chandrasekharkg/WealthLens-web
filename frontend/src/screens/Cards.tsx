@@ -37,9 +37,10 @@ const cardKey = (c: Pick<CardRow, "entity_id" | "issuer">) => `${c.entity_id}/${
 const cardName = (issuer: string) => `${issuer.toUpperCase()} card`;
 
 /**
- * The Card Star: a statement's paid-state, coloured by how settled it is. "Paid" and "minimum paid" are the
- * good states (the user's rule: paid ≥ minimum earns the star); "part paid" warns; "unpaid" is bad; "nothing
- * due" and the still-open "current" statement are neutral. The bridge derives the state — this only paints it.
+ * The Card Star: a statement's paid-state, coloured by how settled it is. The bridge now derives this with a
+ * simple credits-vs-debits model — `paid` once later statements' credits cover what was owed, else `unpaid`;
+ * `pending` for the still-open current statement, `nil` when nothing was due. This only paints the state; the
+ * older `paid_minimum`/`partial` tones are kept so the renderer stays robust if a finer status ever returns.
  */
 const STATUS_TONE: Record<string, string> = {
   paid: "ok",
