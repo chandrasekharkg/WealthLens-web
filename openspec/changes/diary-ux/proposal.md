@@ -129,10 +129,21 @@ the primary field — the verdict comes from the vocabulary, so answers stay com
 - Diary line DTO gains `understanding: understood|answered|open` alongside the existing verdict fields.
 - SourcePopup's detail gains the holdings a document touched (for the two-way provenance cross-link).
 
+## Status — step 0 in place (2026-08-29, commit 12a6feb)
+Built and trialable, verified in the browser against the synthetic demo family:
+- Shared `Modal` shell (`Modal.tsx`); the diary renders as a popup (Primitive A) OR inline, chosen by a
+  `presentation` prop, with a live inline⇄popup switch in the head so both framings can be compared.
+- The sameness balance-run collapse is baked into the panel (folds ≥3 identical consecutive balance lines to
+  one "Confirmed" row; a labelled toggle reveals every row; data untouched; unit-tested).
+
+Still to do in step 0: `<InstrumentLink>` (name-as-doorway everywhere), URL state, and — DEFERRED, needs a
+bridge field — `focusDiaryId` anchoring: `DiaryLine` has no `diary_id` in the DTO yet, so review-queue /
+story-strip deep-linking waits on WLC exposing the stable line id.
+
 ## Sequencing (mirrors the engine's)
 0. **The reachability refactor** — shared `Modal`, diary-as-popup, `<InstrumentLink>`, URL state. Pure
    frontend, ships FIRST and independently: it makes today's diary reachable before any interpretation lands,
-   and every surface below mounts into it.
+   and every surface below mounts into it. *(Modal + diary-as-popup + sameness-fold done; see Status.)*
 1. Story strip + fund-costs line + pledge badge (read-only, engine step 2).
 2. Review queue, read-only actions only — upload deep-links (engine step 3's rename lands with it); queue
    items open the diary popup anchored to their line.
