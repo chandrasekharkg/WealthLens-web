@@ -136,10 +136,14 @@ Built and trialable, verified in the browser against the synthetic demo family:
 - The sameness balance-run collapse is baked into the panel (folds ≥3 identical consecutive balance lines to
   one "Confirmed" row; a labelled toggle reveals every row; data untouched; unit-tested).
 
-`diary_id` is now exposed on the `DiaryLine` DTO (WLC `lens.holding_diary` → bridge model → generated types,
-commits b9532d1 / 75d5f5d) — so `focusDiaryId` anchoring, the review-queue → line deep-link, and the
-annotation binding key are all UNBLOCKED. Still to do in step 0: `<InstrumentLink>` (name-as-doorway
-everywhere), URL state, and wiring `focusDiaryId` into the panel (scroll-to + highlight on open).
+`diary_id` is exposed on the `DiaryLine` DTO (b9532d1 / 75d5f5d). **`focusDiaryId` is now wired** (5bd2b84):
+the panel pages to the target line, scrolls to it, flashes + standing-highlights it, and auto-expands the
+fold when the target was folded away (derived, reverts on clear). DataTable gained backward-compatible
+`getRowId` + `focusRowId`. **URL state is done**: `?holding=<entity>/<instrument>[&line=<diary_id>]` opens the
+diary (and lands on Reports) — bookmarkable, reload-surviving, shareable; opening/closing keeps the URL in
+step. The annotation binding key is unblocked. Still to do in step 0: `<InstrumentLink>` (name-as-doorway on
+screens beyond Reports). Deployed + verified on both KG's Mac serve (127.0.0.1:8765) and dad's AIPC serve
+(aipc.local:8765).
 
 ## Sequencing (mirrors the engine's)
 0. **The reachability refactor** — shared `Modal`, diary-as-popup, `<InstrumentLink>`, URL state. Pure
