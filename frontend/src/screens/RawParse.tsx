@@ -2,6 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api, ApiError, apiReason, type RawParseView, type WorkspaceDetail } from "../api/client";
 
+/** A readable category for a document, so the picker can filter by type/issuer before the statement itself.
+ * Derived from where `organize` filed it (its payload_ref folder) — `statements/credit-card/sbi` →
+ * "credit-card / sbi", `statements/depository/cas` → "depository / cas" — falling back to the provider. */
+function categoryOf(doc: Doc): string {
+  const ref = doc.payload_ref ?? "";
+  const dir = ref.includes("/") ? ref.slice(0, ref.lastIndexOf("/")) : "";
+  const cleaned = dir.replace(/^statements\//, "").replace(/\//g, " / ");
+  return cleaned || doc.provider || "other";
+}
+
 /**
  * The PDF-beside-interpretation view (data-issue-diagnosis Level 1): the user's real statement page rendered
  * on the left, every extracted line's FATE laid over it in colour, coordinate-locked. A red box is a
@@ -32,8 +42,23 @@ export type RawParseProps = {
 export function RawParse({ entities }: RawParseProps) {
   const [entity, setEntity] = useState(entities[0]?.id ?? "");
   const [docs, setDocs] = useState<Doc[]>([]);
+  const [category, setCategory] = useState("");
   const [selected, setSelected] = useState<Doc | null>(null);
   const [docsError, setDocsError] = useState<string | null>(null);
+
+  // group the documents by category (type / issuer) for the first-step filter
+  const categories = useMemo(() => {
+    const by = new Map<string, Doc[]>();
+    for (const d of docs) {
+      const c = categoryOf(d);
+      (by.get(c) ?? by.set(c, []).get(c)!).push(d);
+    }
+    return [...by.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [docs]);
+  const inCategory = useMemo(
+    () => docs.filter((d) => categoryOf(d) === category).sort((a, b) => (a.filename ?? "").localeCompare(b.filename ?? "")),
+    [docs, category],
+  );
 
   useEffect(() => {
     if (!entity) return;
@@ -59,6 +84,7 @@ export function RawParse({ entities }: RawParseProps) {
               value={entity}
               onChange={(e) => {
                 setEntity(e.target.value);
+                setCategory("");
                 setSelected(null);
                 setDocs([]);
               }}
@@ -71,13 +97,27 @@ export function RawParse({ entities }: RawParseProps) {
             </select>
           )}
           <select
-            value={selected?.filename ?? ""}
-            onChange={(e) => setSelected(docs.find((d) => d.filename === e.target.value) ?? null)}
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setSelected(null);
+            }}
           >
-            <option value="">Pick a statement…</option>
-            {docs.map((d) => (
+            <option value="">Category…</option>
+            {categories.map(([c, ds]) => (
+              <option key={c} value={c}>
+                {c} ({ds.length})
+              </option>
+            ))}
+          </select>
+          <select
+            value={selected?.filename ?? ""}
+            disabled={!category}
+            onChange={(e) => setSelected(inCategory.find((d) => d.filename === e.target.value) ?? null)}
+          >
+            <option value="">{category ? "Pick a statement…" : "— pick a category first"}</option>
+            {inCategory.map((d) => (
               <option key={`${d.provider}/${d.filename}`} value={d.filename ?? ""}>
-                {d.provider ? `${d.provider} · ` : ""}
                 {d.filename}
               </option>
             ))}
