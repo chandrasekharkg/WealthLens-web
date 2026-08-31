@@ -1533,12 +1533,18 @@ export interface components {
         RawParseView: {
             /**
              * Classified
-             * @description True when the fates are auto-assigned (a depository CAS); False when the type isn't classified yet and every line shows as furniture
+             * @description True when the fates are auto-assigned; False when the type isn't classified and every line shows as furniture
              * @default true
              */
             classified: boolean;
             /** Filename */
             filename: string;
+            /**
+             * Method
+             * @description how fates were assigned: 'cas' (the CAS reader's own line accounting, precise), 'facts' (matching amounts to what the parser booked, a not-interpreted line is a fuzzy CANDIDATE), or 'none' (unclassified — all furniture)
+             * @default cas
+             */
+            method: string;
             /** Pages */
             pages?: components["schemas"]["RawParsePage"][];
             /**

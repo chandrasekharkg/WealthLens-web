@@ -221,13 +221,19 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
     const sum = Object.entries((v.summary ?? {}) as Record<string, number>)
       .map(([k, n]) => `${k} ${n}`)
       .join(" · ");
+    const method =
+      v.method === "cas"
+        ? "depository CAS — fates from the reader's own per-line accounting (precise)"
+        : v.method === "facts"
+          ? "amount-matched to the parser's booked facts — an auto `not_interpreted` line is a CANDIDATE (a dated, numeric line whose amount matched nothing booked; could be a wrapped/summary line — verify before acting)"
+          : "not auto-classified for this statement type — every line shown as furniture; the reporter flagged the gaps below";
     return [
       `## Raw-parse gap — ${categoryOf(doc)}`,
       ``,
       `Reported from the WealthLens raw-parse view. **Masked — no values, names, or account numbers: every ` +
         "line is reduced to its shape (`#` per digit, `<ISIN>`, `<W>` per word) and the geometry is in PDF points.**",
       ``,
-      `- classification: ${v.classified ? "depository CAS (fates auto-assigned)" : "not auto-classified for this statement type — shown as furniture; the reporter flagged the gaps below"}`,
+      `- classification: ${method}`,
       `- document fate summary: ${sum}`,
       `- lines flagged as NOT interpreted: **${flagged.length}**`,
       ``,

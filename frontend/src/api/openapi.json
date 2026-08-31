@@ -2741,12 +2741,18 @@
         "properties": {
           "classified": {
             "default": true,
-            "description": "True when the fates are auto-assigned (a depository CAS); False when the type isn't classified yet and every line shows as furniture",
+            "description": "True when the fates are auto-assigned; False when the type isn't classified and every line shows as furniture",
             "title": "Classified",
             "type": "boolean"
           },
           "filename": {
             "title": "Filename",
+            "type": "string"
+          },
+          "method": {
+            "default": "cas",
+            "description": "how fates were assigned: 'cas' (the CAS reader's own line accounting, precise), 'facts' (matching amounts to what the parser booked, a not-interpreted line is a fuzzy CANDIDATE), or 'none' (unclassified \u2014 all furniture)",
+            "title": "Method",
             "type": "string"
           },
           "pages": {
