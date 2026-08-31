@@ -257,6 +257,9 @@ export const en = {
 
   "table.export": "Export CSV",
   "table.print": "Print",
+  "table.filterColumns": "Filter columns",
+  "table.filterColumnPlaceholder": "filter…",
+  "table.filterColumnFor": "Filter the {column} column",
   "table.columns": "Columns",
   "table.showing": "Showing {shown} of {total} rows",
 

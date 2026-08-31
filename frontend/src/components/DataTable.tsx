@@ -1,5 +1,6 @@
 import {
   type ColumnDef,
+  type ColumnFiltersState,
   type VisibilityState,
   flexRender,
   getCoreRowModel,
@@ -127,6 +128,10 @@ export function DataTable<Row>({
   // known interaction with the library rather than a defect here, and a warning nobody can act on trains
   // people to ignore warnings.
   const [globalFilter, setGlobalFilter] = useState("");
+  // Per-column filters (holder / broker / ISIN / any column), revealed by the "Filter columns" toggle — a
+  // precise complement to the global search, so a household can narrow to one person, one broker, one ISIN.
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [showColFilters, setShowColFilters] = useState(false);
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<Row>({
     data: rows as Row[],
@@ -135,8 +140,9 @@ export function DataTable<Row>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: { globalFilter, ...(columnVisibility ? { columnVisibility } : {}) },
+    state: { globalFilter, columnFilters, ...(columnVisibility ? { columnVisibility } : {}) },
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: onColumnVisibilityChange
       ? (updater) =>
           onColumnVisibilityChange(
@@ -207,6 +213,18 @@ export function DataTable<Row>({
         <button type="button" onClick={() => window.print()}>
           {t("table.print")}
         </button>
+        <button
+          type="button"
+          aria-pressed={showColFilters}
+          onClick={() => {
+            setShowColFilters((on) => {
+              if (on) table.resetColumnFilters(); // hiding the row clears its filters
+              return !on;
+            });
+          }}
+        >
+          {t("table.filterColumns")}
+        </button>
         {onColumnVisibilityChange ? (
           <details className="column-picker">
             <summary>{t("table.columns")}</summary>
@@ -268,6 +286,26 @@ export function DataTable<Row>({
                 ))}
               </tr>
             ))}
+            {showColFilters ? (
+              <tr className="filter-row" data-print="hide">
+                {table.getVisibleLeafColumns().map((col) => (
+                  <th key={col.id}>
+                    {col.getCanFilter() ? (
+                      <input
+                        type="search"
+                        className="col-filter"
+                        value={(col.getFilterValue() as string) ?? ""}
+                        placeholder={t("table.filterColumnPlaceholder")}
+                        aria-label={t("table.filterColumnFor", {
+                          column: String(col.columnDef.header ?? col.id),
+                        })}
+                        onChange={(event) => col.setFilterValue(event.target.value || undefined)}
+                      />
+                    ) : null}
+                  </th>
+                ))}
+              </tr>
+            ) : null}
           </thead>
           <tbody ref={tbodyRef}>
             {shown.map((row) => (
@@ -296,7 +334,7 @@ export function DataTable<Row>({
         {/* The count is a DISCLOSURE, so it appears when there is something to disclose: rows held back by
             the page size, a filter narrowing the set, or a column left out. With every row of an unfiltered
             table already on screen it repeated the count in the heading above and told nobody anything. */}
-        {shown.length < leaving.length || globalFilter.trim() !== "" || columnsHidden ? (
+        {shown.length < leaving.length || globalFilter.trim() !== "" || columnFilters.length > 0 || columnsHidden ? (
           <p>
             {t("table.showing", { shown: shown.length, total: leaving.length })}
             {columnsHidden ? " · some columns hidden" : ""}
