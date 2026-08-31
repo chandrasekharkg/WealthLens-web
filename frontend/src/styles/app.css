@@ -1194,3 +1194,20 @@ tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFla
 .rawparse__copy:hover { background: rgba(59,130,246,0.22); }
 .rawparse__hint--warn { color: #b45309; background: rgba(245,158,11,0.1); padding: 0.4rem 0.6rem;
   border-radius: 5px; border: 1px solid rgba(217,119,6,0.3); }
+
+/* ── Operation Detail: a group tab in the top strip + its own sub-strip ─────────────────────────── */
+.tabs .tab-group[aria-current="true"] { color: var(--ink); background: var(--hover); }
+.subtabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line, rgba(100,116,139,0.25));
+  background: var(--hover, rgba(148,163,184,0.06));
+}
+.subtabs button {
+  margin: 0; border-color: transparent; background: transparent; color: var(--muted);
+  padding: 4px 10px; border-radius: 7px; white-space: nowrap; font-size: 0.85rem; cursor: pointer;
+}
+.subtabs button:hover { color: var(--ink); background: var(--hover); }
+.subtabs button[aria-current="true"] { color: var(--ink); background: var(--card, rgba(59,130,246,0.14)); font-weight: 600; }

@@ -28,8 +28,10 @@ type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "er
 
 type Screen = "overview" | "reports" | "cards" | "payments" | "performance" | "family" | "transactions" | "import" | "operations" | "workspace" | "activity" | "rawparse";
 
-// The tab strip as data. Six near-identical buttons written out six times is six places to forget one.
-const TABS: readonly { readonly id: Screen; readonly key: MessageKey }[] = [
+// The tab strip as data. The MONEY tabs are the top strip; the operator/plumbing screens live under one
+// "Operation Detail" group tab that reveals its own sub-strip — so the top nav is the money, not the machinery.
+type Tab = { readonly id: Screen; readonly key: MessageKey };
+const MONEY_TABS: readonly Tab[] = [
   { id: "overview", key: "nav.overview" },
   { id: "reports", key: "nav.reports" },
   { id: "cards", key: "nav.cards" },
@@ -37,12 +39,17 @@ const TABS: readonly { readonly id: Screen; readonly key: MessageKey }[] = [
   { id: "performance", key: "nav.performance" },
   { id: "family", key: "nav.family" },
   { id: "transactions", key: "nav.transactions" },
+  { id: "workspace", key: "nav.workspace" },
+];
+const OPS_TABS: readonly Tab[] = [
+  { id: "rawparse", key: "nav.rawparse" },
   { id: "import", key: "nav.import" },
   { id: "operations", key: "nav.operations" },
-  { id: "workspace", key: "nav.workspace" },
-  { id: "rawparse", key: "nav.rawparse" },
   { id: "activity", key: "nav.activity" },
 ];
+const OPS_IDS = new Set<Screen>(OPS_TABS.map((tab) => tab.id));
+const OPS_DEFAULT: Screen = "rawparse"; // where "Operation Detail" lands when entered from a money tab
+const ALL_TABS: readonly Tab[] = [...MONEY_TABS, ...OPS_TABS];
 
 /** A lens over a rising line — the app's own subject, at 24px. */
 function Logo() {
@@ -179,7 +186,32 @@ export function App() {
           <span>{t("app.name")}</span>
         </div>
         <nav className="tabs" aria-label={t("app.name")}>
-          {TABS.map((tab) => (
+          {MONEY_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setScreen(tab.id)}
+              aria-current={screen === tab.id}
+            >
+              {t(tab.key)}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="tab-group"
+            onClick={() => {
+              if (!OPS_IDS.has(screen)) setScreen(OPS_DEFAULT);
+            }}
+            aria-current={OPS_IDS.has(screen)}
+          >
+            {t("nav.operationDetail")} ▾
+          </button>
+        </nav>
+      </header>
+
+      {OPS_IDS.has(screen) && (
+        <nav className="subtabs" aria-label={t("nav.operationDetail")}>
+          {OPS_TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -190,11 +222,11 @@ export function App() {
             </button>
           ))}
         </nav>
-      </header>
+      )}
 
       <div className="shell">
         <SideRail
-          heading={t(TABS.find((tab) => tab.id === screen)?.key ?? "nav.overview")}
+          heading={t(ALL_TABS.find((tab) => tab.id === screen)?.key ?? "nav.overview")}
           items={railItems}
           open={railOpen}
           onToggle={() => setRailOpen((was) => !was)}

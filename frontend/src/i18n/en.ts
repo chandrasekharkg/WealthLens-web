@@ -162,6 +162,7 @@ export const en = {
   "nav.workspace": "Workspace",
   "nav.rawparse": "Raw parse",
   "nav.activity": "Activity",
+  "nav.operationDetail": "Operation Detail",
 
   "ws.title": "Workspace",
   "ws.where": "Where this store lives",
