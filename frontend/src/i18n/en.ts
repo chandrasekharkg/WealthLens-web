@@ -59,6 +59,7 @@ export const en = {
   "column.instrument": "Instrument",
   "column.identifier": "ISIN",
   "column.whose": "Whose",
+  "column.heldWith": "Held with",
   "column.units": "Units",
   "column.value": "Value",
   "column.basis": "Valued by",

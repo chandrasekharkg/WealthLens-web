@@ -1386,6 +1386,8 @@ export interface components {
             asset_class?: string | null;
             /** Basis */
             basis?: string | null;
+            /** Broker */
+            broker?: string | null;
             /** Closed On */
             closed_on?: string | null;
             /** Created At */

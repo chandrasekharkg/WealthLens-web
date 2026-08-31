@@ -102,6 +102,9 @@ def positions(con, *, on: str | None, owner: str, currency: str) -> list[dict]:
             # Coerce through _str: a position with no account (a priced-only / derived row at some PIT dates)
             # arrives as a pandas NaN, and a bare NaN fails the str|None response model with a 500.
             "account_id": _str(r["account_id"]),
+            # the broker / DP name of the account this position sits in — the presenter shows this instead of
+            # the raw DP-Id key (a user reads "Religare", not "demat:<dp-id>:<client-id>"). NULL until captured.
+            "broker": _str(r.get("broker")),
             "instrument_id": _str(r.get("instrument_id")),
             "quantity": (None if r["quantity"] is None or _isnan(r["quantity"]) else float(r["quantity"])),
             "value": Money(_dec(r["value_inr"]), row_ccy),

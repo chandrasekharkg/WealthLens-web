@@ -2327,6 +2327,17 @@
             ],
             "title": "Basis"
           },
+          "broker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broker"
+          },
           "closed_on": {
             "anyOf": [
               {

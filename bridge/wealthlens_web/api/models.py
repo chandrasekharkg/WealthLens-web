@@ -118,6 +118,7 @@ class PositionRow(RowProvenance):
     name: str | None = None
     asset_class: str | None = None
     account_id: str | None = None
+    broker: str | None = None                   # DP/broker name of the account (shown instead of the DP-Id key)
     instrument_id: str | None = None            # the stable key a drill-down links on (holding → its history)
     quantity: float | None = None
     value: Money

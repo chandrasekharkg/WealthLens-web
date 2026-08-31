@@ -158,7 +158,25 @@ export function Reports({ reportId, format }: ReportsProps) {
           ),
       },
       { id: "entity", accessorKey: "entity_label", header: t("column.whose") },
-      { id: "account", accessorKey: "account_id", header: t("ops.workspace") },
+      {
+        id: "account",
+        // Sort/filter by the broker name when we have it (so "Filter columns → Held with: religare" works),
+        // else the raw account key. The cell shows the readable broker with the DP/client short code beside it.
+        accessorFn: (r) => r.broker ?? r.account_id ?? "",
+        header: t("column.heldWith"),
+        cell: ({ row }) => {
+          const broker = row.original.broker;
+          const acct = row.original.account_id;
+          if (!broker) return acct ?? "—";
+          const code = acct?.startsWith("demat:") ? acct.slice("demat:".length) : acct;
+          return (
+            <span className="broker-cell">
+              {broker}
+              {code ? <span className="broker-code"> · {code}</span> : null}
+            </span>
+          );
+        },
+      },
       {
         id: "identifier",
         header: t("column.identifier"),
@@ -312,7 +330,7 @@ export function Reports({ reportId, format }: ReportsProps) {
     () => [
       { header: t("column.instrument"), value: (r) => r.name ?? null },
       { header: t("column.whose"), value: (r) => r.entity_label },
-      { header: t("ops.workspace"), value: (r) => r.account_id ?? null },
+      { header: t("column.heldWith"), value: (r) => r.broker ?? r.account_id ?? null },
       { header: t("column.identifier"), value: (r) => r.identifier.value ?? t("identifier.none") },
       { header: t("column.units"), value: (r) => r.quantity ?? null },
       { header: t("column.value"), value: (r) => r.value },
