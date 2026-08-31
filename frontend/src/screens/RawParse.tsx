@@ -24,16 +24,26 @@ function categoryOf(doc: Doc): string {
  * `scale` the image was rendered at, so they line up at any zoom.
  */
 
-type Fate = "interpreted" | "not_interpreted" | "dropped" | "furniture";
 type Doc = NonNullable<WorkspaceDetail["documents"]>[number];
 
-const FATE: Record<Fate, { fill: string; edge: string; label: string; mark: string }> = {
-  interpreted: { fill: "rgba(34,197,94,0.16)", edge: "rgba(22,163,74,0.6)", label: "interpreted", mark: "✓" },
-  not_interpreted: { fill: "rgba(239,68,68,0.32)", edge: "rgba(220,38,38,0.95)", label: "not interpreted", mark: "⚠" },
-  dropped: { fill: "rgba(245,158,11,0.3)", edge: "rgba(217,119,6,0.9)", label: "dropped", mark: "⚠" },
-  furniture: { fill: "rgba(148,163,184,0.08)", edge: "rgba(100,116,139,0.4)", label: "furniture", mark: "·" },
+// A skipped line is one of two things, and the user can toggle between them: FURNITURE (we judged it not
+// relevant to the statement's details) or NOT-INTERPRETED (statement detail we missed — a gap to report).
+// Everything the reader DID turn into a row is INTERPRETED. `dropped`/`not_interpreted` both display as `flag`.
+type Eff = "interpreted" | "flag" | "furniture";
+const DISPLAY: Record<Eff, { fill: string; edge: string; mark: string; label: string; hint: string }> = {
+  interpreted: { fill: "rgba(34,197,94,0.16)", edge: "rgba(22,163,74,0.6)", mark: "✓", label: "interpreted",
+                 hint: "read into the store" },
+  flag: { fill: "rgba(239,68,68,0.32)", edge: "rgba(220,38,38,0.95)", mark: "⚑", label: "not interpreted",
+          hint: "statement detail we missed — click to mark as furniture (not relevant)" },
+  furniture: { fill: "rgba(148,163,184,0.1)", edge: "rgba(100,116,139,0.5)", mark: "⚐", label: "furniture",
+               hint: "not relevant to the statement's details — click to flag as missed detail" },
 };
-const ORDER: Fate[] = ["interpreted", "furniture", "not_interpreted", "dropped"];
+const ORDER: Eff[] = ["interpreted", "flag", "furniture"];
+
+/** The reader's verdict, collapsed to the three the user cares about (`dropped` ≡ `not_interpreted` ≡ flag). */
+function baseEff(fate: string): Eff {
+  return fate === "interpreted" ? "interpreted" : fate === "furniture" ? "furniture" : "flag";
+}
 
 export type RawParseProps = {
   readonly entities: readonly { readonly id: string; readonly label: string }[];
@@ -149,6 +159,8 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
   const [zoom, setZoom] = useState(1);
   const [hover, setHover] = useState<number | null>(null);
   const [hideFurniture, setHideFurniture] = useState(false);
+  // the user's per-line reclassification: flag ↔ furniture. Keyed by page:index; defaults to the reader's verdict.
+  const [override, setOverride] = useState<Record<string, "flag" | "furniture">>({});
 
   useEffect(() => {
     let live = true;
@@ -165,12 +177,34 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
   const scale = view?.scale ?? 2;
   const pageCount = view?.pages?.length ?? 1;
   const lines = useMemo(() => view?.pages?.find((p) => p.page === pageNo)?.lines ?? [], [view, pageNo]);
-  const shown = hideFurniture ? lines.filter((l) => l.fate !== "furniture") : lines;
-  const summary = (view?.summary ?? {}) as Record<string, number>;
-  const imgUrl = api.pageImageUrl(entity, { filename: doc.filename, provider: doc.provider, payload_ref: doc.payload_ref }, pageNo);
+  const imgUrl = api.pageImageUrl(
+    entity,
+    { filename: doc.filename, provider: doc.provider, payload_ref: doc.payload_ref },
+    pageNo,
+  );
+
+  const keyOf = (idx: number) => `${pageNo}:${idx}`;
+  const effOf = (fate: string, idx: number): Eff => {
+    const b = baseEff(fate);
+    return b === "interpreted" ? "interpreted" : (override[keyOf(idx)] ?? b);
+  };
+  const toggle = (idx: number, fate: string) => {
+    const cur = override[keyOf(idx)] ?? baseEff(fate);
+    setOverride((o) => ({ ...o, [keyOf(idx)]: cur === "flag" ? "furniture" : "flag" }));
+  };
+
+  // per-page counts by the EFFECTIVE (post-reclassification) state, so the chips respond to the toggles
+  const counts = useMemo(() => {
+    const c: Record<Eff, number> = { interpreted: 0, flag: 0, furniture: 0 };
+    lines.forEach((ln, i) => (c[effOf(ln.fate, i)] += 1));
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, override, pageNo]);
 
   if (load.state === "loading") return <p className="rawparse__hint">Reading the statement…</p>;
   if (load.state === "error") return <p className="rawparse__error">{load.msg}</p>;
+
+  const visible = lines.map((ln, i) => ({ ln, i })).filter(({ i, ln }) => !(hideFurniture && effOf(ln.fate, i) === "furniture"));
 
   return (
     <>
@@ -192,12 +226,13 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
           </label>
         </div>
         <div className="rawparse__summary">
-          {ORDER.map((f) => (
-            <span key={f} className="rawparse__chip" title={FATE[f].label}>
-              <span className="rawparse__swatch" style={{ background: FATE[f].fill, borderColor: FATE[f].edge }} />
-              {FATE[f].mark} {FATE[f].label} <b>{summary[f] ?? 0}</b>
+          {ORDER.map((e) => (
+            <span key={e} className="rawparse__chip" title={DISPLAY[e].hint}>
+              <span className="rawparse__swatch" style={{ background: DISPLAY[e].fill, borderColor: DISPLAY[e].edge }} />
+              {DISPLAY[e].mark} {DISPLAY[e].label} <b>{counts[e]}</b>
             </span>
           ))}
+          <span className="rawparse__pagenote">page {pageNo}</span>
         </div>
       </div>
 
@@ -206,27 +241,28 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
           <div className="rawparse__page" style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}>
             <img className="rawparse__img" src={imgUrl} alt={`page ${pageNo}`} />
             <div className="rawparse__overlay">
-              {shown.map((ln) => {
-                const idx = lines.indexOf(ln);
-                const f = FATE[ln.fate as Fate] ?? FATE.furniture;
+              {visible.map(({ ln, i }) => {
+                const eff = effOf(ln.fate, i);
+                const d = DISPLAY[eff];
                 const b = ln.bbox as { x0: number; x1: number; top: number; bottom: number };
-                const on = hover === idx;
+                const on = hover === i;
                 return (
                   <div
-                    key={idx}
+                    key={i}
                     className="rawparse__box"
                     style={{
                       left: b.x0 * scale,
                       top: b.top * scale,
                       width: Math.max(2, (b.x1 - b.x0) * scale),
                       height: Math.max(2, (b.bottom - b.top) * scale),
-                      background: on ? f.edge : f.fill,
-                      outline: `1px solid ${f.edge}`,
+                      background: on ? d.edge : d.fill,
+                      outline: `1px solid ${d.edge}`,
                       opacity: on ? 0.55 : 1,
                     }}
-                    onMouseEnter={() => setHover(idx)}
+                    onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
-                    title={`${f.mark} ${f.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.shape}`}
+                    onClick={() => eff !== "interpreted" && toggle(i, ln.fate)}
+                    title={`${d.mark} ${d.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.shape}\n${eff !== "interpreted" ? d.hint : ""}`}
                   />
                 );
               })}
@@ -236,27 +272,40 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
 
         <aside className="rawparse__side">
           <h3>What the reader made of page {pageNo}</h3>
+          <p className="rawparse__note">
+            Each skipped line carries a flag: ⚑ <b>not interpreted</b> (statement detail we missed — report it)
+            or ⚐ <b>furniture</b> (not relevant). Click the flag to change our verdict.
+          </p>
           <ul className="rawparse__lines">
-            {shown.map((ln) => {
-              const idx = lines.indexOf(ln);
-              const f = FATE[ln.fate as Fate] ?? FATE.furniture;
+            {visible.map(({ ln, i }) => {
+              const eff = effOf(ln.fate, i);
+              const d = DISPLAY[eff];
               return (
                 <li
-                  key={idx}
-                  className={`rawparse__line rawparse__line--${ln.fate}${hover === idx ? " is-on" : ""}`}
-                  onMouseEnter={() => setHover(idx)}
+                  key={i}
+                  className={`rawparse__line rawparse__line--${eff}${hover === i ? " is-on" : ""}`}
+                  onMouseEnter={() => setHover(i)}
                   onMouseLeave={() => setHover(null)}
                 >
-                  <span className="rawparse__linemark" style={{ color: f.edge }}>{f.mark}</span>
+                  {eff === "interpreted" ? (
+                    <span className="rawparse__linemark" style={{ color: d.edge }}>{d.mark}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="rawparse__flag"
+                      style={{ color: d.edge }}
+                      onClick={() => toggle(i, ln.fate)}
+                      title={d.hint}
+                      aria-label={`${d.label} — click to change`}
+                    >
+                      {d.mark}
+                    </button>
+                  )}
                   <code>{ln.shape}</code>
                 </li>
               );
             })}
           </ul>
-          <p className="rawparse__note">
-            Shapes only — the real values are on the page image, which never leaves this machine. A red line is
-            the one to report.
-          </p>
         </aside>
       </div>
     </>
