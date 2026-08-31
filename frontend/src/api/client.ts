@@ -225,17 +225,20 @@ export const api = {
         payload_ref: doc.payload_ref ?? null,
       }),
     }),
-  /** A same-origin URL pdf.js fetches to render the statement — a read (no token). The bytes are the user's
-   * own file streamed to their own browser; nothing is interpreted server-side. */
-  documentUrl: (
+  /** A same-origin URL for ONE statement page, rendered to an image SERVER-SIDE (WLC opens the file with its
+   * own password) — so a password-protected CAS shows without the password ever reaching the browser. A read
+   * (no token). The image is the user's own page, delivered to their own browser. */
+  pageImageUrl: (
     entity: string,
     doc: { filename?: string | null; provider?: string | null; payload_ref?: string | null },
+    page: number,
   ): string => {
     const q = new URLSearchParams();
+    q.set("page", String(page));
     if (doc.payload_ref) q.set("payload_ref", doc.payload_ref);
     if (doc.provider) q.set("provider", doc.provider);
     if (doc.filename) q.set("filename", doc.filename);
-    return `/api/workspace/${entity}/document?${q.toString()}`;
+    return `/api/workspace/${entity}/document/page?${q.toString()}`;
   },
   /**
    * Open ONE collateral file — but WHERE the file ends up depends on where this browser is (the bridge

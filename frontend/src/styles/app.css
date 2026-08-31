@@ -1169,8 +1169,9 @@ tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFla
 .rawparse__error { color: #dc2626; }
 
 .rawparse__split { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 1rem; align-items: start; }
-.rawparse__stage { position: relative; overflow: auto; max-height: 78vh; border: 1px solid rgba(100,116,139,0.3); background: #f1f5f9; line-height: 0; }
-.rawparse__canvas { display: block; }
+.rawparse__stage { overflow: auto; max-height: 82vh; border: 1px solid rgba(100,116,139,0.3); background: #eef2f6; }
+.rawparse__page { position: relative; display: inline-block; line-height: 0; }
+.rawparse__img { display: block; }
 .rawparse__overlay { position: absolute; inset: 0; }
 .rawparse__box { position: absolute; border-radius: 1px; cursor: pointer; transition: opacity 0.08s; }
 

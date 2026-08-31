@@ -2750,6 +2750,12 @@
             "title": "Pages",
             "type": "array"
           },
+          "scale": {
+            "default": 2.0,
+            "description": "pixel:point ratio the page images are rendered at; the overlay multiplies each box's point bbox by this to align",
+            "title": "Scale",
+            "type": "number"
+          },
           "summary": {
             "additionalProperties": true,
             "description": "fate \u2192 count",
@@ -4465,10 +4471,10 @@
         "summary": "Diagnose Statement"
       }
     },
-    "/api/workspace/{entity_id}/document": {
+    "/api/workspace/{entity_id}/document/page": {
       "get": {
-        "description": "Stream a workspace-contained statement PDF to the browser so the raw-parse overlay can render it\nwith pdf.js. Read-only and containment-checked (`resolve_document_path`): the owner's own file to the\nowner's own browser, never interpreted here (ADR-0001, its 2026-08-26 transport amendment). Unlike\n`/open` this ALWAYS streams \u2014 the side-by-side needs the bytes in the browser even on 127.0.0.1.",
-        "operationId": "get_document_api_workspace__entity_id__document_get",
+        "description": "The rendered image of ONE statement page, for the raw-parse overlay's left pane. Rendered\nSERVER-SIDE by the `raw-parse` verb (WLC opens the file with its own password and rasterises the\npage) \u2014 so a password-protected CAS shows without the password EVER reaching the browser. The image\nis the owner's own page, delivered to the owner's own browser; nothing is interpreted here beyond the\nrasterise (ADR-0001's transport spirit). The overlay boxes align because they multiply their point\nbboxes by the same `raw_parse.RENDER_SCALE` this render used.",
+        "operationId": "get_document_page_api_workspace__entity_id__document_page_get",
         "parameters": [
           {
             "in": "path",
@@ -4477,6 +4483,16 @@
             "schema": {
               "title": "Entity Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Page",
+              "type": "integer"
             }
           },
           {
@@ -4564,7 +4580,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get Document"
+        "summary": "Get Document Page"
       }
     },
     "/api/workspace/{entity_id}/open": {

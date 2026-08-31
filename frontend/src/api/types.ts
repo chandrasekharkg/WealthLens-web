@@ -407,7 +407,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/workspace/{entity_id}/document": {
+    "/api/workspace/{entity_id}/document/page": {
         parameters: {
             query?: never;
             header?: never;
@@ -415,13 +415,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Document
-         * @description Stream a workspace-contained statement PDF to the browser so the raw-parse overlay can render it
-         *     with pdf.js. Read-only and containment-checked (`resolve_document_path`): the owner's own file to the
-         *     owner's own browser, never interpreted here (ADR-0001, its 2026-08-26 transport amendment). Unlike
-         *     `/open` this ALWAYS streams — the side-by-side needs the bytes in the browser even on 127.0.0.1.
+         * Get Document Page
+         * @description The rendered image of ONE statement page, for the raw-parse overlay's left pane. Rendered
+         *     SERVER-SIDE by the `raw-parse` verb (WLC opens the file with its own password and rasterises the
+         *     page) — so a password-protected CAS shows without the password EVER reaching the browser. The image
+         *     is the owner's own page, delivered to the owner's own browser; nothing is interpreted here beyond the
+         *     rasterise (ADR-0001's transport spirit). The overlay boxes align because they multiply their point
+         *     bboxes by the same `raw_parse.RENDER_SCALE` this render used.
          */
-        get: operations["get_document_api_workspace__entity_id__document_get"];
+        get: operations["get_document_page_api_workspace__entity_id__document_page_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1534,6 +1536,12 @@ export interface components {
             /** Pages */
             pages?: components["schemas"]["RawParsePage"][];
             /**
+             * Scale
+             * @description pixel:point ratio the page images are rendered at; the overlay multiplies each box's point bbox by this to align
+             * @default 2
+             */
+            scale: number;
+            /**
              * Summary
              * @description fate → count
              */
@@ -2460,9 +2468,10 @@ export interface operations {
             };
         };
     };
-    get_document_api_workspace__entity_id__document_get: {
+    get_document_page_api_workspace__entity_id__document_page_get: {
         parameters: {
             query?: {
+                page?: number;
                 filename?: string | null;
                 payload_ref?: string | null;
                 provider?: string | null;

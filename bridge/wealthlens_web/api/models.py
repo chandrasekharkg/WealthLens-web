@@ -462,6 +462,8 @@ class RawParseView(BaseModel):
     only (masked shapes + boxes); the user's real values are on the PDF, streamed to their own browser."""
 
     filename: str
+    scale: float = Field(default=2.0, description="pixel:point ratio the page images are rendered at; the "
+                         "overlay multiplies each box's point bbox by this to align")
     summary: dict = Field(default_factory=dict, description="fate → count")
     pages: list[RawParsePage] = Field(default_factory=list)
 

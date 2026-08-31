@@ -399,26 +399,38 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             raise HTTPException(status_code=422, detail={"error": "raw-parse", "reason":
                                 job.message or "this file is not a depository CAS the raw-parse view reads yet"})
         b = job.result
-        return {"filename": real.name, "summary": b.get("summary", {}),
+        return {"filename": real.name, "scale": 2.0, "summary": b.get("summary", {}),
                 "pages": (b.get("view") or {}).get("pages", [])}
 
-    @app.get("/api/workspace/{entity_id}/document")
-    def get_document(entity_id: str, filename: str | None = Query(default=None),
-                     payload_ref: str | None = Query(default=None),
-                     provider: str | None = Query(default=None),
-                     workspace: str | None = Query(default=None)) -> FileResponse:
-        """Stream a workspace-contained statement PDF to the browser so the raw-parse overlay can render it
-        with pdf.js. Read-only and containment-checked (`resolve_document_path`): the owner's own file to the
-        owner's own browser, never interpreted here (ADR-0001, its 2026-08-26 transport amendment). Unlike
-        `/open` this ALWAYS streams — the side-by-side needs the bytes in the browser even on 127.0.0.1."""
-        target = _target_workspace(_manifest(), entity_id, workspace)
+    @app.get("/api/workspace/{entity_id}/document/page")
+    def get_document_page(entity_id: str, page: int = Query(default=1),
+                          filename: str | None = Query(default=None),
+                          payload_ref: str | None = Query(default=None),
+                          provider: str | None = Query(default=None),
+                          workspace: str | None = Query(default=None)):
+        """The rendered image of ONE statement page, for the raw-parse overlay's left pane. Rendered
+        SERVER-SIDE by the `raw-parse` verb (WLC opens the file with its own password and rasterises the
+        page) — so a password-protected CAS shows without the password EVER reaching the browser. The image
+        is the owner's own page, delivered to the owner's own browser; nothing is interpreted here beyond the
+        rasterise (ADR-0001's transport spirit). The overlay boxes align because they multiply their point
+        bboxes by the same `raw_parse.RENDER_SCALE` this render used."""
+        from fastapi.responses import Response
+        m = _manifest()
+        target = _target_workspace(m, entity_id, workspace)
         try:
             real = collateral.resolve_document_path(
                 target, payload_ref=payload_ref, provider=provider, filename=filename)
         except collateral.DocumentNotFound as e:
             raise HTTPException(status_code=404, detail={"error": "document", "reason": str(e)}) from None
-        return FileResponse(real, media_type=_media_type(real),
-                            headers={"Content-Disposition": _inline_disposition(real.name)})
+        job = app.state.runner.run("raw-parse", entity_id=entity_id, workspace=target,
+                                   args=[str(real), "--render-page", str(page)])
+        if job.outcome is not verbs.Outcome.OK or not isinstance(job.result, dict) or not job.result.get("png_b64"):
+            raise HTTPException(status_code=422, detail={"error": "render",
+                                "reason": job.message or "could not render this page"})
+        import base64
+        png = base64.b64decode(job.result["png_b64"])
+        return Response(content=png, media_type="image/png",
+                        headers={"Cache-Control": "no-store"})
 
     @app.post("/api/jobs", response_model=models.Job, status_code=202)
     def start_job(body: dict) -> JSONResponse:
