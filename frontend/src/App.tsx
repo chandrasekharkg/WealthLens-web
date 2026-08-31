@@ -14,6 +14,7 @@ import { Performance } from "./screens/Performance";
 import { Family } from "./screens/Family";
 import { Transactions } from "./screens/Transactions";
 import { Workspace } from "./screens/Workspace";
+import { RawParse } from "./screens/RawParse";
 
 /**
  * The shell.
@@ -25,7 +26,7 @@ import { Workspace } from "./screens/Workspace";
 
 type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error"; error: unknown };
 
-type Screen = "overview" | "reports" | "cards" | "payments" | "performance" | "family" | "transactions" | "import" | "operations" | "workspace" | "activity";
+type Screen = "overview" | "reports" | "cards" | "payments" | "performance" | "family" | "transactions" | "import" | "operations" | "workspace" | "activity" | "rawparse";
 
 // The tab strip as data. Six near-identical buttons written out six times is six places to forget one.
 const TABS: readonly { readonly id: Screen; readonly key: MessageKey }[] = [
@@ -39,6 +40,7 @@ const TABS: readonly { readonly id: Screen; readonly key: MessageKey }[] = [
   { id: "import", key: "nav.import" },
   { id: "operations", key: "nav.operations" },
   { id: "workspace", key: "nav.workspace" },
+  { id: "rawparse", key: "nav.rawparse" },
   { id: "activity", key: "nav.activity" },
 ];
 
@@ -210,6 +212,7 @@ export function App() {
           <Import entities={entities} format={defaultFormatter} onImported={refresh} />
         )}
         {screen === "workspace" && <Workspace entities={entities} format={defaultFormatter} />}
+        {screen === "rawparse" && <RawParse entities={entities} />}
         {screen === "activity" && <Activity format={defaultFormatter} />}
         {screen === "operations" && (
           <Operations

@@ -2677,6 +2677,104 @@
         "title": "Provenance",
         "type": "object"
       },
+      "RawParseLine": {
+        "description": "One extracted line, placed by geometry and reduced to its masked shape. NO raw content \u2014 the shape and\nthe box are safe to share; the real text lives only on the PDF the browser renders locally.",
+        "properties": {
+          "bbox": {
+            "additionalProperties": true,
+            "description": "Word bounding box in PDF points: {x0, x1, top, bottom}",
+            "title": "Bbox",
+            "type": "object"
+          },
+          "fate": {
+            "description": "interpreted | not_interpreted | dropped | furniture",
+            "title": "Fate",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "shape": {
+            "description": "The masked shape (# per digit, <ISIN>, <W> per word) \u2014 safe to share",
+            "title": "Shape",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bbox",
+          "fate",
+          "shape"
+        ],
+        "title": "RawParseLine",
+        "type": "object"
+      },
+      "RawParsePage": {
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/RawParseLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page"
+        ],
+        "title": "RawParsePage",
+        "type": "object"
+      },
+      "RawParseView": {
+        "description": "The geometry-aware fate of every extracted line, for the PDF-beside-interpretation overlay. Structure\nonly (masked shapes + boxes); the user's real values are on the PDF, streamed to their own browser.",
+        "properties": {
+          "classified": {
+            "default": true,
+            "description": "True when the fates are auto-assigned (a depository CAS); False when the type isn't classified yet and every line shows as furniture",
+            "title": "Classified",
+            "type": "boolean"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/RawParsePage"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "scale": {
+            "default": 2.0,
+            "description": "pixel:point ratio the page images are rendered at; the overlay multiplies each box's point bbox by this to align",
+            "title": "Scale",
+            "type": "number"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "description": "fate \u2192 count",
+            "title": "Summary",
+            "type": "object"
+          }
+        },
+        "required": [
+          "filename"
+        ],
+        "title": "RawParseView",
+        "type": "object"
+      },
       "Report": {
         "properties": {
           "as_of": {
@@ -4379,6 +4477,118 @@
         "summary": "Diagnose Statement"
       }
     },
+    "/api/workspace/{entity_id}/document/page": {
+      "get": {
+        "description": "The rendered image of ONE statement page, for the raw-parse overlay's left pane. Rendered\nSERVER-SIDE by the `raw-parse` verb (WLC opens the file with its own password and rasterises the\npage) \u2014 so a password-protected CAS shows without the password EVER reaching the browser. The image\nis the owner's own page, delivered to the owner's own browser; nothing is interpreted here beyond the\nrasterise (ADR-0001's transport spirit). The overlay boxes align because they multiply their point\nbboxes by the same `raw_parse.RENDER_SCALE` this render used.",
+        "operationId": "get_document_page_api_workspace__entity_id__document_page_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filename",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filename"
+            }
+          },
+          {
+            "in": "query",
+            "name": "payload_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Payload Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          },
+          {
+            "in": "query",
+            "name": "workspace",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Workspace"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Document Page"
+      }
+    },
     "/api/workspace/{entity_id}/open": {
       "post": {
         "description": "Deliver ONE collateral file to the person who asked for it \u2014 the source popup's and workspace\nlist's Open. The path is never trusted: `collateral.resolve_document_path` refuses anything that\nescapes the workspace, so even a tampered filename cannot reach outside it.\n\nThere are two deliveries, chosen by WHERE the browser is \u2014 and WLW still never PARSES a statement\n(ADR-0001); what differs is only how the owner's own file reaches the owner:\n\n- **Same machine** (a loopback peer \u2014 KG on 127.0.0.1): ask the desktop OS to open it, as before.\n  The platform's viewer reads the file; the bridge does not.\n- **Across the LAN** (a non-loopback peer \u2014 dad reaching aipc.local from his phone): OS-opening here\n  would open the file on the SERVER, where he would never see it. So the bridge instead TRANSPORTS\n  his own file to his own browser. That is a deliberate, minimal carve-out to ADR-0001 (its\n  2026-08-26 amendment): it moves the owner's bytes to the owner and still never interprets them.\n  It is guarded exactly like the local open \u2014 the same containment check \u2014 and, as a POST, sits\n  behind the session token a foreign page cannot read.",
@@ -4429,6 +4639,58 @@
           }
         },
         "summary": "Open Document"
+      }
+    },
+    "/api/workspace/{entity_id}/raw-parse": {
+      "post": {
+        "description": "The geometry-aware fate of every extracted line of a statement \u2014 the RIGHT half of the\nPDF-beside-interpretation view. Structure only (masked shapes + boxes); the real values live on the\nPDF the browser renders from `/document`. Runs the `raw-parse` verb in the workspace context, so WLC\nowns password resolution (custodian/presenter boundary, constitution #10).",
+        "operationId": "raw_parse_view_api_workspace__entity_id__raw_parse_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawParseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Raw Parse View"
       }
     },
     "/api/workspace/{entity_id}/reveal": {

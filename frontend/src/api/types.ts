@@ -407,6 +407,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspace/{entity_id}/document/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Document Page
+         * @description The rendered image of ONE statement page, for the raw-parse overlay's left pane. Rendered
+         *     SERVER-SIDE by the `raw-parse` verb (WLC opens the file with its own password and rasterises the
+         *     page) — so a password-protected CAS shows without the password EVER reaching the browser. The image
+         *     is the owner's own page, delivered to the owner's own browser; nothing is interpreted here beyond the
+         *     rasterise (ADR-0001's transport spirit). The overlay boxes align because they multiply their point
+         *     bboxes by the same `raw_parse.RENDER_SCALE` this render used.
+         */
+        get: operations["get_document_page_api_workspace__entity_id__document_page_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspace/{entity_id}/open": {
         parameters: {
             query?: never;
@@ -435,6 +460,29 @@ export interface paths {
          *       behind the session token a foreign page cannot read.
          */
         post: operations["open_document_api_workspace__entity_id__open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspace/{entity_id}/raw-parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Raw Parse View
+         * @description The geometry-aware fate of every extracted line of a statement — the RIGHT half of the
+         *     PDF-beside-interpretation view. Structure only (masked shapes + boxes); the real values live on the
+         *     PDF the browser renders from `/document`. Runs the `raw-parse` verb in the workspace context, so WLC
+         *     owns password resolution (custodian/presenter boundary, constitution #10).
+         */
+        post: operations["raw_parse_view_api_workspace__entity_id__raw_parse_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1444,6 +1492,69 @@ export interface components {
              */
             warnings: string[];
         };
+        /**
+         * RawParseLine
+         * @description One extracted line, placed by geometry and reduced to its masked shape. NO raw content — the shape and
+         *     the box are safe to share; the real text lives only on the PDF the browser renders locally.
+         */
+        RawParseLine: {
+            /**
+             * Bbox
+             * @description Word bounding box in PDF points: {x0, x1, top, bottom}
+             */
+            bbox: {
+                [key: string]: unknown;
+            };
+            /**
+             * Fate
+             * @description interpreted | not_interpreted | dropped | furniture
+             */
+            fate: string;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Shape
+             * @description The masked shape (# per digit, <ISIN>, <W> per word) — safe to share
+             */
+            shape: string;
+        };
+        /** RawParsePage */
+        RawParsePage: {
+            /** Lines */
+            lines?: components["schemas"]["RawParseLine"][];
+            /** Page */
+            page: number;
+        };
+        /**
+         * RawParseView
+         * @description The geometry-aware fate of every extracted line, for the PDF-beside-interpretation overlay. Structure
+         *     only (masked shapes + boxes); the user's real values are on the PDF, streamed to their own browser.
+         */
+        RawParseView: {
+            /**
+             * Classified
+             * @description True when the fates are auto-assigned (a depository CAS); False when the type isn't classified yet and every line shows as furniture
+             * @default true
+             */
+            classified: boolean;
+            /** Filename */
+            filename: string;
+            /** Pages */
+            pages?: components["schemas"]["RawParsePage"][];
+            /**
+             * Scale
+             * @description pixel:point ratio the page images are rendered at; the overlay multiplies each box's point bbox by this to align
+             * @default 2
+             */
+            scale: number;
+            /**
+             * Summary
+             * @description fate → count
+             */
+            summary?: {
+                [key: string]: unknown;
+            };
+        };
         /** Report */
         Report: {
             /** As Of */
@@ -2363,6 +2474,43 @@ export interface operations {
             };
         };
     };
+    get_document_page_api_workspace__entity_id__document_page_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                filename?: string | null;
+                payload_ref?: string | null;
+                provider?: string | null;
+                workspace?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     open_document_api_workspace__entity_id__open_post: {
         parameters: {
             query?: never;
@@ -2387,6 +2535,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Opened"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    raw_parse_view_api_workspace__entity_id__raw_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RawParseView"];
                 };
             };
             /** @description Validation Error */

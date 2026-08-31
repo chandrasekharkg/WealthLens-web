@@ -98,7 +98,7 @@ class PromotionNotReviewed(ValueError):
 
 
 # The closed set this app may drive. Anything outside it is a defect, not a configuration option.
-ALLOWED_VERBS = frozenset({"import", "rebuild", "verify", "promote", "diagnose",
+ALLOWED_VERBS = frozenset({"import", "rebuild", "verify", "promote", "diagnose", "raw-parse",
                            "fetch-prices", "fetch-fx", "fetch-instruments"})
 
 

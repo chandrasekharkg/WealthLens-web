@@ -36,6 +36,9 @@ export type Provenance = components["schemas"]["Provenance"];
 export type Money = components["schemas"]["Money"];
 export type WorkspaceDetail = components["schemas"]["WorkspaceDetail"];
 export type DiagnoseBundle = components["schemas"]["DiagnoseBundle"];
+export type RawParseView = components["schemas"]["RawParseView"];
+export type RawParsePage = components["schemas"]["RawParsePage"];
+export type RawParseLine = components["schemas"]["RawParseLine"];
 export type Opened = components["schemas"]["Opened"];
 export type SettingsInfo = components["schemas"]["SettingsInfo"];
 export type Revealed = components["schemas"]["Revealed"];
@@ -207,6 +210,36 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ filename }),
     }),
+  /** The geometry-aware fate of every extracted line — the RIGHT half of the PDF-beside-interpretation view.
+   * Masked shapes + boxes only; the real values are on the PDF the browser fetches from `documentUrl`. */
+  rawParse: (
+    entity: string,
+    doc: { filename?: string | null; provider?: string | null; payload_ref?: string | null },
+  ) =>
+    request<RawParseView>(`/api/workspace/${entity}/raw-parse`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        filename: doc.filename ?? null,
+        provider: doc.provider ?? null,
+        payload_ref: doc.payload_ref ?? null,
+      }),
+    }),
+  /** A same-origin URL for ONE statement page, rendered to an image SERVER-SIDE (WLC opens the file with its
+   * own password) — so a password-protected CAS shows without the password ever reaching the browser. A read
+   * (no token). The image is the user's own page, delivered to their own browser. */
+  pageImageUrl: (
+    entity: string,
+    doc: { filename?: string | null; provider?: string | null; payload_ref?: string | null },
+    page: number,
+  ): string => {
+    const q = new URLSearchParams();
+    q.set("page", String(page));
+    if (doc.payload_ref) q.set("payload_ref", doc.payload_ref);
+    if (doc.provider) q.set("provider", doc.provider);
+    if (doc.filename) q.set("filename", doc.filename);
+    return `/api/workspace/${entity}/document/page?${q.toString()}`;
+  },
   /**
    * Open ONE collateral file — but WHERE the file ends up depends on where this browser is (the bridge
    * decides by the request's peer address, ADR-0001 carve-out):

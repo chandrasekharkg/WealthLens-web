@@ -160,6 +160,7 @@ export const en = {
   "activity.none": "Nothing has run in this session.",
 
   "nav.workspace": "Workspace",
+  "nav.rawparse": "Raw parse",
   "nav.activity": "Activity",
 
   "ws.title": "Workspace",
