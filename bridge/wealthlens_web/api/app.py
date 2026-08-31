@@ -380,6 +380,46 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                 "needs_ocr": bool(b.get("needs_ocr")), "scanned": b.get("scanned", 0),
                 "report": b.get("report", "")}
 
+    @app.post("/api/workspace/{entity_id}/raw-parse", response_model=models.RawParseView)
+    def raw_parse_view(entity_id: str, body: dict) -> dict:
+        """The geometry-aware fate of every extracted line of a statement — the RIGHT half of the
+        PDF-beside-interpretation view. Structure only (masked shapes + boxes); the real values live on the
+        PDF the browser renders from `/document`. Runs the `raw-parse` verb in the workspace context, so WLC
+        owns password resolution (custodian/presenter boundary, constitution #10)."""
+        m = _manifest()
+        target = _target_workspace(m, entity_id, body.get("workspace"))
+        try:
+            real = collateral.resolve_document_path(
+                target, payload_ref=body.get("payload_ref"),
+                provider=body.get("provider"), filename=body.get("filename"))
+        except collateral.DocumentNotFound as e:
+            raise HTTPException(status_code=404, detail={"error": "document", "reason": str(e)}) from None
+        job = app.state.runner.run("raw-parse", entity_id=entity_id, workspace=target, args=[str(real)])
+        if job.outcome is not verbs.Outcome.OK or not isinstance(job.result, dict):
+            raise HTTPException(status_code=422, detail={"error": "raw-parse", "reason":
+                                job.message or "this file is not a depository CAS the raw-parse view reads yet"})
+        b = job.result
+        return {"filename": real.name, "summary": b.get("summary", {}),
+                "pages": (b.get("view") or {}).get("pages", [])}
+
+    @app.get("/api/workspace/{entity_id}/document")
+    def get_document(entity_id: str, filename: str | None = Query(default=None),
+                     payload_ref: str | None = Query(default=None),
+                     provider: str | None = Query(default=None),
+                     workspace: str | None = Query(default=None)) -> FileResponse:
+        """Stream a workspace-contained statement PDF to the browser so the raw-parse overlay can render it
+        with pdf.js. Read-only and containment-checked (`resolve_document_path`): the owner's own file to the
+        owner's own browser, never interpreted here (ADR-0001, its 2026-08-26 transport amendment). Unlike
+        `/open` this ALWAYS streams — the side-by-side needs the bytes in the browser even on 127.0.0.1."""
+        target = _target_workspace(_manifest(), entity_id, workspace)
+        try:
+            real = collateral.resolve_document_path(
+                target, payload_ref=payload_ref, provider=provider, filename=filename)
+        except collateral.DocumentNotFound as e:
+            raise HTTPException(status_code=404, detail={"error": "document", "reason": str(e)}) from None
+        return FileResponse(real, media_type=_media_type(real),
+                            headers={"Content-Disposition": _inline_disposition(real.name)})
+
     @app.post("/api/jobs", response_model=models.Job, status_code=202)
     def start_job(body: dict) -> JSONResponse:
         """Run a WLC verb against exactly one named, manifest-declared workspace.

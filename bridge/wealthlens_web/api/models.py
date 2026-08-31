@@ -442,6 +442,30 @@ class DiagnoseBundle(BaseModel):
     report: str = Field(description="The masked layout report — every value replaced by its shape")
 
 
+class RawParseLine(BaseModel):
+    """One extracted line, placed by geometry and reduced to its masked shape. NO raw content — the shape and
+    the box are safe to share; the real text lives only on the PDF the browser renders locally."""
+
+    bbox: dict = Field(description="Word bounding box in PDF points: {x0, x1, top, bottom}")
+    fate: str = Field(description="interpreted | not_interpreted | dropped | furniture")
+    reason: str | None = None
+    shape: str = Field(description="The masked shape (# per digit, <ISIN>, <W> per word) — safe to share")
+
+
+class RawParsePage(BaseModel):
+    page: int
+    lines: list[RawParseLine] = Field(default_factory=list)
+
+
+class RawParseView(BaseModel):
+    """The geometry-aware fate of every extracted line, for the PDF-beside-interpretation overlay. Structure
+    only (masked shapes + boxes); the user's real values are on the PDF, streamed to their own browser."""
+
+    filename: str
+    summary: dict = Field(default_factory=dict, description="fate → count")
+    pages: list[RawParsePage] = Field(default_factory=list)
+
+
 class PasswordRef(BaseModel):
     kind: Literal["named", "unnamed", "none"] = Field(
         description="THREE states, not two: named, opened-by-something-unnamed, or never opened")

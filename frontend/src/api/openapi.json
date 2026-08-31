@@ -2677,6 +2677,92 @@
         "title": "Provenance",
         "type": "object"
       },
+      "RawParseLine": {
+        "description": "One extracted line, placed by geometry and reduced to its masked shape. NO raw content \u2014 the shape and\nthe box are safe to share; the real text lives only on the PDF the browser renders locally.",
+        "properties": {
+          "bbox": {
+            "additionalProperties": true,
+            "description": "Word bounding box in PDF points: {x0, x1, top, bottom}",
+            "title": "Bbox",
+            "type": "object"
+          },
+          "fate": {
+            "description": "interpreted | not_interpreted | dropped | furniture",
+            "title": "Fate",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "shape": {
+            "description": "The masked shape (# per digit, <ISIN>, <W> per word) \u2014 safe to share",
+            "title": "Shape",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bbox",
+          "fate",
+          "shape"
+        ],
+        "title": "RawParseLine",
+        "type": "object"
+      },
+      "RawParsePage": {
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/RawParseLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page"
+        ],
+        "title": "RawParsePage",
+        "type": "object"
+      },
+      "RawParseView": {
+        "description": "The geometry-aware fate of every extracted line, for the PDF-beside-interpretation overlay. Structure\nonly (masked shapes + boxes); the user's real values are on the PDF, streamed to their own browser.",
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/RawParsePage"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "description": "fate \u2192 count",
+            "title": "Summary",
+            "type": "object"
+          }
+        },
+        "required": [
+          "filename"
+        ],
+        "title": "RawParseView",
+        "type": "object"
+      },
       "Report": {
         "properties": {
           "as_of": {
@@ -4379,6 +4465,108 @@
         "summary": "Diagnose Statement"
       }
     },
+    "/api/workspace/{entity_id}/document": {
+      "get": {
+        "description": "Stream a workspace-contained statement PDF to the browser so the raw-parse overlay can render it\nwith pdf.js. Read-only and containment-checked (`resolve_document_path`): the owner's own file to the\nowner's own browser, never interpreted here (ADR-0001, its 2026-08-26 transport amendment). Unlike\n`/open` this ALWAYS streams \u2014 the side-by-side needs the bytes in the browser even on 127.0.0.1.",
+        "operationId": "get_document_api_workspace__entity_id__document_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filename",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filename"
+            }
+          },
+          {
+            "in": "query",
+            "name": "payload_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Payload Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          },
+          {
+            "in": "query",
+            "name": "workspace",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Workspace"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Document"
+      }
+    },
     "/api/workspace/{entity_id}/open": {
       "post": {
         "description": "Deliver ONE collateral file to the person who asked for it \u2014 the source popup's and workspace\nlist's Open. The path is never trusted: `collateral.resolve_document_path` refuses anything that\nescapes the workspace, so even a tampered filename cannot reach outside it.\n\nThere are two deliveries, chosen by WHERE the browser is \u2014 and WLW still never PARSES a statement\n(ADR-0001); what differs is only how the owner's own file reaches the owner:\n\n- **Same machine** (a loopback peer \u2014 KG on 127.0.0.1): ask the desktop OS to open it, as before.\n  The platform's viewer reads the file; the bridge does not.\n- **Across the LAN** (a non-loopback peer \u2014 dad reaching aipc.local from his phone): OS-opening here\n  would open the file on the SERVER, where he would never see it. So the bridge instead TRANSPORTS\n  his own file to his own browser. That is a deliberate, minimal carve-out to ADR-0001 (its\n  2026-08-26 amendment): it moves the owner's bytes to the owner and still never interprets them.\n  It is guarded exactly like the local open \u2014 the same containment check \u2014 and, as a POST, sits\n  behind the session token a foreign page cannot read.",
@@ -4429,6 +4617,58 @@
           }
         },
         "summary": "Open Document"
+      }
+    },
+    "/api/workspace/{entity_id}/raw-parse": {
+      "post": {
+        "description": "The geometry-aware fate of every extracted line of a statement \u2014 the RIGHT half of the\nPDF-beside-interpretation view. Structure only (masked shapes + boxes); the real values live on the\nPDF the browser renders from `/document`. Runs the `raw-parse` verb in the workspace context, so WLC\nowns password resolution (custodian/presenter boundary, constitution #10).",
+        "operationId": "raw_parse_view_api_workspace__entity_id__raw_parse_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawParseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Raw Parse View"
       }
     },
     "/api/workspace/{entity_id}/reveal": {
