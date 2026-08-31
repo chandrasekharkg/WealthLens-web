@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api, ApiError, apiReason, type RawParseView, type WorkspaceDetail } from "../api/client";
+import { writeClipboard } from "../lib/clipboard";
 
 /** A readable category for a document, so the picker can filter by type/issuer before the statement itself.
  * Derived from where `organize` filed it (its payload_ref folder) — `statements/credit-card/sbi` →
@@ -159,6 +160,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
   const [zoom, setZoom] = useState(1);
   const [hover, setHover] = useState<number | null>(null);
   const [hideFurniture, setHideFurniture] = useState(false);
+  const [copied, setCopied] = useState(false);
   // the user's per-line reclassification: flag ↔ furniture. Keyed by page:index; defaults to the reader's verdict.
   const [override, setOverride] = useState<Record<string, "flag" | "furniture">>({});
 
@@ -183,28 +185,74 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
     pageNo,
   );
 
-  const keyOf = (idx: number) => `${pageNo}:${idx}`;
-  const effOf = (fate: string, idx: number): Eff => {
+  const keyOf = (page: number, idx: number) => `${page}:${idx}`;
+  const effOf = (fate: string, page: number, idx: number): Eff => {
     const b = baseEff(fate);
-    return b === "interpreted" ? "interpreted" : (override[keyOf(idx)] ?? b);
+    return b === "interpreted" ? "interpreted" : (override[keyOf(page, idx)] ?? b);
   };
-  const toggle = (idx: number, fate: string) => {
-    const cur = override[keyOf(idx)] ?? baseEff(fate);
-    setOverride((o) => ({ ...o, [keyOf(idx)]: cur === "flag" ? "furniture" : "flag" }));
+  const toggle = (page: number, idx: number, fate: string) => {
+    const cur = override[keyOf(page, idx)] ?? baseEff(fate);
+    setOverride((o) => ({ ...o, [keyOf(page, idx)]: cur === "flag" ? "furniture" : "flag" }));
   };
 
   // per-page counts by the EFFECTIVE (post-reclassification) state, so the chips respond to the toggles
   const counts = useMemo(() => {
     const c: Record<Eff, number> = { interpreted: 0, flag: 0, furniture: 0 };
-    lines.forEach((ln, i) => (c[effOf(ln.fate, i)] += 1));
+    lines.forEach((ln, i) => (c[effOf(ln.fate, pageNo, i)] += 1));
     return c;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, override, pageNo]);
 
+  // Assemble the PII-free GitHub-issue body: the flagged (⚑) lines across ALL pages, as masked shape + page +
+  // box. Nothing but structure leaves — the raw text never enters this.
+  const issueBody = (v: RawParseView): string => {
+    const flagged: string[] = [];
+    for (const pg of v.pages ?? []) {
+      (pg.lines ?? []).forEach((ln, idx) => {
+        if (effOf(ln.fate, pg.page, idx) === "flag") {
+          const b = ln.bbox as { x0: number; x1: number; top: number };
+          flagged.push(
+            `- \`${ln.shape}\`  — page ${pg.page}, x ${Math.round(b.x0)}–${Math.round(b.x1)}, y ${Math.round(b.top)}` +
+              (ln.reason ? ` (${ln.reason})` : ""),
+          );
+        }
+      });
+    }
+    const sum = Object.entries((v.summary ?? {}) as Record<string, number>)
+      .map(([k, n]) => `${k} ${n}`)
+      .join(" · ");
+    return [
+      `## Raw-parse gap — ${categoryOf(doc)}`,
+      ``,
+      `Reported from the WealthLens raw-parse view. **Masked — no values, names, or account numbers: every ` +
+        "line is reduced to its shape (`#` per digit, `<ISIN>`, `<W>` per word) and the geometry is in PDF points.**",
+      ``,
+      `- classification: ${v.classified ? "depository CAS (fates auto-assigned)" : "not auto-classified for this statement type — shown as furniture; the reporter flagged the gaps below"}`,
+      `- document fate summary: ${sum}`,
+      `- lines flagged as NOT interpreted: **${flagged.length}**`,
+      ``,
+      `### Lines that should be read but were not`,
+      ...(flagged.length ? flagged : ["_(none flagged yet — flag the lines the reader missed, then copy again)_"]),
+    ].join("\n");
+  };
+  const copyIssue = async (v: RawParseView) => {
+    try {
+      await writeClipboard(issueBody(v));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — nothing to surface here */
+    }
+  };
+  const flaggedCount = (view?.pages ?? []).reduce(
+    (n, pg) => n + (pg.lines ?? []).filter((ln, idx) => effOf(ln.fate, pg.page, idx) === "flag").length,
+    0,
+  );
+
   if (load.state === "loading") return <p className="rawparse__hint">Reading the statement…</p>;
   if (load.state === "error") return <p className="rawparse__error">{load.msg}</p>;
 
-  const visible = lines.map((ln, i) => ({ ln, i })).filter(({ i, ln }) => !(hideFurniture && effOf(ln.fate, i) === "furniture"));
+  const visible = lines.map((ln, i) => ({ ln, i })).filter(({ i, ln }) => !(hideFurniture && effOf(ln.fate, pageNo, i) === "furniture"));
 
   return (
     <>
@@ -224,6 +272,16 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
             <input type="checkbox" checked={hideFurniture} onChange={(e) => setHideFurniture(e.target.checked)} />
             hide furniture
           </label>
+          <button
+            type="button"
+            className="rawparse__copy"
+            onClick={() => {
+              void copyIssue(load.view);
+            }}
+            title="Copy a masked, PII-free bug report of the flagged lines, ready to paste into a GitHub issue"
+          >
+            {copied ? "Copied ✓" : `Copy for a GitHub issue${flaggedCount ? ` (${flaggedCount})` : ""}`}
+          </button>
         </div>
         <div className="rawparse__summary">
           {ORDER.map((e) => (
@@ -236,13 +294,20 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
         </div>
       </div>
 
+      {!load.view.classified && (
+        <p className="rawparse__hint rawparse__hint--warn">
+          Fates aren't auto-assigned for this statement type yet — every line shows as <b>furniture</b>. Flag
+          (⚑) the lines that carry your data but were missed, then copy the report.
+        </p>
+      )}
+
       <div className="rawparse__split">
         <div className="rawparse__stage">
           <div className="rawparse__page" style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}>
             <img className="rawparse__img" src={imgUrl} alt={`page ${pageNo}`} />
             <div className="rawparse__overlay">
               {visible.map(({ ln, i }) => {
-                const eff = effOf(ln.fate, i);
+                const eff = effOf(ln.fate, pageNo, i);
                 const d = DISPLAY[eff];
                 const b = ln.bbox as { x0: number; x1: number; top: number; bottom: number };
                 const on = hover === i;
@@ -261,7 +326,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                     }}
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
-                    onClick={() => eff !== "interpreted" && toggle(i, ln.fate)}
+                    onClick={() => eff !== "interpreted" && toggle(pageNo, i, ln.fate)}
                     title={`${d.mark} ${d.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.shape}\n${eff !== "interpreted" ? d.hint : ""}`}
                   />
                 );
@@ -278,7 +343,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
           </p>
           <ul className="rawparse__lines">
             {visible.map(({ ln, i }) => {
-              const eff = effOf(ln.fate, i);
+              const eff = effOf(ln.fate, pageNo, i);
               const d = DISPLAY[eff];
               return (
                 <li
@@ -294,7 +359,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                       type="button"
                       className="rawparse__flag"
                       style={{ color: d.edge }}
-                      onClick={() => toggle(i, ln.fate)}
+                      onClick={() => toggle(pageNo, i, ln.fate)}
                       title={d.hint}
                       aria-label={`${d.label} — click to change`}
                     >

@@ -1189,3 +1189,8 @@ tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFla
 .rawparse__pagenote { opacity: 0.55; font-size: 0.78rem; }
 .rawparse__note { font-size: 0.75rem; opacity: 0.7; margin: 0.6rem 0 0; }
 @media (max-width: 900px) { .rawparse__split { grid-template-columns: 1fr; } }
+.rawparse__copy { padding: 0.3rem 0.7rem; cursor: pointer; border: 1px solid rgba(100,116,139,0.5);
+  border-radius: 5px; background: rgba(59,130,246,0.12); font-size: 0.85rem; }
+.rawparse__copy:hover { background: rgba(59,130,246,0.22); }
+.rawparse__hint--warn { color: #b45309; background: rgba(245,158,11,0.1); padding: 0.4rem 0.6rem;
+  border-radius: 5px; border: 1px solid rgba(217,119,6,0.3); }

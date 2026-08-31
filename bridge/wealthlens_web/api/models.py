@@ -464,6 +464,8 @@ class RawParseView(BaseModel):
     filename: str
     scale: float = Field(default=2.0, description="pixel:point ratio the page images are rendered at; the "
                          "overlay multiplies each box's point bbox by this to align")
+    classified: bool = Field(default=True, description="True when the fates are auto-assigned (a depository "
+                             "CAS); False when the type isn't classified yet and every line shows as furniture")
     summary: dict = Field(default_factory=dict, description="fate → count")
     pages: list[RawParsePage] = Field(default_factory=list)
 

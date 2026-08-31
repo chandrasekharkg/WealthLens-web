@@ -1531,6 +1531,12 @@ export interface components {
          *     only (masked shapes + boxes); the user's real values are on the PDF, streamed to their own browser.
          */
         RawParseView: {
+            /**
+             * Classified
+             * @description True when the fates are auto-assigned (a depository CAS); False when the type isn't classified yet and every line shows as furniture
+             * @default true
+             */
+            classified: boolean;
             /** Filename */
             filename: string;
             /** Pages */

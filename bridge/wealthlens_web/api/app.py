@@ -399,8 +399,9 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             raise HTTPException(status_code=422, detail={"error": "raw-parse", "reason":
                                 job.message or "this file is not a depository CAS the raw-parse view reads yet"})
         b = job.result
-        return {"filename": real.name, "scale": 2.0, "summary": b.get("summary", {}),
-                "pages": (b.get("view") or {}).get("pages", [])}
+        v = b.get("view") or {}
+        return {"filename": real.name, "scale": 2.0, "classified": v.get("classified", True),
+                "summary": b.get("summary", {}), "pages": v.get("pages", [])}
 
     @app.get("/api/workspace/{entity_id}/document/page")
     def get_document_page(entity_id: str, page: int = Query(default=1),

@@ -2739,6 +2739,12 @@
       "RawParseView": {
         "description": "The geometry-aware fate of every extracted line, for the PDF-beside-interpretation overlay. Structure\nonly (masked shapes + boxes); the user's real values are on the PDF, streamed to their own browser.",
         "properties": {
+          "classified": {
+            "default": true,
+            "description": "True when the fates are auto-assigned (a depository CAS); False when the type isn't classified yet and every line shows as furniture",
+            "title": "Classified",
+            "type": "boolean"
+          },
           "filename": {
             "title": "Filename",
             "type": "string"
