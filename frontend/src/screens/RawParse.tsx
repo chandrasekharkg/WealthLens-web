@@ -234,10 +234,10 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
         "line is reduced to its shape (`#` per digit, `<ISIN>`, `<W>` per word) and the geometry is in PDF points.**",
       ``,
       `- classification: ${method}`,
-      `- document fate summary: ${sum}`,
-      `- lines flagged as NOT interpreted: **${flagged.length}**`,
+      `- reader's auto-summary (what the parser did on its own): ${sum}`,
+      `- reporter-flagged (⚑) as not interpreted: **${flagged.length}**`,
       ``,
-      `### Lines that should be read but were not`,
+      `### Reporter-flagged — lines that should be read but were not`,
       ...(flagged.length ? flagged : ["_(none flagged yet — flag the lines the reader missed, then copy again)_"]),
     ].join("\n");
   };
