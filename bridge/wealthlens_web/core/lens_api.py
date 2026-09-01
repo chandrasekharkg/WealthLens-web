@@ -449,8 +449,30 @@ def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
         "performance": _holding_performance(con, instrument, currency),
         "positions": _holding_positions(con, instrument),
         "lineage": _holding_lineage(con, instrument),
+        "value_derivation": _value_derivation(con, instrument, currency),
         "derivation": _quantity_derivation(con, instrument, currency),
         "lines": lines,
+    }
+
+
+def _value_derivation(con, instrument: str, currency: str = "INR") -> dict | None:
+    """The 2b VALUE derivation for a holding: `value = quantity × price` for a ledger-valued holding (foots to
+    holdings().value_inr by construction), or the stated snapshot for a statement-valued one (`basis` tells
+    them apart). `quantity` links down to the quantity derivation — the panel nests value → quantity → events.
+    None when the instrument is not a held position (cash/FD have their own value figures)."""
+    from wealthlens import lens
+    vd = lens.value_derivation(instrument, con=con)
+    if not vd:
+        return None
+    value = _money(vd["value"], currency)
+    return {
+        "figure": "value",
+        "basis": vd["basis"],
+        "value": value.as_dict() if value is not None else None,
+        "quantity": vd["quantity"],                      # links to the quantity derivation below
+        "price": vd["price"],                            # per-unit price in the reporting currency (FX folded in)
+        "price_date": _date(vd["price_date"]),           # the captured price's own date (may predate as-of)
+        "source_id": _str(vd["source_id"]),              # the snapshot behind a statement-valued row (Primitive B)
     }
 
 

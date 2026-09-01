@@ -363,6 +363,20 @@ class Derivation(BaseModel):
     terms: list[DerivationTerm] = []
 
 
+class ValueDerivation(BaseModel):
+    """A holding's VALUE arithmetic (Level 2b). For a ledger-valued holding `value = quantity × price` and the
+    product equals holdings().value by construction; for a statement-valued one the value is a figure the
+    statement stated (basis says which). `quantity` links to the quantity derivation — value nests over it."""
+
+    figure: str = Field(description="'value'")
+    basis: str | None = Field(default=None, description="'ledger' = quantity × price (a product); else a stated snapshot")
+    value: Money | None = Field(default=None, description="the holding's value — the product, or the stated snapshot")
+    quantity: float | None = Field(default=None, description="the units (links to the quantity derivation)")
+    price: float | None = Field(default=None, description="the per-unit price in the reporting currency (FX folded in)")
+    price_date: str | None = Field(default=None, description="the captured price's own date (may predate as-of)")
+    source_id: str | None = Field(default=None, description="the snapshot behind a statement-valued row (Primitive B)")
+
+
 class HoldingDiary(BaseModel):
     """One holding's full detail — performance, identity lineage, the quantity derivation, and the CAS transcript."""
 
@@ -372,6 +386,7 @@ class HoldingDiary(BaseModel):
     performance: HoldingPerformance | None = None
     positions: list[HoldingPosition] = []
     lineage: list[LineageEdge] = []
+    value_derivation: ValueDerivation | None = None
     derivation: Derivation | None = None
     lines: list[DiaryLine] = []
     provenance: Provenance

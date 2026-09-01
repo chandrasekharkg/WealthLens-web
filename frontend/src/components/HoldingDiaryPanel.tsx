@@ -130,7 +130,7 @@ export function HoldingDiaryPanel({
   /** A diary line to open scrolled-to and highlighted — the review-queue / story-strip deep-link anchor. */
   readonly focusDiaryId?: string | null;
 }) {
-  const { t, number, money } = format;
+  const { t, number, number2, money } = format;
   const [diary, setDiary] = useState<Load<HoldingDiary>>({ state: "loading" });
   // Sameness-fold on by default: the confidence view is what a reader wants first; the toggle reveals every row.
   const [collapsed, setCollapsed] = useState(true);
@@ -394,6 +394,45 @@ export function HoldingDiaryPanel({
         </div>
       ) : null}
 
+      {diary.state === "ready" && diary.data.value_derivation ? (() => {
+        // Level 2 — the VALUE derivation, one figure up from quantity. For a LEDGER-valued holding it reads
+        // `value = quantity × price` (the product footing to the value shown); for a STATEMENT-valued one the
+        // value is a figure the statement stated, shown with its source — never dressed up as an arithmetic we
+        // didn't do. The quantity here breaks down in the table just below (value nests over quantity).
+        const vd = diary.data.value_derivation;
+        const asProduct = vd.basis === "ledger" && vd.quantity != null && vd.price != null;
+        return (
+          <div className="valuederiv">
+            <h3>{t("valuederiv.heading")}</h3>
+            <p className="valuederiv-eq">
+              <span className="valuederiv-total">{vd.value ? money(vd.value) : "—"}</span>
+              {asProduct ? (
+                <>
+                  <span className="valuederiv-mark"> = </span>
+                  <b>{num(vd.quantity)}</b> {t("valuederiv.units")}
+                  <span className="valuederiv-mark"> × </span>
+                  <b>{number2(vd.price!)}</b>
+                  {vd.price_date ? (
+                    <span className="muted"> {t("valuederiv.priceAsOf", { date: format.date(vd.price_date) })}</span>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <span className="muted"> {t("valuederiv.stated")}</span>
+                  {vd.source_id ? (
+                    <button type="button" className="linklike" onClick={() => setSource(vd.source_id!)}
+                      title={t("derivation.openSource")}>
+                      {t("derivation.col.source")}
+                    </button>
+                  ) : null}
+                </>
+              )}
+            </p>
+            {asProduct ? <p className="derivation-foot">{t("valuederiv.foots")}</p> : null}
+          </div>
+        );
+      })() : null}
+
       {diary.state === "ready" && diary.data.derivation ? (() => {
         // Level 2 — the derivation: the ARITHMETIC behind the quantity, as a table. One row per event (date,
         // verb, signed units, fill price, money leg), footing to the total — the honest proof the number adds
@@ -424,7 +463,7 @@ export function HoldingDiaryPanel({
                     <td>{term.action}</td>
                     {showBroker ? <td>{term.broker ?? t("diary.unknownBroker")}</td> : null}
                     <td className="num" data-sign={term.sign === "-" ? "down" : "up"}>{term.sign}{num(term.quantity)}</td>
-                    <td className="num">{term.price ? num(term.price) : "—"}</td>
+                    <td className="num">{term.price ? number2(term.price) : "—"}</td>
                     <td className="num">{term.amount ? money(term.amount) : "—"}</td>
                     <td className="num">
                       {term.source_id ? (
