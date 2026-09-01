@@ -1182,6 +1182,11 @@ tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFla
 .rawparse__line code { font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rawparse__line.is-on { background: rgba(59,130,246,0.14); }
 .rawparse__line--flag { background: rgba(239,68,68,0.12); }
+/* The 2a "became" chip: what an interpreted line produced in the store — muted, after the masked shape, so the
+   shape stays the primary read and the chip is the "…and this is what it became" answer. */
+.rawparse__line code { flex: 0 1 auto; }
+.rawparse__became { flex: 1 1 auto; font-size: 0.66rem; color: var(--muted, #6b7280); opacity: 0.75;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .rawparse__linemark { font-weight: 700; width: 1.1rem; text-align: center; flex: 0 0 auto; }
 .rawparse__flag { font-weight: 700; width: 1.1rem; flex: 0 0 auto; background: none; border: 0; padding: 0;
   cursor: pointer; font-size: 0.95rem; line-height: 1; }

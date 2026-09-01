@@ -443,6 +443,16 @@ class DiagnoseBundle(BaseModel):
     report: str = Field(description="The masked layout report — every value replaced by its shape")
 
 
+class BecameFact(BaseModel):
+    """What an interpreted line BECAME — the 2a chip. Pure structure: the store table it produced, the kind of
+    fact, and which fields bound. Never a value or an id, so it is safe to share exactly like the masked shape;
+    the real figures stay on the PDF the browser renders locally."""
+
+    table: str = Field(description="the store table the line produced, e.g. holding_events / position_snapshots")
+    kind: str = Field(description="the fact kind, e.g. holding / movement / custody / security-group / institution")
+    fields: list[str] = Field(default_factory=list, description="the field NAMES that bound (structure, not values)")
+
+
 class RawParseLine(BaseModel):
     """One extracted line, placed by geometry and reduced to its masked shape. NO raw content — the shape and
     the box are safe to share; the real text lives only on the PDF the browser renders locally."""
@@ -451,6 +461,8 @@ class RawParseLine(BaseModel):
     fate: str = Field(description="interpreted | not_interpreted | dropped | furniture")
     reason: str | None = None
     shape: str = Field(description="The masked shape (# per digit, <ISIN>, <W> per word) — safe to share")
+    became: BecameFact | None = Field(default=None, description="For an interpreted line: WHAT fact it produced "
+                                      "(the 2a chip) — table/kind/bound-field-names, structure only, no values")
 
 
 class RawParsePage(BaseModel):

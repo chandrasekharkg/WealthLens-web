@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { api, ApiError, apiReason, type RawParseView, type WorkspaceDetail } from "../api/client";
+import { api, ApiError, apiReason, type RawParseLine, type RawParseView, type WorkspaceDetail } from "../api/client";
 import { writeClipboard } from "../lib/clipboard";
 
 /** A readable category for a document, so the picker can filter by type/issuer before the statement itself.
  * Derived from where `organize` filed it (its payload_ref folder) — `statements/credit-card/sbi` →
  * "credit-card / sbi", `statements/depository/cas` → "depository / cas" — falling back to the provider. */
+// The 2a chip: what an interpreted line BECAME in the store — table · kind (bound fields). Pure structure (the
+// bridge never sends a value), so it is safe to render; the real figures are read from the page image beside it.
+function becameLabel(b: NonNullable<RawParseLine["became"]>): string {
+  return `${b.table} · ${b.kind}${b.fields?.length ? ` (${b.fields.join(", ")})` : ""}`;
+}
+
 function categoryOf(doc: Doc): string {
   const ref = doc.payload_ref ?? "";
   const dir = ref.includes("/") ? ref.slice(0, ref.lastIndexOf("/")) : "";
@@ -333,7 +339,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
                     onClick={() => eff !== "interpreted" && toggle(pageNo, i, ln.fate)}
-                    title={`${d.mark} ${d.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.shape}\n${eff !== "interpreted" ? d.hint : ""}`}
+                    title={`${d.mark} ${d.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.shape}\n${eff === "interpreted" && ln.became ? `→ became ${becameLabel(ln.became)}` : eff !== "interpreted" ? d.hint : ""}`}
                   />
                 );
               })}
@@ -373,6 +379,11 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                     </button>
                   )}
                   <code>{ln.shape}</code>
+                  {eff === "interpreted" && ln.became && (
+                    <span className="rawparse__became" title="what this line became in the store — table · kind (the fields that bound). Structure only; the values are on the page image.">
+                      → {becameLabel(ln.became)}
+                    </span>
+                  )}
                 </li>
               );
             })}

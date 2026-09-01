@@ -542,6 +542,29 @@ export interface components {
          * @enum {string}
          */
         Availability: "ok" | "no_engine" | "missing" | "busy" | "schema_skew" | "unreadable";
+        /**
+         * BecameFact
+         * @description What an interpreted line BECAME — the 2a chip. Pure structure: the store table it produced, the kind of
+         *     fact, and which fields bound. Never a value or an id, so it is safe to share exactly like the masked shape;
+         *     the real figures stay on the PDF the browser renders locally.
+         */
+        BecameFact: {
+            /**
+             * Fields
+             * @description the field NAMES that bound (structure, not values)
+             */
+            fields?: string[];
+            /**
+             * Kind
+             * @description the fact kind, e.g. holding / movement / custody / security-group / institution
+             */
+            kind: string;
+            /**
+             * Table
+             * @description the store table the line produced, e.g. holding_events / position_snapshots
+             */
+            table: string;
+        };
         /** Body_upload_api_upload_post */
         Body_upload_api_upload_post: {
             /** Entity */
@@ -1507,6 +1530,8 @@ export interface components {
             bbox: {
                 [key: string]: unknown;
             };
+            /** @description For an interpreted line: WHAT fact it produced (the 2a chip) — table/kind/bound-field-names, structure only, no values */
+            became?: components["schemas"]["BecameFact"] | null;
             /**
              * Fate
              * @description interpreted | not_interpreted | dropped | furniture
