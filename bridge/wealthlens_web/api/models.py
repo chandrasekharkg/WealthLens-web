@@ -379,6 +379,20 @@ class ValueDerivation(BaseModel):
     source_id: str | None = Field(default=None, description="the snapshot behind a statement-valued row (Primitive B)")
 
 
+class HoldingDiagnosis(BaseModel):
+    """The DERIVED-end diagnostic (interpretation-gap-diagnosis, Level 2) — the store's own self-checks over a
+    holding's computed figures, as a PII-FREE bundle. The copy-for-issue payload for a derivation gap: paste
+    `report` into an issue. Every value in it is a `#`-shape; no amount, security, or date survives."""
+
+    figure: str = Field(description="'holding'")
+    checks: dict = Field(default_factory=dict,
+        description="the self-checks: quantity_foots / value_foots / superseded (bool | null where n/a)")
+    healthy: bool = Field(description="True when every applicable self-check passes — a still-wrong figure is "
+                          "then a COLLECTION gap (the raw-parse lens), not a derivation one")
+    report: str = Field(description="the masked, PII-free bundle to paste into a GitHub issue — no value, "
+                        "security, or date survives")
+
+
 class HoldingDiary(BaseModel):
     """One holding's full detail — performance, identity lineage, the quantity derivation, and the CAS transcript."""
 

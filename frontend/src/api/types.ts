@@ -106,6 +106,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/holdings/{entity_id}/{instrument_id}/diagnose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Holding Diagnose
+         * @description The DERIVED-end diagnostic (interpretation-gap-diagnosis, Level 2): the store's own self-checks over
+         *     a holding's computed figures — quantity foots, value foots, not superseded — as a PII-FREE bundle
+         *     (every value a `#`-shape). The copy-for-issue sibling of the raw-parse capture, on the derivation end
+         *     of the provenance chain. Runs WLC `store_diagnose`, so the masking is the engine's, not the presenter's
+         *     (custodian/presenter boundary). An instrument that is not a held position returns `healthy=true` with an
+         *     empty report rather than 404 — nothing to diagnose is not an error.
+         */
+        get: operations["holding_diagnose_api_holdings__entity_id___instrument_id__diagnose_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/holdings/{entity_id}/{instrument_id}/diary": {
         parameters: {
             query?: never;
@@ -1179,6 +1204,36 @@ export interface components {
             process: string;
         };
         /**
+         * HoldingDiagnosis
+         * @description The DERIVED-end diagnostic (interpretation-gap-diagnosis, Level 2) — the store's own self-checks over a
+         *     holding's computed figures, as a PII-FREE bundle. The copy-for-issue payload for a derivation gap: paste
+         *     `report` into an issue. Every value in it is a `#`-shape; no amount, security, or date survives.
+         */
+        HoldingDiagnosis: {
+            /**
+             * Checks
+             * @description the self-checks: quantity_foots / value_foots / superseded (bool | null where n/a)
+             */
+            checks?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Figure
+             * @description 'holding'
+             */
+            figure: string;
+            /**
+             * Healthy
+             * @description True when every applicable self-check passes — a still-wrong figure is then a COLLECTION gap (the raw-parse lens), not a derivation one
+             */
+            healthy: boolean;
+            /**
+             * Report
+             * @description the masked, PII-free bundle to paste into a GitHub issue — no value, security, or date survives
+             */
+            report: string;
+        };
+        /**
          * HoldingDiary
          * @description One holding's full detail — performance, identity lineage, the quantity derivation, and the CAS transcript.
          */
@@ -2141,6 +2196,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FamilyTransfers"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    holding_diagnose_api_holdings__entity_id___instrument_id__diagnose_get: {
+        parameters: {
+            query?: {
+                named?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                instrument_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldingDiagnosis"];
                 };
             };
             /** @description Validation Error */

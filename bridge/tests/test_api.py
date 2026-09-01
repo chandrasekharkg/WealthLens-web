@@ -63,6 +63,29 @@ def test_our_own_origin_is_accepted(app_and_client):
     assert client.get("/api/version", headers={"origin": ORIGIN}).status_code == 200
 
 
+def test_holding_diagnose_returns_a_pii_free_self_check_bundle(app_and_client):
+    """The derived-end diagnostic (Level 2): the store's self-checks over a holding's computed figures, as a
+    PII-free bundle safe to paste into an issue. `alpha`'s holding is snapshot-valued (no events), so quantity
+    foots n/a and the bundle is healthy — and no real value, security, or date is in the report."""
+    import re as _re
+    _, client = app_and_client
+    r = client.get("/api/holdings/alpha/inst:alpha:0/diagnose")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["figure"] == "holding" and body["healthy"] is True
+    assert "checks" in body and body["report"]
+    rep = body["report"]
+    assert not _re.search(r"\d[\d,]*\.\d\d", rep)                 # no real 2dp amount survives (all #-shapes)
+    assert not _re.search(r"\d{4}-\d{2}-\d{2}", rep)              # no ISO date survives
+    assert "safe to share" in rep
+
+
+def test_diagnose_of_an_unheld_instrument_is_healthy_and_empty_not_404(app_and_client):
+    _, client = app_and_client
+    r = client.get("/api/holdings/alpha/inst:nope:9/diagnose")
+    assert r.status_code == 200 and r.json()["healthy"] is True and r.json()["report"] == ""
+
+
 def test_a_state_changing_request_without_the_token_is_refused(app_and_client):
     """The cross-site POST case: a random tab firing at the import endpoint. No token, no subprocess."""
     _, client = app_and_client

@@ -191,6 +191,20 @@ export function HoldingDiaryPanel({
   const openSource = useCallback((row: DiaryLine) => {
     if (row.source_id) setSource(row.source_id);
   }, []);
+  // The derived-end copy-for-issue: fetch the store's PII-free self-check bundle and put it on the clipboard,
+  // ready to paste into a GitHub issue (the masking is the engine's, so no real value ever reaches here).
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const copyDiagnosis = useCallback(async () => {
+    try {
+      const { writeClipboard } = await import("../lib/clipboard");
+      const bundle = await api.holdingDiagnose(entity, instrument);
+      await writeClipboard(bundle.report || "");
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+    setTimeout(() => setCopyState("idle"), 2500);
+  }, [entity, instrument]);
   const { columnVisibility, onColumnVisibilityChange } = useColumnVisibility(
     "wlw.columns.diary",
     PROVENANCE_HIDDEN,
@@ -485,6 +499,16 @@ export function HoldingDiaryPanel({
               </tfoot>
             </table>
             <p className="derivation-foot">{t("derivation.foots")}</p>
+            <button
+              type="button"
+              className="derivation-copy"
+              onClick={() => void copyDiagnosis()}
+              title={t("derivation.copyHint")}
+            >
+              {copyState === "copied" ? t("derivation.copied")
+                : copyState === "error" ? t("derivation.copyFailed")
+                : t("derivation.copy")}
+            </button>
           </div>
         );
       })() : null}

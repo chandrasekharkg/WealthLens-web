@@ -22,6 +22,7 @@ export type CardStatementLine = components["schemas"]["CardStatementLine"];
 export type CardBillPayments = components["schemas"]["CardBillPayments"];
 export type CardBillPaymentRow = components["schemas"]["CardBillPaymentRow"];
 export type HoldingDiary = components["schemas"]["HoldingDiary"];
+export type HoldingDiagnosis = components["schemas"]["HoldingDiagnosis"];
 export type DiaryLine = components["schemas"]["DiaryLine"];
 export type Performance = components["schemas"]["Performance"];
 export type Family = components["schemas"]["Family"];
@@ -194,6 +195,8 @@ export const api = {
     request<CardStatement>(`/api/cards/${entity}/${issuer}/statement${query({ period })}`),
   holdingDiary: (entity: string, instrument: string) =>
     request<HoldingDiary>(`/api/holdings/${entity}/${instrument}/diary`),
+  holdingDiagnose: (entity: string, instrument: string) =>
+    request<HoldingDiagnosis>(`/api/holdings/${entity}/${instrument}/diagnose`),
   /** The provenance behind one fact row's source_id — what the source popup shows (Primitive B). */
   source: (entity: string, sourceId: string) =>
     request<SourceDetail>(`/api/source/${entity}/${encodeURIComponent(sourceId)}`),

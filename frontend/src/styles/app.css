@@ -901,6 +901,10 @@ input[type="date"] {
 .derivation-table td[data-sign="up"] { color: var(--pos, #16a34a); }
 .derivation-table td[data-sign="down"] { color: var(--neg, #dc2626); }
 .derivation-foot { color: var(--muted); font-size: 0.78rem; margin: 0.15rem 0 0; }
+.derivation-copy { margin-top: 0.5rem; padding: 0.2rem 0.6rem; font: inherit; font-size: 0.8rem; cursor: pointer;
+  border: 1px solid var(--line, rgba(100,116,139,0.35)); border-radius: 5px; background: var(--hover, rgba(148,163,184,0.06));
+  color: inherit; }
+.derivation-copy:hover { border-color: var(--accent, #3b82f6); }
 .lineage { margin: 0 0 1.25rem; }
 .lineage h3, .diary-panel h3 { font-size: 0.9rem; margin: 0.5rem 0 0.4rem; }
 .lineage ul { list-style: none; margin: 0; padding: 0; }
