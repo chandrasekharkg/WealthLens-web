@@ -1364,6 +1364,11 @@ export interface components {
              * @description The date the view was COMPUTED at
              */
             as_of?: string | null;
+            /**
+             * By Class
+             * @description net worth = Σ classes — the class subtotals summing to `total` (the top derivation)
+             */
+            by_class?: components["schemas"]["ClassTotal"][];
             /** Entities */
             entities: components["schemas"]["EntityTotal"][];
             /**

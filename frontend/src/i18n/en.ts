@@ -393,6 +393,12 @@ export const en = {
   "diary.col.since": "Since",
   "diary.col.units": "Units",
 
+  "networth.derivHeading": "How this net worth is computed",
+  "networth.class": "Asset class",
+  "networth.valuedBy": "Valued by",
+  "networth.value": "Value",
+  "networth.foots": "Net worth = the sum of these classes. Open a class in Reports to trace it down to a holding, its value = quantity × price, and the events behind the quantity.",
+
   "valuederiv.heading": "How this value is computed",
   "valuederiv.units": "units",
   "valuederiv.priceAsOf": "(price as of {date})",
@@ -437,6 +443,8 @@ export const en = {
   "class.credit_card": "Credit card",
   "class.auto_loan": "Auto loan",
   "class.home_loan": "Home loan",
+  "class.payable": "Payables",
+  "class.receivable": "Receivables",
 
   "nav.family": "Family",
   "family.title": "Family",

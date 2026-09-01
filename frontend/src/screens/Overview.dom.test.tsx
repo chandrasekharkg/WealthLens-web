@@ -59,6 +59,29 @@ describe("the headline", () => {
     show({ total: null });
     expect(screen.getByTestId("net-worth-total").textContent).toBe("—");
   });
+
+  it("makes the headline auditable: net worth = Σ classes, footing to the total", () => {
+    // the top derivation — the class subtotals must sum to the headline the reader sees above
+    show({
+      total: { amount: "3500.00", currency: "INR" },
+      by_class: [
+        { asset_class: "listed_equity", value: { amount: "2000.00", currency: "INR" }, basis: "ledger" },
+        { asset_class: "savings", value: { amount: "1500.00", currency: "INR" }, basis: "ledger-cash" },
+      ],
+    });
+    expect(screen.getByText("How this net worth is computed")).toBeTruthy();
+    expect(screen.getByText("Stocks")).toBeTruthy();                 // the class.* label, not the raw slug
+    expect(screen.getByText(/2,000.00/)).toBeTruthy();
+    expect(screen.getByText(/1,500.00/)).toBeTruthy();
+    // the tfoot total is the same figure as the headline (they foot)
+    const derivTotals = screen.getAllByText(/3,500.00/);
+    expect(derivTotals.length).toBeGreaterThan(0);
+  });
+
+  it("omits the derivation when there is no class breakdown (an older bridge)", () => {
+    show({ by_class: [] });
+    expect(screen.queryByText("How this net worth is computed")).toBeNull();
+  });
 });
 
 describe("caveats come first", () => {

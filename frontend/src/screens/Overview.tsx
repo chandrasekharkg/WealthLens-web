@@ -105,6 +105,43 @@ export function Overview({ data, format }: OverviewProps) {
         </p>
       </section>
 
+      {(data.by_class ?? []).length > 0 ? (
+        // net worth = Σ classes — the headline made auditable. Each class subtotal is itself Σ(position
+        // values); a class drills (via Reports) to its holdings, each to value = qty × price, to the quantity,
+        // to the events, to the statement. The parts foot to the total by construction (the lens proves it).
+        <section className="networth-deriv" aria-label={t("networth.derivHeading")}>
+          <h3>{t("networth.derivHeading")}</h3>
+          <table className="mini-table">
+            <thead>
+              <tr>
+                <th>{t("networth.class")}</th>
+                <th>{t("networth.valuedBy")}</th>
+                <th className="num">{t("networth.value")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data.by_class ?? []).map((c) => {
+                const label = t(`class.${c.asset_class}` as "class.savings");
+                return (
+                  <tr key={c.asset_class}>
+                    <td>{label === `class.${c.asset_class}` ? c.asset_class : label}</td>
+                    <td className="muted">{c.basis ?? "—"}</td>
+                    <td className="num">{c.value ? money(c.value) : "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2}>{t("overview.netWorth")}</td>
+                <td className="num"><b>{data.total ? money(data.total) : "—"}</b></td>
+              </tr>
+            </tfoot>
+          </table>
+          <p className="derivation-foot">{t("networth.foots")}</p>
+        </section>
+      ) : null}
+
       <DataTable
         rows={data.entities}
         columns={columns}
