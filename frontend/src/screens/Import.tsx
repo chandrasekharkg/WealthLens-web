@@ -45,6 +45,10 @@ function warningText(w: Warning): string {
       return `${num(w.unknown)} row(s) missing a quantity`;
     case "rows_rejected":
       return `${num(w.rows)} row(s) not loaded (carried neither a quantity nor a value)`;
+    case "cas_incomplete":
+      // A recognized depository CAS whose parse came up short — a parser gap on a SUPPORTED format, never an
+      // unsupported-bank message. Names the cause and points at the raw-parse lens; nothing was loaded.
+      return `recognized, but the parse is incomplete${w.error ? ` — ${str(w.error)}` : ""}. A parser gap on a supported format — nothing loaded; open it in Raw parse to see the missed rows.`;
     default:
       return str(w.type) || JSON.stringify(w);
   }

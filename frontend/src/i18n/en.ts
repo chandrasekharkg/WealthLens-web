@@ -124,6 +124,7 @@ export const en = {
   "file.status.imported": "Imported",
   "file.status.locked": "Password needed",
   "file.status.unrecognized": "Not recognised",
+  "file.status.cas_incomplete": "Parse incomplete",
   "file.status.skipped": "Skipped",
   "file.status.unknown": "Needs attention",
   "column.file": "File",
