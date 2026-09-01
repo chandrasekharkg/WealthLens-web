@@ -362,31 +362,93 @@ export function HoldingDiaryPanel({
       ) : null}
 
       {diary.state === "ready" && (diary.data.positions ?? []).length > 0 ? (
-        // The per-broker holdings strip. The transcript below MERGES every demat's lines (the diary is keyed
-        // by instrument, not account) — this strip is what says so, and shows who holds how many, since when.
+        // "Held in" — the per-broker breakdown as a table (the transcript below MERGES every demat's lines,
+        // since the diary is keyed by instrument, not account). Who holds how many, since when.
         // `?? []` guards a new frontend talking to an older bridge that predates this field (deploy skew).
-        <div className="holding-strip">
-          <span className="holding-strip-label">
-            {(diary.data.positions ?? []).length > 1
-              ? t("diary.heldAcross", { count: (diary.data.positions ?? []).length })
-              : t("diary.heldIn")}
-          </span>
-          {(diary.data.positions ?? []).map((p, i) => (
-            <span className="holding-chip" key={`${p.broker ?? "?"}-${p.account_masked ?? i}`}>
-              <b>{num(p.shares) || "—"}</b> {t("diary.sharesShort")}
-              <span className="holding-chip-who">
-                {" · "}
-                {p.broker ?? t("diary.unknownBroker")}
-                {p.account_masked ? ` ${p.account_masked}` : ""}
-              </span>
-              {p.since ? <span className="holding-chip-since"> · {t("diary.since", { date: format.date(p.since) })}</span> : null}
-              {p.reconciliation === "superseded" ? (
-                <span data-role="unmapped" title={t("verdict.review")}> ⚑</span>
-              ) : null}
-            </span>
-          ))}
+        <div className="heldin">
+          <h3>{t("diary.heldInHeading")}</h3>
+          <table className="mini-table">
+            <thead>
+              <tr>
+                <th>{t("diary.col.broker")}</th>
+                <th>{t("diary.col.since")}</th>
+                <th className="num">{t("diary.col.units")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(diary.data.positions ?? []).map((p, i) => (
+                <tr key={`${p.broker ?? "?"}-${p.account_masked ?? i}`}>
+                  <td>
+                    {p.broker ?? t("diary.unknownBroker")}
+                    {p.account_masked ? <span className="muted"> {p.account_masked}</span> : null}
+                    {p.reconciliation === "superseded" ? (
+                      <span data-role="unmapped" title={t("verdict.review")}> ⚑</span>
+                    ) : null}
+                  </td>
+                  <td>{p.since ? format.date(p.since) : "—"}</td>
+                  <td className="num">{num(p.shares) || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : null}
+
+      {diary.state === "ready" && diary.data.derivation ? (() => {
+        // Level 2 — the derivation: the ARITHMETIC behind the quantity, as a table. One row per event (date,
+        // verb, signed units, fill price, money leg), footing to the total — the honest proof the number adds
+        // up. The Source cell opens the statement that asserted the row (Primitive B). The Broker column
+        // appears ONLY when the holding was accumulated across MORE THAN ONE broker (else it's noise — one
+        // demat holds it all). `?? []` + the outer guard keep an older bridge (no derivation) from breaking.
+        const terms = diary.data.derivation.terms ?? [];
+        const showBroker = new Set(terms.map((tm) => tm.broker).filter(Boolean)).size > 1;
+        return (
+          <div className="derivation">
+            <h3>{t("derivation.heading")}</h3>
+            <table className="mini-table derivation-table">
+              <thead>
+                <tr>
+                  <th>{t("derivation.col.date")}</th>
+                  <th>{t("derivation.col.event")}</th>
+                  {showBroker ? <th>{t("derivation.col.broker")}</th> : null}
+                  <th className="num">{t("derivation.col.units")}</th>
+                  <th className="num">{t("derivation.col.price")}</th>
+                  <th className="num">{t("derivation.col.amount")}</th>
+                  <th aria-label={t("derivation.col.source")} />
+                </tr>
+              </thead>
+              <tbody>
+                {terms.map((term, i) => (
+                  <tr key={`${term.date ?? ""}-${term.action ?? ""}-${i}`} data-sign={term.sign === "-" ? "down" : "up"}>
+                    <td>{term.date ? format.date(term.date) : "—"}</td>
+                    <td>{term.action}</td>
+                    {showBroker ? <td>{term.broker ?? t("diary.unknownBroker")}</td> : null}
+                    <td className="num" data-sign={term.sign === "-" ? "down" : "up"}>{term.sign}{num(term.quantity)}</td>
+                    <td className="num">{term.price ? num(term.price) : "—"}</td>
+                    <td className="num">{term.amount ? money(term.amount) : "—"}</td>
+                    <td className="num">
+                      {term.source_id ? (
+                        <button type="button" className="linklike" onClick={() => setSource(term.source_id!)}
+                          title={t("derivation.openSource")}>
+                          {t("derivation.col.source")}
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={showBroker ? 3 : 2}>{t("derivation.total")}</td>
+                  <td className="num"><b>{num(diary.data.derivation.total)}</b></td>
+                  <td colSpan={3} />
+                </tr>
+              </tfoot>
+            </table>
+            <p className="derivation-foot">{t("derivation.foots")}</p>
+          </div>
+        );
+      })() : null}
 
       {diary.state === "ready" && diary.data.lineage.length > 0 ? (
         <div className="lineage">
