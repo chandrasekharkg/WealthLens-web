@@ -449,8 +449,38 @@ def holding_diary(con, *, instrument: str, currency: str = "INR") -> dict:
         "performance": _holding_performance(con, instrument, currency),
         "positions": _holding_positions(con, instrument),
         "lineage": _holding_lineage(con, instrument),
+        "derivation": _quantity_derivation(con, instrument, currency),
         "lines": lines,
     }
+
+
+def _quantity_derivation(con, instrument: str, currency: str = "INR") -> dict | None:
+    """The 2b derivation block for a holding's QUANTITY (interpretation-gap-diagnosis): the arithmetic that
+    produces the number `holdings()` shows — `quantity = Σ(+buy/+bonus/+merge_in … −sell/−merge_out …)`, one
+    term per event, each linking to its source document (Primitive B). Σ equals `holdings().quantity` by
+    construction (the lens proves it). None for a holding whose quantity is NOT an event sum (cash / FD — a
+    different figure), so the panel shows it only where it applies."""
+    from wealthlens import lens
+    df = lens.quantity_derivation(instrument, con=con)
+    if df.empty:
+        return None
+    terms = [{
+        "date": _date(r["date"]),
+        "action": _str(r["action"]),
+        "sign": _str(r["sign"]),
+        "quantity": _num(r["quantity"]),                 # the magnitude the statement printed
+        "signed_quantity": _num(r["signed_quantity"]),   # the magnitude with its sign applied (what the Σ adds)
+        "price": _num(r["price"]),                       # the per-unit fill price (NULL/0 for a free bonus)
+        "broker": _str(r["broker"]),                     # the DP/broker the leg went through (multi-broker "who")
+        # the fill's money leg → {amount: str, currency} (this nested block isn't passed through the endpoint's
+        # `_row` Money-serialiser, so serialise it here, exactly as `Money.as_dict` does everywhere else). A
+        # free bonus carries no money leg — `_money` maps a NULL/NaN to None, so it renders "—", never "₹NaN".
+        "amount": (m := _money(r["amount"], currency)) and m.as_dict(),
+        "source_id": _str(r["source_id"]),               # the capture that asserted it — a click opens it
+        "change_id": _str(r["change_id"]),               # a corporate action's link into the lineage, else null
+    } for _, r in df.iterrows()]
+    total = round(float(df["signed_quantity"].sum()), 3)
+    return {"figure": "quantity", "total": total, "terms": terms}
 
 
 def family_transfers(con, *, currency: str) -> list[dict]:

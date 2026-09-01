@@ -809,6 +809,160 @@
         "title": "Deposit",
         "type": "object"
       },
+      "Derivation": {
+        "description": "A figure's arithmetic \u2014 how the number `holdings()` shows was computed. \u03a3(terms) equals the figure by\nconstruction (the lens proves it). Today only `quantity`; value / net-worth / FD / balance follow (2b).",
+        "properties": {
+          "figure": {
+            "description": "which figure this derives \u2014 'quantity' (more to come)",
+            "title": "Figure",
+            "type": "string"
+          },
+          "terms": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DerivationTerm"
+            },
+            "title": "Terms",
+            "type": "array"
+          },
+          "total": {
+            "description": "the derived figure \u2014 equals \u03a3 of the terms' signed magnitudes",
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "figure",
+          "total"
+        ],
+        "title": "Derivation",
+        "type": "object"
+      },
+      "DerivationTerm": {
+        "description": "One term of a figure's arithmetic (Level 2 \u2014 the derivation lens). For quantity: one holding_event, with\nits sign and the source that asserted it. Structure + the holding's own quantities (never a money value).",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the event verb \u2014 buy / bonus / merge_in / sell / \u2026",
+            "title": "Action"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the fill's money leg, where the statement stated one"
+          },
+          "broker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the DP/broker the leg went through (shown when a holding spans >1)",
+            "title": "Broker"
+          },
+          "change_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "a corporate action's link into the lineage, else null",
+            "title": "Change Id"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the per-unit fill price (null/0 for a free bonus)",
+            "title": "Price"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the magnitude the statement printed",
+            "title": "Quantity"
+          },
+          "sign": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "'+' (adds units), '-' (removes), '\u00b7' (neutral)",
+            "title": "Sign"
+          },
+          "signed_quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the magnitude with its sign \u2014 what \u03a3 adds",
+            "title": "Signed Quantity"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the capture that asserted it \u2014 a click opens it (Primitive B)",
+            "title": "Source Id"
+          }
+        },
+        "title": "DerivationTerm",
+        "type": "object"
+      },
       "DiagnoseBundle": {
         "description": "The safe-to-share diagnostic for an unrecognized statement \u2014 STRUCTURE ONLY, no values, names, or ids.\nThe on-ramp a user hands to their AI agent, or reads alongside the 'Add your bank' guide.",
         "properties": {
@@ -1580,8 +1734,18 @@
         "type": "object"
       },
       "HoldingDiary": {
-        "description": "One holding's full detail \u2014 performance, identity lineage, and the CAS transcript.",
+        "description": "One holding's full detail \u2014 performance, identity lineage, the quantity derivation, and the CAS transcript.",
         "properties": {
+          "derivation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Derivation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "entity_id": {
             "title": "Entity Id",
             "type": "string"

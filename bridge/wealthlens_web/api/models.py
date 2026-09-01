@@ -338,8 +338,33 @@ class LineageEdge(BaseModel):
     note: str | None = None
 
 
+class DerivationTerm(BaseModel):
+    """One term of a figure's arithmetic (Level 2 — the derivation lens). For quantity: one holding_event, with
+    its sign and the source that asserted it. Structure + the holding's own quantities (never a money value)."""
+
+    date: str | None = None
+    action: str | None = Field(default=None, description="the event verb — buy / bonus / merge_in / sell / …")
+    sign: str | None = Field(default=None, description="'+' (adds units), '-' (removes), '·' (neutral)")
+    quantity: float | None = Field(default=None, description="the magnitude the statement printed")
+    signed_quantity: float | None = Field(default=None, description="the magnitude with its sign — what Σ adds")
+    price: float | None = Field(default=None, description="the per-unit fill price (null/0 for a free bonus)")
+    amount: Money | None = Field(default=None, description="the fill's money leg, where the statement stated one")
+    broker: str | None = Field(default=None, description="the DP/broker the leg went through (shown when a holding spans >1)")
+    source_id: str | None = Field(default=None, description="the capture that asserted it — a click opens it (Primitive B)")
+    change_id: str | None = Field(default=None, description="a corporate action's link into the lineage, else null")
+
+
+class Derivation(BaseModel):
+    """A figure's arithmetic — how the number `holdings()` shows was computed. Σ(terms) equals the figure by
+    construction (the lens proves it). Today only `quantity`; value / net-worth / FD / balance follow (2b)."""
+
+    figure: str = Field(description="which figure this derives — 'quantity' (more to come)")
+    total: float = Field(description="the derived figure — equals Σ of the terms' signed magnitudes")
+    terms: list[DerivationTerm] = []
+
+
 class HoldingDiary(BaseModel):
-    """One holding's full detail — performance, identity lineage, and the CAS transcript."""
+    """One holding's full detail — performance, identity lineage, the quantity derivation, and the CAS transcript."""
 
     entity_id: str
     instrument: str
@@ -347,6 +372,7 @@ class HoldingDiary(BaseModel):
     performance: HoldingPerformance | None = None
     positions: list[HoldingPosition] = []
     lineage: list[LineageEdge] = []
+    derivation: Derivation | None = None
     lines: list[DiaryLine] = []
     provenance: Provenance
 

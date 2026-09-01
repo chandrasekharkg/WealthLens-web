@@ -831,6 +831,79 @@ export interface components {
             renamed_from?: string | null;
         };
         /**
+         * Derivation
+         * @description A figure's arithmetic — how the number `holdings()` shows was computed. Σ(terms) equals the figure by
+         *     construction (the lens proves it). Today only `quantity`; value / net-worth / FD / balance follow (2b).
+         */
+        Derivation: {
+            /**
+             * Figure
+             * @description which figure this derives — 'quantity' (more to come)
+             */
+            figure: string;
+            /**
+             * Terms
+             * @default []
+             */
+            terms: components["schemas"]["DerivationTerm"][];
+            /**
+             * Total
+             * @description the derived figure — equals Σ of the terms' signed magnitudes
+             */
+            total: number;
+        };
+        /**
+         * DerivationTerm
+         * @description One term of a figure's arithmetic (Level 2 — the derivation lens). For quantity: one holding_event, with
+         *     its sign and the source that asserted it. Structure + the holding's own quantities (never a money value).
+         */
+        DerivationTerm: {
+            /**
+             * Action
+             * @description the event verb — buy / bonus / merge_in / sell / …
+             */
+            action?: string | null;
+            /** @description the fill's money leg, where the statement stated one */
+            amount?: components["schemas"]["Money"] | null;
+            /**
+             * Broker
+             * @description the DP/broker the leg went through (shown when a holding spans >1)
+             */
+            broker?: string | null;
+            /**
+             * Change Id
+             * @description a corporate action's link into the lineage, else null
+             */
+            change_id?: string | null;
+            /** Date */
+            date?: string | null;
+            /**
+             * Price
+             * @description the per-unit fill price (null/0 for a free bonus)
+             */
+            price?: number | null;
+            /**
+             * Quantity
+             * @description the magnitude the statement printed
+             */
+            quantity?: number | null;
+            /**
+             * Sign
+             * @description '+' (adds units), '-' (removes), '·' (neutral)
+             */
+            sign?: string | null;
+            /**
+             * Signed Quantity
+             * @description the magnitude with its sign — what Σ adds
+             */
+            signed_quantity?: number | null;
+            /**
+             * Source Id
+             * @description the capture that asserted it — a click opens it (Primitive B)
+             */
+            source_id?: string | null;
+        };
+        /**
          * DiagnoseBundle
          * @description The safe-to-share diagnostic for an unrecognized statement — STRUCTURE ONLY, no values, names, or ids.
          *     The on-ramp a user hands to their AI agent, or reads alongside the 'Add your bank' guide.
@@ -1107,9 +1180,10 @@ export interface components {
         };
         /**
          * HoldingDiary
-         * @description One holding's full detail — performance, identity lineage, and the CAS transcript.
+         * @description One holding's full detail — performance, identity lineage, the quantity derivation, and the CAS transcript.
          */
         HoldingDiary: {
+            derivation?: components["schemas"]["Derivation"] | null;
             /** Entity Id */
             entity_id: string;
             /** Instrument */

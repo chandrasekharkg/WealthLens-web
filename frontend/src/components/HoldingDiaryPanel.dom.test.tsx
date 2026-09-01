@@ -49,11 +49,11 @@ describe("HoldingDiaryPanel", () => {
     expect(screen.getByText("12.3%")).toBeTruthy();
     expect(screen.getByText("Identity history")).toBeTruthy();
     expect(screen.getByText(/OLD BANK LTD/)).toBeTruthy();
-    // the per-broker holdings strip announces the consolidation and lists each demat's shares/broker
-    expect(screen.getByText(/Held across 2 demat accounts/)).toBeTruthy();
+    // the "Held in" table lists each demat's broker, since, and units
+    expect(screen.getByText("Held in")).toBeTruthy();
     expect(screen.getByText(/ZERODHA/)).toBeTruthy();
     expect(screen.getByText(/HDFC SECURITIES/)).toBeTruthy();
-    expect(screen.getByText(/since 10 May 2020/)).toBeTruthy();
+    expect(screen.getByText("10 May 2020")).toBeTruthy();          // the "since" date for the first broker
   });
 
   it("folds a run of identical balance lines into one confidence row, and the toggle reveals them", async () => {

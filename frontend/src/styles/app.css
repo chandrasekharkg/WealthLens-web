@@ -877,6 +877,20 @@ input[type="date"] {
 .perf-strip dd[data-sign="up"] { color: var(--ok); }
 .perf-strip dd[data-sign="down"] { color: var(--debit); }
 
+/* A compact section table — shared by "Held in" (per-broker) and the Level-2 quantity derivation. */
+.mini-table { width: 100%; border-collapse: collapse; margin: 0.35rem 0 0.25rem; font-size: 0.82rem; }
+.mini-table th { text-align: left; font-weight: 600; color: var(--muted); padding: 0.15rem 0.5rem;
+  border-bottom: 1px solid var(--line, rgba(100,116,139,0.35)); }
+.mini-table td { padding: 0.15rem 0.5rem; border-bottom: 1px solid var(--line, rgba(100,116,139,0.18)); }
+.mini-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mini-table .muted { color: var(--muted); }
+.mini-table tfoot td { border-top: 2px solid var(--line, rgba(100,116,139,0.45)); border-bottom: 0; font-weight: 600; }
+
+.heldin, .derivation { margin: 0.5rem 0 1.25rem; }
+/* the signed unit cell carries the +/- colour so a buy and a sell read at a glance */
+.derivation-table td[data-sign="up"] { color: var(--pos, #16a34a); }
+.derivation-table td[data-sign="down"] { color: var(--neg, #dc2626); }
+.derivation-foot { color: var(--muted); font-size: 0.78rem; margin: 0.15rem 0 0; }
 .lineage { margin: 0 0 1.25rem; }
 .lineage h3, .diary-panel h3 { font-size: 0.9rem; margin: 0.5rem 0 0.4rem; }
 .lineage ul { list-style: none; margin: 0; padding: 0; }
