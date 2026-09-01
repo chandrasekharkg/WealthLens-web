@@ -19,6 +19,18 @@ const DIARY = {
     { date: "2020-07-31", from_isin: "INE000OLD001", from_name: "OLD BANK LTD",
       to_isin: "INE000NEW002", to_name: "NEW BANK LTD", action: "merger", ratio: "1:1", note: "OLD merged into NEW" },
   ],
+  value_derivation: {
+    figure: "value", basis: "ledger", value: { amount: "15000.00", currency: "INR" },
+    quantity: 160, price: 93.75, price_date: "2026-05-31", source_id: null,
+  },
+  derivation: {
+    figure: "quantity", total: 160, terms: [
+      { date: "2020-05-10", action: "buy", sign: "+", quantity: 100, signed_quantity: 100, price: 90.5,
+        amount: { amount: "9050.00", currency: "INR" }, broker: "ZERODHA", source_id: "s1", change_id: null },
+      { date: "2020-05-12", action: "buy", sign: "+", quantity: 60, signed_quantity: 60, price: 90.6,
+        amount: { amount: "5436.00", currency: "INR" }, broker: "HDFC SECURITIES", source_id: "s2", change_id: null },
+    ],
+  },
   lines: [
     { date: "2026-05-10", line_kind: "transaction", role: "movement", action: "buy",
       description: "Purchase", debit: null, credit: 100, closing: 100, pledged: null, locked: null, free: null, booked: true },
@@ -44,16 +56,37 @@ describe("HoldingDiaryPanel", () => {
     expect(screen.getByText("Pledge Request")).toBeTruthy();
     // the balance line's band breakdown is surfaced (the ◆ flag carries the pledged/locked tooltip)
     expect(screen.getByText("◆")).toBeTruthy();
-    // the performance strip and the identity lineage render above the transcript
-    expect(screen.getByText("₹15,000.00")).toBeTruthy();
+    // the performance strip and the identity lineage render above the transcript (₹15,000.00 is both the
+    // performance "current" and the value-derivation total, so it appears more than once)
+    expect(screen.getAllByText("₹15,000.00").length).toBeGreaterThan(0);
     expect(screen.getByText("12.3%")).toBeTruthy();
     expect(screen.getByText("Identity history")).toBeTruthy();
     expect(screen.getByText(/OLD BANK LTD/)).toBeTruthy();
-    // the "Held in" table lists each demat's broker, since, and units
+    // the "Held in" table lists each demat's broker, since, and units (broker also appears in the quantity
+    // table's Broker column, so it is matched more than once)
     expect(screen.getByText("Held in")).toBeTruthy();
-    expect(screen.getByText(/ZERODHA/)).toBeTruthy();
-    expect(screen.getByText(/HDFC SECURITIES/)).toBeTruthy();
-    expect(screen.getByText("10 May 2020")).toBeTruthy();          // the "since" date for the first broker
+    expect(screen.getAllByText(/ZERODHA/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/HDFC SECURITIES/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("10 May 2020").length).toBeGreaterThan(0);   // the "since" date
+  });
+
+  it("computes value and quantity: value = qty × price, the quantity table foots, prices pad to 2dp, broker shows for a multi-broker holding", async () => {
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve(DIARY) } as Response)));
+    render(<HoldingDiaryPanel entity="self" instrument="INE000A01001" name="ALPHA LTD"
+      format={formatter()} onClose={() => {}} />);
+    await waitFor(() => expect(screen.getByText("How this value is computed")).toBeTruthy());
+    // value = quantity × price, and the value equals the product (160 × 93.75 = 15,000)
+    expect(screen.getByText("93.75")).toBeTruthy();                          // the price in the value formula
+    expect(screen.getByText("How this quantity is computed")).toBeTruthy();
+    // the price-decimals nit: 90.5 pads to 90.50 so a column lines up
+    expect(screen.getByText("90.50")).toBeTruthy();
+    expect(screen.getByText("90.60")).toBeTruthy();
+    // a multi-broker holding shows the Broker column (also a "Held in" header, so matched more than once),
+    // and the quantity foots to the total
+    expect(screen.getAllByText("Broker").length).toBeGreaterThan(1);
+    expect(screen.getByText("Quantity")).toBeTruthy();
+    expect(screen.getAllByText("160").length).toBeGreaterThan(0);            // the quantity total (and the value's qty)
   });
 
   it("folds a run of identical balance lines into one confidence row, and the toggle reveals them", async () => {

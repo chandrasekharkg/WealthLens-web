@@ -1207,6 +1207,7 @@ export interface components {
              */
             positions: components["schemas"]["HoldingPosition"][];
             provenance: components["schemas"]["Provenance"];
+            value_derivation?: components["schemas"]["ValueDerivation"] | null;
         };
         /**
          * HoldingPerformance
@@ -1901,6 +1902,46 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * ValueDerivation
+         * @description A holding's VALUE arithmetic (Level 2b). For a ledger-valued holding `value = quantity × price` and the
+         *     product equals holdings().value by construction; for a statement-valued one the value is a figure the
+         *     statement stated (basis says which). `quantity` links to the quantity derivation — value nests over it.
+         */
+        ValueDerivation: {
+            /**
+             * Basis
+             * @description 'ledger' = quantity × price (a product); else a stated snapshot
+             */
+            basis?: string | null;
+            /**
+             * Figure
+             * @description 'value'
+             */
+            figure: string;
+            /**
+             * Price
+             * @description the per-unit price in the reporting currency (FX folded in)
+             */
+            price?: number | null;
+            /**
+             * Price Date
+             * @description the captured price's own date (may predate as-of)
+             */
+            price_date?: string | null;
+            /**
+             * Quantity
+             * @description the units (links to the quantity derivation)
+             */
+            quantity?: number | null;
+            /**
+             * Source Id
+             * @description the snapshot behind a statement-valued row (Primitive B)
+             */
+            source_id?: string | null;
+            /** @description the holding's value — the product, or the stated snapshot */
+            value?: components["schemas"]["Money"] | null;
         };
         /** Version */
         Version: {

@@ -887,6 +887,13 @@ input[type="date"] {
 .mini-table tfoot td { border-top: 2px solid var(--line, rgba(100,116,139,0.45)); border-bottom: 0; font-weight: 600; }
 
 .heldin, .derivation { margin: 0.5rem 0 1.25rem; }
+/* the value derivation: value = quantity × price, one line above the quantity table it nests over */
+.valuederiv { margin: 0.5rem 0 1rem; }
+.valuederiv-eq { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 0.4rem; margin: 0.35rem 0 0.2rem;
+  font-variant-numeric: tabular-nums; }
+.valuederiv-total { font-weight: 700; font-size: 1.05rem; }
+.valuederiv-mark { color: var(--muted); }
+.valuederiv .muted { color: var(--muted); }
 /* the signed unit cell carries the +/- colour so a buy and a sell read at a glance */
 .derivation-table td[data-sign="up"] { color: var(--pos, #16a34a); }
 .derivation-table td[data-sign="down"] { color: var(--neg, #dc2626); }

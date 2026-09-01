@@ -393,6 +393,12 @@ export const en = {
   "diary.col.since": "Since",
   "diary.col.units": "Units",
 
+  "valuederiv.heading": "How this value is computed",
+  "valuederiv.units": "units",
+  "valuederiv.priceAsOf": "(price as of {date})",
+  "valuederiv.stated": "— as stated in the statement",
+  "valuederiv.foots": "Value = quantity × price. The quantity breaks down below.",
+
   "derivation.heading": "How this quantity is computed",
   "derivation.openSource": "Open the statement this term came from",
   "derivation.foots": "Each row is one event; the parts add up to the quantity shown. Open a row's source to see the statement it came from.",

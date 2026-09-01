@@ -47,6 +47,24 @@ describe("money", () => {
   });
 });
 
+describe("number2 (a currency value shown without its symbol)", () => {
+  it("always pads to two fraction digits, so a column lines up", () => {
+    // the exact nit: 1358.6 must read 1,358.60 to sit under 1,358.35, not ragged
+    expect(formatter("en-IN").number2(1358.6)).toBe("1,358.60"); // pii-ok — a formatting fixture
+    expect(formatter("en-IN").number2(1358.35)).toBe("1,358.35"); // pii-ok — same fixture
+  });
+
+  it("groups by the locale", () => {
+    expect(formatter("en-IN").number2(1234567.5)).toBe("12,34,567.50"); // pii-ok — Indian grouping
+    expect(formatter("en-US").number2(1234567.5)).toBe("1,234,567.50"); // pii-ok — same value, US grouping
+  });
+
+  it("rounds a longer decimal to two places", () => {
+    expect(formatter("en-IN").number2(545.825)).toBe("545.83"); // pii-ok — a formatting fixture
+    expect(formatter("en-IN").number2(0)).toBe("0.00"); // pii-ok — a formatting fixture
+  });
+});
+
 describe("dates", () => {
   it("formats by locale", () => {
     expect(formatter("en-GB").date("2026-07-31")).toBe("31 Jul 2026");

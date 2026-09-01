@@ -22,6 +22,9 @@ export type Formatter = {
   readonly money: (value: MoneyValue) => string;
   readonly date: (iso: string | null | undefined) => string;
   readonly number: (value: number) => string;
+  /** A number with EXACTLY two fraction digits — for a currency value shown without its symbol (a per-unit
+   *  price), so a column of them lines up (1,358.60 under 1,358.35, never a ragged 1,358.6). */
+  readonly number2: (value: number) => string;
 };
 
 function interpolate(template: string, params?: Record<string, string | number>): string {
@@ -57,6 +60,9 @@ export function formatter(locale = "en-IN", catalog: Catalog = en): Formatter {
     },
 
     number: (value) => new Intl.NumberFormat(locale).format(value),
+
+    number2: (value) =>
+      new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value),
   };
 }
 

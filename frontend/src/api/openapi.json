@@ -1801,6 +1801,16 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/Provenance"
+          },
+          "value_derivation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValueDerivation"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -3655,6 +3665,92 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ValueDerivation": {
+        "description": "A holding's VALUE arithmetic (Level 2b). For a ledger-valued holding `value = quantity \u00d7 price` and the\nproduct equals holdings().value by construction; for a statement-valued one the value is a figure the\nstatement stated (basis says which). `quantity` links to the quantity derivation \u2014 value nests over it.",
+        "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "'ledger' = quantity \u00d7 price (a product); else a stated snapshot",
+            "title": "Basis"
+          },
+          "figure": {
+            "description": "'value'",
+            "title": "Figure",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the per-unit price in the reporting currency (FX folded in)",
+            "title": "Price"
+          },
+          "price_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the captured price's own date (may predate as-of)",
+            "title": "Price Date"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the units (links to the quantity derivation)",
+            "title": "Quantity"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the snapshot behind a statement-valued row (Primitive B)",
+            "title": "Source Id"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the holding's value \u2014 the product, or the stated snapshot"
+          }
+        },
+        "required": [
+          "figure"
+        ],
+        "title": "ValueDerivation",
         "type": "object"
       },
       "Version": {
