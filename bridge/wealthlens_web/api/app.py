@@ -206,6 +206,23 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                     title=diary.get("name") or instrument_id, scope=m.entity(entity_id).label,
                     reporting_currency=m.reporting_currency, row_count=len(diary.get("lines", []))).as_dict()}
 
+    @app.get("/api/holdings/{entity_id}/{instrument_id}/diagnose", response_model=models.HoldingDiagnosis)
+    def holding_diagnose(entity_id: str, instrument_id: str, named: str | None = Query(default=None)) -> dict:
+        """The DERIVED-end diagnostic (interpretation-gap-diagnosis, Level 2): the store's own self-checks over
+        a holding's computed figures — quantity foots, value foots, not superseded — as a PII-FREE bundle
+        (every value a `#`-shape). The copy-for-issue sibling of the raw-parse capture, on the derivation end
+        of the provenance chain. Runs WLC `store_diagnose`, so the masking is the engine's, not the presenter's
+        (custodian/presenter boundary). An instrument that is not a held position returns `healthy=true` with an
+        empty report rather than 404 — nothing to diagnose is not an error."""
+        m = _manifest()
+        path = _target_workspace(m, entity_id, named)
+        from wealthlens import store_diagnose, workspace as wl_workspace
+        with wl_workspace.resolve(path).open() as con:
+            bundle = store_diagnose.diagnose_holding(instrument_id, con=con)
+        if bundle is None:
+            return {"figure": "holding", "checks": {}, "healthy": True, "report": ""}
+        return bundle
+
     @app.get("/api/source/{entity_id}/{source_id}", response_model=models.SourceDetail)
     def source_detail(entity_id: str, source_id: str, named: str | None = Query(default=None)) -> dict:
         """The provenance record behind a fact row's `source_id` — the source popup (Primitive B): what the

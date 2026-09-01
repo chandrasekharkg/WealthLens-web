@@ -1733,6 +1733,39 @@
         "title": "Holder",
         "type": "object"
       },
+      "HoldingDiagnosis": {
+        "description": "The DERIVED-end diagnostic (interpretation-gap-diagnosis, Level 2) \u2014 the store's own self-checks over a\nholding's computed figures, as a PII-FREE bundle. The copy-for-issue payload for a derivation gap: paste\n`report` into an issue. Every value in it is a `#`-shape; no amount, security, or date survives.",
+        "properties": {
+          "checks": {
+            "additionalProperties": true,
+            "description": "the self-checks: quantity_foots / value_foots / superseded (bool | null where n/a)",
+            "title": "Checks",
+            "type": "object"
+          },
+          "figure": {
+            "description": "'holding'",
+            "title": "Figure",
+            "type": "string"
+          },
+          "healthy": {
+            "description": "True when every applicable self-check passes \u2014 a still-wrong figure is then a COLLECTION gap (the raw-parse lens), not a derivation one",
+            "title": "Healthy",
+            "type": "boolean"
+          },
+          "report": {
+            "description": "the masked, PII-free bundle to paste into a GitHub issue \u2014 no value, security, or date survives",
+            "title": "Report",
+            "type": "string"
+          }
+        },
+        "required": [
+          "figure",
+          "healthy",
+          "report"
+        ],
+        "title": "HoldingDiagnosis",
+        "type": "object"
+      },
       "HoldingDiary": {
         "description": "One holding's full detail \u2014 performance, identity lineage, the quantity derivation, and the CAS transcript.",
         "properties": {
@@ -4132,6 +4165,71 @@
           }
         },
         "summary": "Family Transfers"
+      }
+    },
+    "/api/holdings/{entity_id}/{instrument_id}/diagnose": {
+      "get": {
+        "description": "The DERIVED-end diagnostic (interpretation-gap-diagnosis, Level 2): the store's own self-checks over\na holding's computed figures \u2014 quantity foots, value foots, not superseded \u2014 as a PII-FREE bundle\n(every value a `#`-shape). The copy-for-issue sibling of the raw-parse capture, on the derivation end\nof the provenance chain. Runs WLC `store_diagnose`, so the masking is the engine's, not the presenter's\n(custodian/presenter boundary). An instrument that is not a held position returns `healthy=true` with an\nempty report rather than 404 \u2014 nothing to diagnose is not an error.",
+        "operationId": "holding_diagnose_api_holdings__entity_id___instrument_id__diagnose_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "named",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Named"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldingDiagnosis"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Holding Diagnose"
       }
     },
     "/api/holdings/{entity_id}/{instrument_id}/diary": {
