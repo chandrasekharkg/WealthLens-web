@@ -2231,6 +2231,14 @@
             "description": "The date the view was COMPUTED at",
             "title": "As Of"
           },
+          "by_class": {
+            "description": "net worth = \u03a3 classes \u2014 the class subtotals summing to `total` (the top derivation)",
+            "items": {
+              "$ref": "#/components/schemas/ClassTotal"
+            },
+            "title": "By Class",
+            "type": "array"
+          },
           "entities": {
             "items": {
               "$ref": "#/components/schemas/EntityTotal"

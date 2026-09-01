@@ -101,6 +101,8 @@ class NetWorth(BaseModel):
     total: Money | None = None
     is_partial: bool = Field(description="True when a declared entity could not be included")
     stale_count: int = Field(default=0, description="Included entities answering from stale evidence")
+    by_class: list[ClassTotal] = Field(default_factory=list,
+        description="net worth = Σ classes — the class subtotals summing to `total` (the top derivation)")
     entities: list[EntityTotal]
     provenance: Provenance
 

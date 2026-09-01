@@ -89,6 +89,10 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             "total": got.total.as_dict() if got.total else None,
             "is_partial": got.is_partial,
             "stale_count": got.stale_count,
+            # net worth = Σ classes (the top derivation) — the class subtotals that sum to `total`.
+            "by_class": [{"asset_class": c["asset_class"],
+                          "value": c["value"].as_dict() if c["value"] else None, "basis": c["basis"]}
+                         for c in got.by_class],
             "entities": [_entity_total(e, got.as_of) for e in got.entities],
             "provenance": provenance.for_net_worth(got).as_dict(),
         }

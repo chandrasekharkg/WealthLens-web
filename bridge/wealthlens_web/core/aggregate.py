@@ -98,6 +98,28 @@ class FamilyNetWorth:
         """True when the total is missing a declared entity — the caveat that must never be dropped."""
         return bool(self.excluded)
 
+    @property
+    def by_class(self) -> tuple[dict, ...]:
+        """Family net worth broken down by asset class — Σ over CONTRIBUTING members of each member's class
+        subtotals (regrouped, not recomputed), so it sums to `total` by construction. This is the top
+        derivation, `net worth = Σ classes`: the Overview headline made auditable (a class → its holdings →
+        a holding's value = qty × price → the quantity → the events). Largest magnitude first, so assets lead
+        and a small liability trails; deterministic."""
+        agg: dict[str, dict] = {}
+        for e in self.entities:
+            if not e.contributes:
+                continue
+            for c in e.by_class:
+                slot = agg.setdefault(c["asset_class"],
+                                      {"asset_class": c["asset_class"], "values": [], "bases": set()})
+                slot["values"].append(c["value"])
+                if c.get("basis"):
+                    slot["bases"].add(c["basis"])
+        out = [{"asset_class": k, "value": money.total(s["values"]),
+                "basis": "+".join(sorted(s["bases"])) or None} for k, s in agg.items()]
+        out.sort(key=lambda c: abs(float(c["value"].amount)) if c["value"] else 0.0, reverse=True)
+        return tuple(out)
+
 
 def resolve_date(on: str | None) -> str:
     """The date a view is computed at, always concrete.

@@ -51,6 +51,19 @@ def test_every_part_stays_attributable(make_workspace):
     assert sum(e.total.amount for e in got.entities) == got.total.amount
 
 
+def test_net_worth_by_class_sums_to_the_total(make_workspace):
+    """net worth = Σ classes (the top derivation): the family class subtotals must foot to the total — the
+    Overview headline made auditable. Regrouped from the members' own class subtotals, not recomputed, so it
+    foots by construction; each carries a value and how it was valued."""
+    a = make_workspace("alpha", {"A Share": 1000})
+    b = make_workspace("beta", {"B Share": 2500})
+    got = aggregate.net_worth(_manifest(_entity("alpha", a), _entity("beta", b)), on="2026-07-31")
+
+    assert got.by_class, "there is a class breakdown"
+    assert sum(c["value"].amount for c in got.by_class) == got.total.amount   # Σ classes == the headline
+    assert all(c["value"] is not None and c["asset_class"] for c in got.by_class)
+
+
 def test_an_entity_may_span_several_workspaces(make_workspace, tmp_path):
     current = make_workspace("cur", {"X": 400}, as_of="2026-06-30")
     legacy = make_workspace("leg", {"Y": 600}, as_of="2025-03-31")
