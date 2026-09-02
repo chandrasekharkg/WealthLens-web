@@ -37,6 +37,14 @@ function statementDate(doc: Doc): string {
   return doc.period_end ?? doc.period_start ?? "";
 }
 
+/** The immediate parent folder of a file, from its workspace-relative payload_ref — a short disambiguator
+ * shown only when two statements in a category share a filename (e.g. the same basename filed in two folders). */
+function parentFolder(payloadRef: string | null | undefined): string {
+  const ref = payloadRef ?? "";
+  const dir = ref.includes("/") ? ref.slice(0, ref.lastIndexOf("/")) : "";
+  return dir.split("/").pop() || dir || "?";
+}
+
 /**
  * The PDF-beside-interpretation view (data-issue-diagnosis Level 1): the user's real statement page rendered
  * on the left, every extracted line's FATE laid over it in colour, coordinate-locked. A red box is a
@@ -101,6 +109,12 @@ export function RawParse({ entities }: RawParseProps) {
         }),
     [docs, category],
   );
+  // filenames that appear more than once in this category — those options get a parent-folder disambiguator
+  const dupFilenames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of inCategory) counts.set(d.filename ?? "", (counts.get(d.filename ?? "") ?? 0) + 1);
+    return new Set([...counts].filter(([, n]) => n > 1).map(([f]) => f));
+  }, [inCategory]);
 
   useEffect(() => {
     if (!entity) return;
@@ -153,14 +167,19 @@ export function RawParse({ entities }: RawParseProps) {
             ))}
           </select>
           <select
-            value={selected?.filename ?? ""}
+            // identify by the UNIQUE source_id, never the filename — two statements can share a basename
+            // (a re-import, a file copied into two folders, an issuer that names every statement the same),
+            // and keying options / selection on the filename collided them: one rendered as an inert duplicate
+            // ("zombie") and the other could never be selected.
+            value={selected?.source_id ?? ""}
             disabled={!category}
-            onChange={(e) => setSelected(inCategory.find((d) => d.filename === e.target.value) ?? null)}
+            onChange={(e) => setSelected(inCategory.find((d) => d.source_id === e.target.value) ?? null)}
           >
             <option value="">{category ? "Pick a statement…" : "— pick a category first"}</option>
             {inCategory.map((d) => (
-              <option key={`${d.provider}/${d.filename}`} value={d.filename ?? ""}>
+              <option key={d.source_id} value={d.source_id}>
                 {statementDate(d) ? `${statementDate(d)} · ${d.filename}` : d.filename}
+                {dupFilenames.has(d.filename ?? "") ? ` — ${parentFolder(d.payload_ref)}` : ""}
               </option>
             ))}
           </select>
@@ -175,7 +194,7 @@ export function RawParse({ entities }: RawParseProps) {
         </p>
       )}
       {selected && (
-        <StatementView key={`${entity}/${selected.provider}/${selected.filename}`} entity={entity} doc={selected} />
+        <StatementView key={`${entity}/${selected.source_id}`} entity={entity} doc={selected} />
       )}
     </div>
   );
