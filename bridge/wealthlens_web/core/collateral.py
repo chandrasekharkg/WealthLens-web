@@ -47,6 +47,7 @@ class Document:
     source_id: str
     kind: str
     provider: str | None
+    format_id: str | None
     filename: str | None
     payload_ref: str | None
     rows: int | None
@@ -60,6 +61,7 @@ class Document:
             "source_id": self.source_id,
             "kind": self.kind,
             "provider": self.provider,
+            "format_id": self.format_id,
             "filename": self.filename,
             "payload_ref": self.payload_ref,
             "rows": self.rows,
@@ -192,6 +194,7 @@ def documents(con, workspace: pathlib.Path) -> list[Document]:
             source_id=str(row["source_id"]),
             kind=str(row["source_type"]),
             provider=(str(row["provider"]) if _present(row["provider"]) else None),
+            format_id=(str(row["format_id"]) if _present(row["format_id"]) else None),
             filename=(str(filename) if filename else None),
             payload_ref=(str(row["payload_ref"]) if _present(row["payload_ref"]) else None),
             rows=(int(row["row_count"]) if _present(row["row_count"]) else None),

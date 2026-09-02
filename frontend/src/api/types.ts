@@ -1033,6 +1033,11 @@ export interface components {
             captured_at?: string | null;
             /** Filename */
             filename?: string | null;
+            /**
+             * Format Id
+             * @description The catalog identity <issuer>.<format> (e.g. nsdl.cas, sbi.card_statement) — how the store identifies this document, independent of which folder it physically sits in. Null when the source's identity wasn't pinned (a non-statement source, or an issuer the catalog can't yet name).
+             */
+            format_id?: string | null;
             /** Kind */
             kind: string;
             password: components["schemas"]["PasswordRef"];

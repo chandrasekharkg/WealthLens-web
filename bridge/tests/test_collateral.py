@@ -63,6 +63,41 @@ def test_each_document_reports_its_fate(ws):
     assert got.payload_ref == "statements/hdfc-jul.pdf"
 
 
+def test_a_document_carries_its_catalog_format_id_and_statement_date(ws):
+    """A document surfaces its STORE identity (`format_id`) and its statement date (`period_end`) so the picker
+    can group by identity — folder-independent — and sort by date, not by filename. Two NSDL CAS filed in
+    DIFFERENT folders (one hand-filed under `nsdl/`, one `organize`-filed under `statements/depository/cas/`)
+    share the one `nsdl.cas` identity, so they group together and the newer sorts first. Regression for the
+    raw-parse picker splitting one statement type across folder-derived categories (July CAS 'missing')."""
+    import duckdb
+    from wealthlens import cli, workspace as wl_workspace
+
+    key = (ws / "store.key").read_text().strip()
+    con = duckdb.connect(":memory:")
+    cli._attach(con, "wl", ws / "wealth_v3.duckdb", key)
+    con.execute("USE wl")
+    for sid, folder, fn, pe in [
+        ("cas:old", "nsdl", "NSDLe-CAS_JUN_2026.PDF", "2026-06-30"),
+        ("cas:new", "statements/depository/cas", "NSDLe-CAS_JUL_2026.PDF", "2026-07-31"),
+    ]:
+        con.execute(
+            "INSERT INTO sources (source_id, source_type, provider, format_id, content_sha256, payload_ref, "
+            "period_start, period_end, captured_at, detail) VALUES (?, 'file', 'nsdl', 'nsdl.cas', ?, ?, ?, ?, "
+            "TIMESTAMP '2026-08-01 10:00:00', ?)",
+            [sid, sid, f"{folder}/{fn}", pe, pe, json.dumps({"filename": fn})],
+        )
+    con.execute("CHECKPOINT wl")
+    con.close()
+
+    with wl_workspace.resolve(ws).open() as con:
+        docs = {d.source_id: d for d in collateral.documents(con, ws)}
+    old, new = docs["cas:old"], docs["cas:new"]
+    assert old.format_id == "nsdl.cas" and new.format_id == "nsdl.cas"   # ONE identity, though two folders …
+    assert old.payload_ref.startswith("nsdl/")                            # … physically filed apart
+    assert new.payload_ref.startswith("statements/depository/cas/")
+    assert new.period_end == "2026-07-31" and old.period_end == "2026-06-30"   # statement dates → date-sortable
+
+
 def test_a_configured_secret_is_shown_by_NAME(ws):
     _register(ws, source_id="src:1", sha="aaa", filename="hdfc-jul.pdf")
     _hints(ws, {"aaa": "hdfc.pass"})

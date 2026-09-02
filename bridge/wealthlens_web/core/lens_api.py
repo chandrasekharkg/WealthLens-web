@@ -133,7 +133,7 @@ def sources(con) -> list[dict]:
     Workspace document list); the read is a plain projection, not new arithmetic."""
     from wealthlens import lens
     df = lens.sql(
-        "SELECT source_id, source_type, provider, payload_ref, row_count, captured_at, "
+        "SELECT source_id, source_type, provider, format_id, payload_ref, row_count, captured_at, "
         "       period_start, period_end, content_sha256, detail "
         "FROM sources ORDER BY captured_at DESC NULLS LAST, source_id",
         con=con,

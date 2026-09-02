@@ -1269,6 +1269,18 @@
             ],
             "title": "Filename"
           },
+          "format_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The catalog identity <issuer>.<format> (e.g. nsdl.cas, sbi.card_statement) \u2014 how the store identifies this document, independent of which folder it physically sits in. Null when the source's identity wasn't pinned (a non-statement source, or an issuer the catalog can't yet name).",
+            "title": "Format Id"
+          },
           "kind": {
             "title": "Kind",
             "type": "string"

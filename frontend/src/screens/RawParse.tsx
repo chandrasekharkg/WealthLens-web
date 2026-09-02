@@ -4,8 +4,11 @@ import { api, ApiError, apiReason, type RawParseLine, type RawParseView, type Wo
 import { writeClipboard } from "../lib/clipboard";
 
 /** A readable category for a document, so the picker can filter by type/issuer before the statement itself.
- * Derived from where `organize` filed it (its payload_ref folder) — `statements/credit-card/sbi` →
- * "credit-card / sbi", `statements/depository/cas` → "depository / cas" — falling back to the provider. */
+ * Derived from the STORE's identity (`format_id` = `<issuer>.<format>`, e.g. `nsdl.cas` → "cas / nsdl",
+ * `sbi.card_statement` → "card statement / sbi") — NOT the folder, so the same statement type groups together
+ * however it was filed (a hand-filed `nsdl/…` CAS and an `organize`-filed `statements/depository/cas/…` CAS land
+ * in one "cas / nsdl" category, not two). Falls back to the payload_ref folder, then the provider, when a source
+ * has no pinned identity (a non-statement source, or an issuer the catalog can't yet name). */
 // The 2a chip: what an interpreted line BECAME in the store — table · kind (bound fields). Pure structure (the
 // bridge never sends a value), so it is safe to render; the real figures are read from the page image beside it.
 function becameLabel(b: NonNullable<RawParseLine["became"]>): string {
@@ -13,10 +16,25 @@ function becameLabel(b: NonNullable<RawParseLine["became"]>): string {
 }
 
 function categoryOf(doc: Doc): string {
+  // identity first (folder-independent): format_id `<issuer>.<format...>` → "<format> / <issuer>"
+  const fid = doc.format_id ?? "";
+  const dot = fid.indexOf(".");
+  if (dot > 0) {
+    const issuer = fid.slice(0, dot);
+    const kind = fid.slice(dot + 1).replace(/_/g, " ").replace(/\./g, " · ");
+    return `${kind} / ${issuer}`;
+  }
+  // fallback for a source with no pinned identity: the folder it was filed under, then the provider
   const ref = doc.payload_ref ?? "";
   const dir = ref.includes("/") ? ref.slice(0, ref.lastIndexOf("/")) : "";
   const cleaned = dir.replace(/^statements\//, "").replace(/\//g, " / ");
   return cleaned || doc.provider || "other";
+}
+
+/** Sort key for ordering statements within a category by the STATEMENT's own date (newest first), not its
+ * filename — `period_end` is the statement date / period end the parser recorded, `period_start` the fallback. */
+function statementDate(doc: Doc): string {
+  return doc.period_end ?? doc.period_start ?? "";
 }
 
 /**
@@ -73,7 +91,14 @@ export function RawParse({ entities }: RawParseProps) {
     return [...by.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [docs]);
   const inCategory = useMemo(
-    () => docs.filter((d) => categoryOf(d) === category).sort((a, b) => (a.filename ?? "").localeCompare(b.filename ?? "")),
+    () =>
+      docs
+        .filter((d) => categoryOf(d) === category)
+        // newest statement first (by its own date); a dateless statement sorts last, filename breaks ties
+        .sort((a, b) => {
+          const byDate = statementDate(b).localeCompare(statementDate(a));
+          return byDate !== 0 ? byDate : (a.filename ?? "").localeCompare(b.filename ?? "");
+        }),
     [docs, category],
   );
 
@@ -135,7 +160,7 @@ export function RawParse({ entities }: RawParseProps) {
             <option value="">{category ? "Pick a statement…" : "— pick a category first"}</option>
             {inCategory.map((d) => (
               <option key={`${d.provider}/${d.filename}`} value={d.filename ?? ""}>
-                {d.filename}
+                {statementDate(d) ? `${statementDate(d)} · ${d.filename}` : d.filename}
               </option>
             ))}
           </select>

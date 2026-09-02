@@ -553,6 +553,12 @@ class DocumentInfo(BaseModel):
     source_id: str
     kind: str
     provider: str | None = None
+    format_id: str | None = Field(
+        default=None,
+        description="The catalog identity <issuer>.<format> (e.g. nsdl.cas, sbi.card_statement) — how the store "
+                    "identifies this document, independent of which folder it physically sits in. Null when the "
+                    "source's identity wasn't pinned (a non-statement source, or an issuer the catalog can't yet name).",
+    )
     filename: str | None = None
     payload_ref: str | None = None
     rows: int | None = None
