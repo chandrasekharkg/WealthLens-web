@@ -62,20 +62,27 @@ type Doc = NonNullable<WorkspaceDetail["documents"]>[number];
 // A skipped line is one of two things, and the user can toggle between them: FURNITURE (we judged it not
 // relevant to the statement's details) or NOT-INTERPRETED (statement detail we missed — a gap to report).
 // Everything the reader DID turn into a row is INTERPRETED. `dropped`/`not_interpreted` both display as `flag`.
-type Eff = "interpreted" | "flag" | "furniture";
+type Eff = "interpreted" | "sibling" | "flag" | "furniture";
 const DISPLAY: Record<Eff, { fill: string; edge: string; mark: string; label: string; hint: string }> = {
   interpreted: { fill: "rgba(34,197,94,0.16)", edge: "rgba(22,163,74,0.6)", mark: "✓", label: "interpreted",
                  hint: "read into the store" },
+  // amber: booked, but by an OVERLAPPING sibling statement of the same account — not by THIS one. Distinct from
+  // green so a row this statement itself missed doesn't read as fully interpreted off a sibling's booking.
+  sibling: { fill: "rgba(245,158,11,0.18)", edge: "rgba(217,119,6,0.8)", mark: "≈", label: "sibling-booked",
+             hint: "booked by an overlapping sibling statement of this account, not by this one" },
   flag: { fill: "rgba(239,68,68,0.32)", edge: "rgba(220,38,38,0.95)", mark: "⚑", label: "not interpreted",
           hint: "statement detail we missed — click to mark as furniture (not relevant)" },
   furniture: { fill: "rgba(148,163,184,0.1)", edge: "rgba(100,116,139,0.5)", mark: "⚐", label: "furniture",
                hint: "not relevant to the statement's details — click to flag as missed detail" },
 };
-const ORDER: Eff[] = ["interpreted", "flag", "furniture"];
+const ORDER: Eff[] = ["interpreted", "sibling", "flag", "furniture"];
 
-/** The reader's verdict, collapsed to the three the user cares about (`dropped` ≡ `not_interpreted` ≡ flag). */
+/** The reader's verdict, collapsed to the buckets the user cares about (`dropped` ≡ `not_interpreted` ≡ flag;
+ *  `interpreted_by_sibling` ≡ the amber sibling bucket — booked by an overlapping sibling, not this statement). */
 function baseEff(fate: string): Eff {
-  return fate === "interpreted" ? "interpreted" : fate === "furniture" ? "furniture" : "flag";
+  return fate === "interpreted" ? "interpreted"
+    : fate === "interpreted_by_sibling" ? "sibling"
+    : fate === "furniture" ? "furniture" : "flag";
 }
 
 export type RawParseProps = {
@@ -238,7 +245,8 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
   const keyOf = (page: number, idx: number) => `${page}:${idx}`;
   const effOf = (fate: string, page: number, idx: number): Eff => {
     const b = baseEff(fate);
-    return b === "interpreted" ? "interpreted" : (override[keyOf(page, idx)] ?? b);
+    // interpreted and sibling-booked are the reader's own verdicts — not user-reclassifiable (only flag↔furniture)
+    return b === "interpreted" || b === "sibling" ? b : (override[keyOf(page, idx)] ?? b);
   };
   const toggle = (page: number, idx: number, fate: string) => {
     const cur = override[keyOf(page, idx)] ?? baseEff(fate);
@@ -247,7 +255,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
 
   // per-page counts by the EFFECTIVE (post-reclassification) state, so the chips respond to the toggles
   const counts = useMemo(() => {
-    const c: Record<Eff, number> = { interpreted: 0, flag: 0, furniture: 0 };
+    const c: Record<Eff, number> = { interpreted: 0, sibling: 0, flag: 0, furniture: 0 };
     lines.forEach((ln, i) => (c[effOf(ln.fate, pageNo, i)] += 1));
     return c;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -382,7 +390,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                     }}
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
-                    onClick={() => eff !== "interpreted" && toggle(pageNo, i, ln.fate)}
+                    onClick={() => eff !== "interpreted" && eff !== "sibling" && toggle(pageNo, i, ln.fate)}
                     title={`${d.mark} ${d.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.shape}\n${eff === "interpreted" && ln.became ? `→ became ${becameLabel(ln.became)}` : eff !== "interpreted" ? d.hint : ""}`}
                   />
                 );
@@ -408,7 +416,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                   onMouseEnter={() => setHover(i)}
                   onMouseLeave={() => setHover(null)}
                 >
-                  {eff === "interpreted" ? (
+                  {eff === "interpreted" || eff === "sibling" ? (
                     <span className="rawparse__linemark" style={{ color: d.edge }}>{d.mark}</span>
                   ) : (
                     <button
