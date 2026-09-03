@@ -1210,6 +1210,7 @@ tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFla
 .rawparse__line code { font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rawparse__line.is-on { background: rgba(59,130,246,0.14); }
 .rawparse__line--flag { background: rgba(239,68,68,0.12); }
+.rawparse__line--sibling { background: rgba(245,158,11,0.1); }  /* amber: booked by an overlapping sibling */
 /* The 2a "became" chip: what an interpreted line produced in the store — muted, after the masked shape, so the
    shape stays the primary read and the chip is the "…and this is what it became" answer. */
 .rawparse__line code { flex: 0 1 auto; }
