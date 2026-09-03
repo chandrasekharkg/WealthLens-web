@@ -4403,7 +4403,7 @@
           },
           {
             "in": "query",
-            "name": "workspace",
+            "name": "named",
             "required": false,
             "schema": {
               "anyOf": [
@@ -4414,7 +4414,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Workspace"
+              "title": "Named"
             }
           }
         ],
