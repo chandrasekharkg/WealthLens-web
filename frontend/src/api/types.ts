@@ -2383,7 +2383,7 @@ export interface operations {
         parameters: {
             query: {
                 name: string;
-                workspace?: string | null;
+                named?: string | null;
             };
             header?: never;
             path: {

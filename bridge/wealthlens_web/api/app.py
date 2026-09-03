@@ -391,12 +391,12 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
 
     @app.delete("/api/inbox/{entity_id}", response_model=models.InboxRemoved)
     def inbox_remove(entity_id: str, name: str = Query(...),
-                     workspace: str | None = Query(default=None)) -> dict:
+                     named: str | None = Query(default=None)) -> dict:   # `named`, matching the GET above
         """Remove ONE staged file from the inbox — the escape hatch when a bank reuses a filename every month
         (the customer-id name that auto-renamed to `… (2).pdf`): delete it, rename locally, upload again. A
         state change, so the session token gates it (LocalOnly); it touches only a deposited file, never the
         store or a config. A name that is not in the inbox is a 404, never a silent success."""
-        target = _target_workspace(_manifest(), entity_id, workspace)
+        target = _target_workspace(_manifest(), entity_id, named)
         try:
             removed = inbox.remove(target, name)
         except inbox.RejectedUpload as e:

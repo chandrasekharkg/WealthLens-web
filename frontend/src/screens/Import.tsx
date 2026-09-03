@@ -98,7 +98,10 @@ export function Import({ entities, format, onImported }: ImportProps) {
   const refreshStaged = useCallback(async () => {
     try {
       const listing = await api.inbox(entity);
-      setStaged(listing.files ?? []);   // tolerate a malformed body — the screen must never crash on a listing
+      // Tolerate a malformed body (a non-array `files`, or an entry missing name/size) — the screen must never
+      // crash on a listing. Keep only well-formed entries; a bad one is dropped, not rendered as "NaN B".
+      const files = Array.isArray(listing.files) ? listing.files : [];
+      setStaged(files.filter((f) => f && typeof f.name === "string" && typeof f.size === "number"));
     } catch {
       setStaged([]); // a listing failure must not break the screen; the drop target and Import still work
     }
@@ -273,7 +276,10 @@ export function Import({ entities, format, onImported }: ImportProps) {
                     type="button"
                     className="import-staged-remove"
                     onClick={() => void remove(file.name)}
-                    disabled={removing !== null}
+                    // Also disabled while an import runs: a Remove in the window between WLC registering the
+                    // source and moving the file out of the inbox would delete a file already recorded, leaving
+                    // a dead payload_ref that the next rebuild drops silently — the very hazard the guard warns of.
+                    disabled={removing !== null || busy}
                     aria-label={`${t("import.remove")} ${file.name}`}
                   >
                     {removing === file.name ? t("import.removing") : t("import.remove")}
