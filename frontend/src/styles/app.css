@@ -1182,6 +1182,24 @@ tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFla
 .dropzone label { font-weight: 600; cursor: pointer; }
 .dropzone-hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
 
+/* ── Staged inbox — what the next Import will process, each removable so a name can be re-filed ────── */
+.import-staged { margin: 1rem 0; }
+.import-staged h2 { font-size: 1rem; margin: 0 0 0.25rem; }
+.import-staged-note { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--muted); }
+.import-staged-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.import-staged-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.import-staged-name { font-weight: 500; word-break: break-all; }
+.import-staged-size { font-size: 0.8rem; color: var(--muted); margin-left: auto; }
+.import-staged-remove { font-size: 0.8rem; padding: 0.15rem 0.6rem; }
+
 /* ── Raw-parse view: PDF beside its interpretation, coordinate-locked ───────────────────────────── */
 .rawparse { display: flex; flex-direction: column; gap: 0.75rem; }
 .rawparse__bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; align-items: center; }

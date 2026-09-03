@@ -77,6 +77,51 @@ def check_suffix(name: str) -> str:
     return suffix
 
 
+@dataclasses.dataclass(frozen=True)
+class InboxFile:
+    name: str
+    size: int
+    modified: float          # epoch seconds — the UI turns it into "2 minutes ago"
+
+
+def _inbox_dir(workspace: pathlib.Path) -> pathlib.Path:
+    """The one folder uploads land in for this workspace. Resolved, so the containment checks below hold."""
+    return pathlib.Path(workspace).resolve() / INBOX
+
+
+def listing(workspace: pathlib.Path) -> list[InboxFile]:
+    """Every readable statement CURRENTLY sitting in this workspace's inbox — the batch the next Import will
+    process. The Import screen shows it on load so a user sees what is staged (uploaded earlier, or auto-
+    renamed on a name clash) instead of a blank slate. Only files the engine could read are listed (the same
+    suffix allowlist deposit enforces); a missing inbox is simply an empty batch, not an error."""
+    inbox = _inbox_dir(workspace)
+    if not inbox.is_dir():
+        return []
+    out: list[InboxFile] = []
+    for p in sorted(inbox.iterdir(), key=lambda q: q.name.lower()):
+        if p.is_file() and p.suffix.lower() in ALLOWED_SUFFIXES:
+            st = p.stat()
+            out.append(InboxFile(name=p.name, size=st.st_size, modified=st.st_mtime))
+    return out
+
+
+def remove(workspace: pathlib.Path, filename: str) -> str:
+    """Delete one file from the inbox so a user can rename it and re-upload — the escape hatch for a name a
+    bank reuses every month (the customer-id filename that auto-renamed to `… (2).pdf`). Reuses `safe_name`'s
+    reduction + the containment guard, so the name can only ever address a file INSIDE the inbox; a name that
+    is not there is a 'missing' refusal (never a silent success). Deposited files only — never the store, never
+    a config. Returns the name removed."""
+    name = safe_name(filename)                          # reduce + validate, or RejectedUpload(reason="name")
+    inbox = _inbox_dir(workspace)
+    target = inbox / name
+    if inbox not in target.resolve().parents:           # belt-and-braces: the reduced name cannot escape
+        raise RejectedUpload("that filename would point outside the inbox.", reason="path")
+    if not target.is_file():
+        raise RejectedUpload(f"'{name}' is not in the inbox — nothing to remove.", reason="missing")
+    target.unlink()
+    return name
+
+
 def deposit(workspace: pathlib.Path, filename: str, content: bytes) -> Deposited:
     """Write one uploaded file into this workspace's inbox. Returns where it landed."""
     if len(content) > MAX_BYTES:

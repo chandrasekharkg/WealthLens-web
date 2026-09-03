@@ -488,6 +488,30 @@ class Deposit(BaseModel):
     inbox: str
 
 
+class InboxFile(BaseModel):
+    """One statement currently STAGED in an entity's inbox, waiting for the next Import."""
+
+    name: str
+    size: int
+    modified: float                             # epoch seconds; the client renders it relative
+
+
+class Inbox(BaseModel):
+    """What is staged for import right now — shown on the Import screen so a user sees the batch (and can
+    remove a file to rename it) instead of a blank slate."""
+
+    entity_id: str
+    inbox: str
+    files: list[InboxFile]
+
+
+class InboxRemoved(BaseModel):
+    """Confirmation that a staged file was deleted, so a user can re-file it under a distinct name."""
+
+    entity_id: str
+    removed: str
+
+
 class DiagnoseBundle(BaseModel):
     """The safe-to-share diagnostic for an unrecognized statement — STRUCTURE ONLY, no values, names, or ids.
     The on-ramp a user hands to their AI agent, or reads alongside the 'Add your bank' guide."""

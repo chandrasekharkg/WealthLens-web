@@ -126,6 +126,42 @@ def test_nothing_is_parsed_and_no_store_is_written(tmp_path):
     assert created == ["statements", "statements/statement.pdf"]
 
 
+# ── listing and removing what is staged ────────────────────────────────────────────────────────────────
+
+def test_listing_shows_staged_files_with_size(tmp_path):
+    inbox.deposit(tmp_path, "a.pdf", PDF)
+    inbox.deposit(tmp_path, "b.pdf", b"a different, longer document")
+    got = inbox.listing(tmp_path)
+    assert [f.name for f in got] == ["a.pdf", "b.pdf"]      # sorted, so the screen is stable
+    assert got[0].size == len(PDF) and got[1].size == len(b"a different, longer document")
+
+
+def test_listing_is_empty_when_the_inbox_does_not_exist(tmp_path):
+    assert inbox.listing(tmp_path) == []                    # a blank slate, not an error
+
+
+def test_remove_deletes_one_staged_file_and_leaves_the_rest(tmp_path):
+    inbox.deposit(tmp_path, "a.pdf", PDF)
+    inbox.deposit(tmp_path, "b.pdf", PDF)
+    assert inbox.remove(tmp_path, "a.pdf") == "a.pdf"
+    assert [f.name for f in inbox.listing(tmp_path)] == ["b.pdf"]
+
+
+def test_remove_a_missing_file_is_refused_never_a_silent_success(tmp_path):
+    inbox.deposit(tmp_path, "a.pdf", PDF)                   # the inbox exists, but 'ghost' is not in it
+    with pytest.raises(inbox.RejectedUpload) as excinfo:
+        inbox.remove(tmp_path, "ghost.pdf")
+    assert excinfo.value.reason == "missing"
+
+
+@pytest.mark.parametrize("name", ["../secret.pdf", "/etc/passwd", "..", "sub/../../x.pdf"])
+def test_remove_can_never_reach_outside_the_inbox(tmp_path, name):
+    keep = inbox.deposit(tmp_path, "keep.pdf", PDF)         # a real file the escape must never touch
+    with pytest.raises(inbox.RejectedUpload):               # reduced to a bare name → missing, or refused outright
+        inbox.remove(tmp_path, name)
+    assert keep.path.exists()
+
+
 # ── through the API ──────────────────────────────────────────────────────────────────────────────────
 
 @pytest.fixture()
@@ -173,3 +209,42 @@ def test_an_upload_for_an_undeclared_entity_is_refused_and_lists_the_real_ones(c
     assert r.status_code == 404
     reason = r.json()["detail"]["reason"]
     assert "nobody" in reason and "alpha" in reason
+
+
+def _stage(client, name: str, content: bytes = PDF):
+    return client.post("/api/upload", data={"entity": "alpha"},
+                       files={"file": (name, content, "application/pdf")}, headers={TOKEN_HEADER: "t"})
+
+
+def test_the_inbox_listing_shows_what_is_staged(client_and_ws):
+    client, _ = client_and_ws
+    _stage(client, "july.pdf")
+    _stage(client, "august.pdf")
+    r = client.get("/api/inbox/alpha")
+    assert r.status_code == 200                             # a read: no token needed
+    body = r.json()
+    assert body["entity_id"] == "alpha" and body["inbox"] == "statements"
+    assert [f["name"] for f in body["files"]] == ["august.pdf", "july.pdf"]   # sorted, size present
+    assert all("size" in f and "modified" in f for f in body["files"])
+
+
+def test_removing_a_staged_file_needs_the_session_token(client_and_ws):
+    client, _ = client_and_ws
+    _stage(client, "s.pdf")
+    r = client.delete("/api/inbox/alpha", params={"name": "s.pdf"})   # no token → refused
+    assert r.status_code == 403 and r.json()["reason"] == "token"
+
+
+def test_removing_a_staged_file_deletes_it_so_it_can_be_re_filed(client_and_ws):
+    client, ws = client_and_ws
+    _stage(client, "s.pdf")
+    r = client.delete("/api/inbox/alpha", params={"name": "s.pdf"}, headers={TOKEN_HEADER: "t"})
+    assert r.status_code == 200 and r.json() == {"entity_id": "alpha", "removed": "s.pdf"}
+    assert not (ws / "statements" / "s.pdf").exists()
+    assert client.get("/api/inbox/alpha").json()["files"] == []
+
+
+def test_removing_a_file_that_is_not_there_is_a_404_that_says_so(client_and_ws):
+    client, _ = client_and_ws
+    r = client.delete("/api/inbox/alpha", params={"name": "ghost.pdf"}, headers={TOKEN_HEADER: "t"})
+    assert r.status_code == 404 and r.json()["detail"]["rule"] == "missing"

@@ -2054,6 +2054,76 @@
         "title": "Identifier",
         "type": "object"
       },
+      "Inbox": {
+        "description": "What is staged for import right now \u2014 shown on the Import screen so a user sees the batch (and can\nremove a file to rename it) instead of a blank slate.",
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/InboxFile"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "inbox": {
+            "title": "Inbox",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "inbox",
+          "files"
+        ],
+        "title": "Inbox",
+        "type": "object"
+      },
+      "InboxFile": {
+        "description": "One statement currently STAGED in an entity's inbox, waiting for the next Import.",
+        "properties": {
+          "modified": {
+            "title": "Modified",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "size",
+          "modified"
+        ],
+        "title": "InboxFile",
+        "type": "object"
+      },
+      "InboxRemoved": {
+        "description": "Confirmation that a staged file was deleted, so a user can re-file it under a distinct name.",
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "removed": {
+            "title": "Removed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "removed"
+        ],
+        "title": "InboxRemoved",
+        "type": "object"
+      },
       "Job": {
         "properties": {
           "changed_something": {
@@ -4306,6 +4376,125 @@
           }
         },
         "summary": "Holding Diary"
+      }
+    },
+    "/api/inbox/{entity_id}": {
+      "delete": {
+        "description": "Remove ONE staged file from the inbox \u2014 the escape hatch when a bank reuses a filename every month\n(the customer-id name that auto-renamed to `\u2026 (2).pdf`): delete it, rename locally, upload again. A\nstate change, so the session token gates it (LocalOnly); it touches only a deposited file, never the\nstore or a config. A name that is not in the inbox is a 404, never a silent success.",
+        "operationId": "inbox_remove_api_inbox__entity_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "workspace",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Workspace"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxRemoved"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inbox Remove"
+      },
+      "get": {
+        "description": "What is staged for the next Import \u2014 the files sitting in this entity's inbox. Shown on the Import\nscreen so a user sees the batch (including a file that auto-renamed on a name clash) instead of a blank\nslate, and knows what a delete would act on. A read: no store, no parse (ADR-0005).",
+        "operationId": "inbox_list_api_inbox__entity_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "named",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Named"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inbox"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inbox List"
       }
     },
     "/api/jobs": {
