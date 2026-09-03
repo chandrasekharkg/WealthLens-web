@@ -1,22 +1,37 @@
 name: CI
 
-# ONCE A DAY, not per push — deliberately.
+# The PII/secret gate runs on EVERY PR; the heavier build/test/e2e jobs stay once-a-day (quota).
 #
-# This is a small, local-first project with a finite CI quota, and the enforcement that actually protects
-# the repo runs on the contributor's machine: .githooks/pre-commit (personal-data scan) and
-# .githooks/pre-push (scan + ruff + eslint + tsc + both unit suites). Burning cloud minutes to re-run what
-# already ran locally buys very little.
+# The author-side hooks (.githooks/pre-commit + pre-push) protect a push from a machine that has them — but a
+# CONTRIBUTOR opening a GitHub PR never runs them, and `--no-verify` skips them, so personal data slipped in
+# through PRs. The `secrets` job below now runs on every `pull_request`: gitleaks for generic secrets plus this
+# repo's own `.githooks/pii-scan` over the PR's added lines (the same scanner the local hooks use).
 #
-# What the daily run IS for: the checks too slow for a push hook (E2E), a clean-machine install (catching
-# "works because it's already on my laptop"), and drift that nobody's push would surface.
-#
-# Run it on demand any time from the Actions tab (workflow_dispatch).
+# The build/test/e2e jobs are offline/deterministic and already ran on the author's pre-push; re-running them
+# on every PR push burns finite CI quota, so they stay on the daily schedule (a clean-machine + drift + E2E
+# backstop) and on-demand — not per-PR.
 on:
+  pull_request:
   schedule:
     - cron: "0 21 * * *"      # 02:30 IST — after the working day, before the next one
   workflow_dispatch:
 
 jobs:
+  secrets:
+    name: PII / secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                 # full history so the base ref + gitleaks history scan resolve
+      - name: gitleaks (generic secrets)
+        uses: gitleaks/gitleaks-action@v2
+      - name: Personal-data scan of the PR's added lines
+        if: github.event_name == 'pull_request'
+        run: .githooks/pii-scan "origin/${{ github.base_ref }}...HEAD"
+
+  bridge:
+    if: github.event_name != 'pull_request'   # ran on the author's pre-push; the PR gate that matters is `secrets`
   bridge:
     runs-on: ubuntu-latest
     defaults:
@@ -35,6 +50,7 @@ jobs:
       - run: pytest -q
 
   frontend:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -60,6 +76,7 @@ jobs:
     # The three sanctioned browser flows (ADR-0010). Too slow for a push hook, so this is their scheduled
     # home — but they are runnable locally at any time with `npm run e2e`, and should be, before touching
     # a guarded flow. This job is the backstop, not the first place anyone finds out.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     defaults:
       run:
