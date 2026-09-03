@@ -32,6 +32,8 @@ export type TransferRow = components["schemas"]["TransferRow"];
 export type Version = components["schemas"]["Version"];
 export type Job = components["schemas"]["Job"];
 export type Deposit = components["schemas"]["Deposit"];
+export type Inbox = components["schemas"]["Inbox"];
+export type InboxFile = components["schemas"]["InboxFile"];
 export type EntityTotal = components["schemas"]["EntityTotal"];
 export type Provenance = components["schemas"]["Provenance"];
 export type Money = components["schemas"]["Money"];
@@ -207,6 +209,15 @@ export const api = {
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   jobs: () => request<Job[]>("/api/jobs"),
   workspace: (entity: string) => request<WorkspaceDetail>(`/api/workspace/${entity}`),
+  /** What is staged in this entity's inbox right now — the batch the next Import will process. A read (no
+   * token); shown on the Import screen so a blank slate never hides files waiting there. */
+  inbox: (entity: string) => request<Inbox>(`/api/inbox/${entity}`),
+  /** Remove ONE staged file from the inbox so it can be re-filed under a distinct name. State-changing, so it
+   * carries the session token; `name` is the exact staged filename (spaces/brackets and all). */
+  removeFromInbox: (entity: string, name: string) =>
+    request<components["schemas"]["InboxRemoved"]>(`/api/inbox/${entity}${query({ name })}`, {
+      method: "DELETE",
+    }),
   diagnose: (entity: string, filename: string) =>
     request<DiagnoseBundle>(`/api/workspace/${entity}/diagnose`, {
       method: "POST",

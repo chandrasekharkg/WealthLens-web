@@ -83,6 +83,40 @@ describe("adding multiple files", () => {
   });
 });
 
+describe("the staged inbox", () => {
+  it("shows what is staged on load and removes a file so it can be re-filed", async () => {
+    // a stateful inbox: two files, until one is deleted
+    let files = [
+      { name: "monthly-stmt.pdf", size: 147967, modified: 0 },       // pii-ok — placeholder statement names
+      { name: "monthly-stmt (2).pdf", size: 147841, modified: 0 },   // pii-ok — the auto-renamed clash
+    ];
+    const deleted: string[] = [];
+    vi.stubGlobal("fetch", vi.fn((url: string, opts?: RequestInit) => {
+      if (url.startsWith("/api/inbox/") && (opts?.method ?? "GET") === "DELETE") {
+        const name = decodeURIComponent(new URL(url, "http://x").searchParams.get("name") ?? "");
+        deleted.push(name);
+        files = files.filter((f) => f.name !== name);
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ removed: name }) } as Response);
+      }
+      if (url.startsWith("/api/inbox/")) {
+        return Promise.resolve({
+          ok: true, json: () => Promise.resolve({ entity_id: "self", inbox: "statements", files }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response);
+    }));
+    render(<Import entities={entities} format={formatter()} />);
+    // both staged files are visible on load — the screen never opens blank when files are waiting
+    await waitFor(() => expect(screen.getByText("monthly-stmt.pdf")).toBeTruthy());
+    expect(screen.getByText("monthly-stmt (2).pdf")).toBeTruthy();
+    // remove the auto-renamed duplicate; the DELETE carries the exact name, and the list refreshes without it
+    fireEvent.click(screen.getByLabelText("Remove monthly-stmt (2).pdf"));
+    await waitFor(() => expect(deleted).toEqual(["monthly-stmt (2).pdf"]));
+    await waitFor(() => expect(screen.queryByText("monthly-stmt (2).pdf")).toBeNull());
+    expect(screen.getByText("monthly-stmt.pdf")).toBeTruthy();       // the other file is untouched
+  });
+});
+
 describe("the unrecognized-statement on-ramp", () => {
   it("turns an unrecognized file into a 1→2→3 add-your-bank panel, not a dead end", async () => {
     stub();

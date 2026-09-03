@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { api, ApiError, type DiagnoseBundle, type Job } from "../api/client";
+import {
+  api,
+  ApiError,
+  apiReason,
+  type DiagnoseBundle,
+  type InboxFile,
+  type Job,
+} from "../api/client";
 import type { Formatter } from "../i18n";
 
 /**
@@ -54,6 +61,14 @@ function warningText(w: Warning): string {
   }
 }
 
+/** A staged file's byte size as a short, human string (KB/MB) — enough to tell a real statement from an
+ *  empty or truncated upload at a glance. */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export type ImportProps = {
   readonly entities: readonly {
     readonly id: string;
@@ -75,6 +90,36 @@ export function Import({ entities, format, onImported }: ImportProps) {
   const [job, setJob] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [staged, setStaged] = useState<InboxFile[]>([]);
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  // What is sitting in the inbox right now, so the screen never opens blank when files are waiting (uploaded
+  // earlier, or auto-renamed on a name clash). A read — no token, safe to run on every entity change.
+  const refreshStaged = useCallback(async () => {
+    try {
+      const listing = await api.inbox(entity);
+      setStaged(listing.files ?? []);   // tolerate a malformed body — the screen must never crash on a listing
+    } catch {
+      setStaged([]); // a listing failure must not break the screen; the drop target and Import still work
+    }
+  }, [entity]);
+
+  useEffect(() => {
+    if (entity) void refreshStaged();
+  }, [entity, refreshStaged]);
+
+  const remove = async (name: string) => {
+    setRemoving(name);
+    try {
+      await api.removeFromInbox(entity, name);
+      setNotes((prev) => [...prev, t("import.removed", { name })]);
+      await refreshStaged();
+    } catch (error: unknown) {
+      setNotes((prev) => [...prev, t("import.removeFailed", { name, reason: apiReason(error) })]);
+    } finally {
+      setRemoving(null);
+    }
+  };
 
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -115,6 +160,7 @@ export function Import({ entities, format, onImported }: ImportProps) {
         settle(t("error.load"));
       }
     }
+    void refreshStaged();     // the batch has landed — show what is now staged, with a remove control each
   };
 
   const runImport = async () => {
@@ -128,6 +174,7 @@ export function Import({ entities, format, onImported }: ImportProps) {
         current = await api.job(started.id);
       }
       setJob(current);
+      void refreshStaged();    // imported files may have moved out of the inbox — reflect the new batch
       if (current.changed_something) onImported?.();
     } catch (error: unknown) {
       const reason =
@@ -206,6 +253,37 @@ export function Import({ entities, format, onImported }: ImportProps) {
           <li key={`${note}-${index}`}>{note}</li>
         ))}
       </ul>
+
+      {/* What is actually staged — so the screen never opens blank when files are waiting, and every file
+          carries a Remove so a user can delete one, rename it, and drop it again (the escape hatch for a
+          bank that reuses one filename every month). */}
+      <section aria-label={t("import.staged")} className="import-staged">
+        <h2>{t("import.staged")}</h2>
+        {staged.length === 0 ? (
+          <p role="status">{t("import.stagedEmpty")}</p>
+        ) : (
+          <>
+            <p className="import-staged-note">{t("import.stagedNote")}</p>
+            <ul className="import-staged-list">
+              {staged.map((file) => (
+                <li key={file.name}>
+                  <span className="import-staged-name">{file.name}</span>{" "}
+                  <span className="import-staged-size">{formatBytes(file.size)}</span>{" "}
+                  <button
+                    type="button"
+                    className="import-staged-remove"
+                    onClick={() => void remove(file.name)}
+                    disabled={removing !== null}
+                    aria-label={`${t("import.remove")} ${file.name}`}
+                  >
+                    {removing === file.name ? t("import.removing") : t("import.remove")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
 
       <button type="button" onClick={() => void runImport()} disabled={busy || !entity}>
         {busy ? t("import.running") : t("import.run")}

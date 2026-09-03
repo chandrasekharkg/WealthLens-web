@@ -380,6 +380,31 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         return {"filename": landed.name, "renamed_from": landed.renamed_from,
                 "entity_id": entity, "inbox": inbox.INBOX}
 
+    @app.get("/api/inbox/{entity_id}", response_model=models.Inbox)
+    def inbox_list(entity_id: str, named: str | None = Query(default=None)) -> dict:
+        """What is staged for the next Import — the files sitting in this entity's inbox. Shown on the Import
+        screen so a user sees the batch (including a file that auto-renamed on a name clash) instead of a blank
+        slate, and knows what a delete would act on. A read: no store, no parse (ADR-0005)."""
+        target = _target_workspace(_manifest(), entity_id, named)
+        return {"entity_id": entity_id, "inbox": inbox.INBOX,
+                "files": [dataclasses.asdict(f) for f in inbox.listing(target)]}
+
+    @app.delete("/api/inbox/{entity_id}", response_model=models.InboxRemoved)
+    def inbox_remove(entity_id: str, name: str = Query(...),
+                     workspace: str | None = Query(default=None)) -> dict:
+        """Remove ONE staged file from the inbox — the escape hatch when a bank reuses a filename every month
+        (the customer-id name that auto-renamed to `… (2).pdf`): delete it, rename locally, upload again. A
+        state change, so the session token gates it (LocalOnly); it touches only a deposited file, never the
+        store or a config. A name that is not in the inbox is a 404, never a silent success."""
+        target = _target_workspace(_manifest(), entity_id, workspace)
+        try:
+            removed = inbox.remove(target, name)
+        except inbox.RejectedUpload as e:
+            status = 404 if e.reason == "missing" else 400
+            raise HTTPException(status_code=status,
+                                detail={"error": "inbox", "reason": str(e), "rule": e.reason}) from None
+        return {"entity_id": entity_id, "removed": removed}
+
     @app.post("/api/workspace/{entity_id}/diagnose", response_model=models.DiagnoseBundle)
     def diagnose_statement(entity_id: str, body: dict) -> dict:
         """Describe an unrecognized statement's LAYOUT, safe to share. The diagnose verb runs in the workspace

@@ -148,6 +148,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inbox/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inbox List
+         * @description What is staged for the next Import — the files sitting in this entity's inbox. Shown on the Import
+         *     screen so a user sees the batch (including a file that auto-renamed on a name clash) instead of a blank
+         *     slate, and knows what a delete would act on. A read: no store, no parse (ADR-0005).
+         */
+        get: operations["inbox_list_api_inbox__entity_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Inbox Remove
+         * @description Remove ONE staged file from the inbox — the escape hatch when a bank reuses a filename every month
+         *     (the customer-id name that auto-renamed to `… (2).pdf`): delete it, rename locally, upload again. A
+         *     state change, so the session token gates it (LocalOnly); it touches only a deposited file, never the
+         *     store or a config. A name that is not in the inbox is a 404, never a silent success.
+         */
+        delete: operations["inbox_remove_api_inbox__entity_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -1342,6 +1371,41 @@ export interface components {
             /** Value */
             value?: string | null;
         };
+        /**
+         * Inbox
+         * @description What is staged for import right now — shown on the Import screen so a user sees the batch (and can
+         *     remove a file to rename it) instead of a blank slate.
+         */
+        Inbox: {
+            /** Entity Id */
+            entity_id: string;
+            /** Files */
+            files: components["schemas"]["InboxFile"][];
+            /** Inbox */
+            inbox: string;
+        };
+        /**
+         * InboxFile
+         * @description One statement currently STAGED in an entity's inbox, waiting for the next Import.
+         */
+        InboxFile: {
+            /** Modified */
+            modified: number;
+            /** Name */
+            name: string;
+            /** Size */
+            size: number;
+        };
+        /**
+         * InboxRemoved
+         * @description Confirmation that a staged file was deleted, so a user can re-file it under a distinct name.
+         */
+        InboxRemoved: {
+            /** Entity Id */
+            entity_id: string;
+            /** Removed */
+            removed: string;
+        };
         /** Job */
         Job: {
             /**
@@ -2269,6 +2333,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HoldingDiary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inbox_list_api_inbox__entity_id__get: {
+        parameters: {
+            query?: {
+                named?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inbox"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inbox_remove_api_inbox__entity_id__delete: {
+        parameters: {
+            query: {
+                name: string;
+                workspace?: string | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxRemoved"];
                 };
             };
             /** @description Validation Error */
