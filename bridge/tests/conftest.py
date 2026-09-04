@@ -14,12 +14,14 @@ import secrets
 
 import pytest
 
-wealthlens = pytest.importorskip("wealthlens", reason="WealthLens-core is not installed")
+# NOTE: no module-level importorskip here — inside a conftest a Skipped at import time is FATAL to pytest
+# (the engine-less `bridge` CI job died at startup). Fixtures that need the engine importorskip it themselves.
 
 
 @pytest.fixture()
 def make_workspace(tmp_path):
     """Build a workspace on disk and return its path. `holdings` is {name: value} in the store's currency."""
+    pytest.importorskip("wealthlens", reason="WealthLens-core is not installed")   # engine-backed fixture
     import duckdb
     from wealthlens import cli
 

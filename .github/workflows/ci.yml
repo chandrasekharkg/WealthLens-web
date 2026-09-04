@@ -124,4 +124,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # the bridge serves frontend/dist (StaticFiles); without a build the SPA is a blank page and every flow
+      # waits forever for a button that never renders — this job is its own checkout, so build here.
+      - run: npm run build
       - run: npm run e2e

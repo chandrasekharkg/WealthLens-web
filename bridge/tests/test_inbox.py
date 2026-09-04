@@ -28,6 +28,7 @@ def test_the_allowlist_matches_what_the_engine_actually_reads():
     un-uploadable here without somebody noticing."""
     import inspect
 
+    pytest.importorskip("wealthlens", reason="WealthLens-core is not installed")   # a cross-repo parity check: skip, not fail, without the engine
     from wealthlens import cli
 
     source = inspect.getsource(cli._inbox_files)
