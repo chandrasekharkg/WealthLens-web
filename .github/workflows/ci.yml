@@ -20,19 +20,30 @@ jobs:
   secrets:
     name: PII / secret scan
     runs-on: ubuntu-latest
+    # gitleaks-action@v2 scans a pull_request by LISTING its commits via the API (`GET /pulls/{n}/commits`),
+    # which needs `pull-requests: read` — a scope the repo's default read-only GITHUB_TOKEN does NOT grant, so
+    # the step 403s ("Resource not accessible by integration") and the whole gate fails red on every PR.
+    # Grant it explicitly (least privilege: read-only, only the two scopes the two steps need).
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0                 # full history so the base ref + gitleaks history scan resolve
       - name: gitleaks (generic secrets)
         uses: gitleaks/gitleaks-action@v2
+        env:
+          # gitleaks-action@v2 REQUIRES a token to scan a pull_request (breaking change); without it the step
+          # hard-exits ("GITHUB_TOKEN is now required") BEFORE the pii-scan step runs, so the whole gate fails
+          # red on every PR. The auto-provisioned token is enough (read-only PR diff). Same fix as WLC 485ae98.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Personal-data scan of the PR's added lines
         if: github.event_name == 'pull_request'
         run: .githooks/pii-scan "origin/${{ github.base_ref }}...HEAD"
 
   bridge:
     if: github.event_name != 'pull_request'   # ran on the author's pre-push; the PR gate that matters is `secrets`
-  bridge:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -83,6 +94,29 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      # WealthLens-core is not on PyPI, and the e2e flow builds a REAL encrypted store through the engine's
+      # own `init` (frontend/e2e/setup/workspace.py) — a hand-faked store would prove something else — so the
+      # engine MUST be present here, unlike the bridge job which deliberately runs without it. It lives in a
+      # sibling private repo; check it out with a PAT that has read access (repo secret WLC_REPO_TOKEN). This
+      # job is daily/dispatch only, so the cross-repo token is never exercised on a per-PR run.
+      - uses: actions/checkout@v4
+        with:
+          repository: chandrasekharkg/WealthLens-core
+          path: WealthLens-core
+          token: ${{ secrets.WLC_REPO_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # playwright.config.ts starts the webServer as `.venv/bin/python -m uvicorn`, and global-setup.ts runs
+      # that same interpreter to build the throwaway workspace — so the venv must sit at the REPO ROOT with
+      # both the bridge (uvicorn) and the engine (`wealthlens`, used by workspace.py) installed into it.
+      - name: Set up the bridge venv (uvicorn webServer + the engine the e2e store is built with)
+        working-directory: .
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -e "bridge[dev]"
+          .venv/bin/pip install -e WealthLens-core
       - uses: actions/setup-node@v4
         with:
           node-version: "20"

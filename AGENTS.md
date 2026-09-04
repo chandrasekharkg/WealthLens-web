@@ -124,8 +124,9 @@ are the slowest, flakiest and least informative confidence money can buy.
 
 ## 6. Local gates are the real gates
 
-CI runs **once a day**, not per push — this project deliberately does not burn a CI quota on every commit.
-That makes the local hooks the enforcement, so keep them enabled:
+The **PII/secret gate runs on every PR** (a contributor's PR can't run the local hooks); the heavier
+build/test/e2e jobs run **once a day** and on demand — this project deliberately does not burn a CI quota on
+every commit. That makes the local hooks the enforcement for the build/test gates, so keep them enabled:
 
 ```bash
 git config core.hooksPath .githooks
@@ -147,7 +148,9 @@ E2E runs against a throwaway workspace it creates itself (`e2e/setup/`), on a di
 app's usual one — so a run can never touch a household's real stores or collide with a live instance.
 
 Run it locally before anything that touches the three guarded flows. The daily CI run is a backstop, not
-the first time anyone finds out.
+the first time anyone finds out. (That daily job checks out WealthLens-core — not on PyPI — to build the
+throwaway store, so it needs a `WLC_REPO_TOKEN` repo secret with read access to that repo; without it the
+E2E job is the only one that goes red.)
 
 ## 7. Working on this repo
 

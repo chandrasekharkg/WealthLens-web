@@ -53,6 +53,11 @@ select = [
 ignore = [
     "E501",     # line length is enforced by the formatter's judgement, not a hard error on a comment
 ]
+# `×` is the multiplication SIGN, used deliberately in the money docstrings (`value = quantity × price`) —
+# it is the correct notation, not an ASCII lookalike sneaking in. Allowing it here is one configured
+# decision (the repo's rule, above) rather than a scattered `# noqa: RUF002` on every arithmetic comment,
+# and — unlike pinning ruff — it keeps the daily gate green no matter which ruff version CI resolves.
+allowed-confusables = ["×"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests reach into module internals and shadow names deliberately; that is what a test is for.
