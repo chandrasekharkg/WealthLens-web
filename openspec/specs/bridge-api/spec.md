@@ -1,7 +1,9 @@
 # Bridge API
 
-The single seam between the SPA and the stores: a local, read-only JSON API over `lens.py`, plus the
-manifest and the one sanctioned import trigger. Security posture per ADR-0004.
+The single seam between the SPA and the stores: a local JSON API over `lens.py` (read-only against WLC
+stores), plus the manifest and a **closed, enumerated set** of side-effecting hand-offs to WLC (verb runs,
+upload/inbox, config/secret writes). Security posture per ADR-0004, as superseded on the LAN question by
+[ADR-0020](../../decisions/0020-lan-serving-and-write-surface.md).
 
 ## ADDED Requirements
 
@@ -26,12 +28,16 @@ writing WLW's own manifest. Anything outside that list is a defect.
 - **WHEN** an endpoint is added that writes anywhere
 - **THEN** it either belongs to the enumerated set or the spec changes first — the list is the contract
 
-### Requirement: Localhost hardening (phase 1)
+### Requirement: Loopback by default; LAN serving is a trusted-LAN capability
 
-The bridge SHALL bind loopback only; SHALL reject requests whose `Host` header is not the bound
+The bridge SHALL bind loopback **by default**; SHALL reject requests whose `Host` header is not the bound
 address:port; SHALL reject requests bearing a foreign `Origin`; and state-changing endpoints SHALL require
-a per-session token issued with the page. A configuration to bind beyond loopback SHALL NOT exist in
-phase 1 (ADR-0004 phase 2 is the only path there).
+a per-session token issued with the page. LAN serving beyond loopback is a supported, **off-by-default**
+capability via the `WLW_HOST` configuration, permitted **only under a trusted-home-LAN assumption**
+([ADR-0020](../../decisions/0020-lan-serving-and-write-surface.md)): there is **no per-user authentication**,
+so any device on that LAN that can reach the host and load the page may view the presented workspaces. Serving
+beyond a trusted home LAN SHALL wait for a further ADR that resolves authentication, transport (TLS), and
+per-entity viewer authorization.
 
 #### Scenario: Cross-site POST from a browser tab
 - **WHEN** an arbitrary webpage fires a POST at the bridge's import endpoint
