@@ -20,6 +20,13 @@ jobs:
   secrets:
     name: PII / secret scan
     runs-on: ubuntu-latest
+    # gitleaks-action@v2 scans a pull_request by LISTING its commits via the API (`GET /pulls/{n}/commits`),
+    # which needs `pull-requests: read` — a scope the repo's default read-only GITHUB_TOKEN does NOT grant, so
+    # the step 403s ("Resource not accessible by integration") and the whole gate fails red on every PR.
+    # Grant it explicitly (least privilege: read-only, only the two scopes the two steps need).
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
