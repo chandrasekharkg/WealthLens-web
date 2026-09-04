@@ -404,7 +404,7 @@ def performance(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] 
                     classes = tuple(lens_api.asset_classes(con))
                 for row in lens_api.net_worth_by_class(con, on=on, owner=entity.owner, currency=ccy):
                     breakup[row["asset_class"]].append(row["value"])
-                for row in lens_api.value_series(con, currency=ccy, owner=entity.owner, months=months):
+                for row in lens_api.value_series(con, currency=ccy, owner=entity.owner, months=months, until=on):
                     series[(row["date"], row["asset_class"])].append(row["value"])
                 evidence.append(lens_api.evidence_as_of(con))
                 contributed = True

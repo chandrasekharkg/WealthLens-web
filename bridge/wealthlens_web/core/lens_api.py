@@ -54,11 +54,14 @@ def asset_classes(con) -> list[dict]:
             for i, (_, r) in enumerate(df.iterrows())]
 
 
-def value_series(con, *, currency: str, owner: str = "self", months: int = 36) -> list[dict]:
+def value_series(con, *, currency: str, owner: str = "self", months: int = 36,
+                 until: str | None = None) -> list[dict]:
     """Portfolio value per asset class at each month-end — the growth-chart series. Asset value, not net
     worth (liabilities excluded)."""
     from wealthlens import lens
-    df = lens.value_series(months=months, owner=owner, con=con)
+    # `until` bounds the window's END (the bridge's point-in-time `on=`): WLC clamps the last point to it, so a
+    # series labelled as-of D never carries a value from after D (readiness review §B, charting NEEDS-FIX).
+    df = lens.value_series(months=months, owner=owner, con=con, until=until)
     return [{"date": _date(r["as_of"]), "asset_class": r["asset_class"],
              "value": Money(_dec(r["value"]), currency)} for _, r in df.iterrows()]
 

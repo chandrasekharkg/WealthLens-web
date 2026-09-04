@@ -444,3 +444,22 @@ def test_the_growth_axis_snaps_to_round_gridlines():
     # rounds UP, never down — the peak must never overflow the top gridline
     for raw in ("1", "99", "12345", "9070000"):
         assert _nice_axis_step(Decimal(raw)) >= Decimal(raw)
+
+
+def test_performance_on_bounds_the_growth_series_not_just_the_donut(make_workspace):
+    """The charting review's one NEEDS-FIX: `on=` reached the donut (`net_worth_by_class`) but not the growth
+    series, which always ran to today — so a payload stamped as_of=D carried a last point from AFTER D and the
+    reconciliation `omitted` exists to guarantee silently broke. Two snapshot dates; ask for the earlier one:
+    the series must END there, at that date's value."""
+    import duckdb
+    from wealthlens import cli
+    a = make_workspace("alpha", {"Shares": 1000}, as_of="2026-05-31")
+    con = duckdb.connect(":memory:"); cli._attach(con, "wl", a / "wealth_v3.duckdb", (a / "store.key").read_text()); con.execute("USE wl")
+    con.execute("INSERT INTO position_snapshots (instrument_id, account_id, as_of, value_inr, source, source_id) "
+                "VALUES ('inst:alpha:0', 'demat:alpha', DATE '2026-06-30', 3000, 'stmt', 'src:test')")
+    con.execute("CHECKPOINT wl"); con.close()
+    got = aggregate.performance(_manifest(_entity("alpha", a)), on="2026-05-31")
+    assert got.total == money.Money(Decimal("1000.00"), "INR")                 # the donut at D
+    last = max(p["date"] for p in got.series)
+    assert str(last)[:10] == "2026-05-31", last                                  # the series ENDS at D…
+    assert max(p["top"].amount for p in got.series if p["date"] == last) == Decimal("1000.00")   # …at D's value
