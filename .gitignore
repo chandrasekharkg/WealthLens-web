@@ -5,3 +5,6 @@ __pycache__/
 node_modules/
 frontend/dist/
 frontend/e2e/.tmp/
+
+# Local-only credentials (e.g. the WLC read PAT used to seed the WLC_REPO_TOKEN Actions secret). Never tracked.
+.localsecrets/
