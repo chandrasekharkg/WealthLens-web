@@ -70,7 +70,8 @@ def test_a_document_carries_its_catalog_format_id_and_statement_date(ws):
     share the one `nsdl.cas` identity, so they group together and the newer sorts first. Regression for the
     raw-parse picker splitting one statement type across folder-derived categories (July CAS 'missing')."""
     import duckdb
-    from wealthlens import cli, workspace as wl_workspace
+    from wealthlens import cli
+    from wealthlens import workspace as wl_workspace
 
     key = (ws / "store.key").read_text().strip()
     con = duckdb.connect(":memory:")

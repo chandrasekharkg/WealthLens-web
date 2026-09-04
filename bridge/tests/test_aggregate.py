@@ -418,6 +418,7 @@ def test_the_asset_class_vocabulary_is_not_triplicated(make_workspace):
 
     a = make_workspace("alpha", {"A": 1000})
     from wealthlens import workspace as wl_workspace
+
     from wealthlens_web.core import lens_api
     with wl_workspace.resolve(a).open() as con:
         codes = {c["asset_class"] for c in lens_api.asset_classes(con)}
@@ -454,10 +455,13 @@ def test_performance_on_bounds_the_growth_series_not_just_the_donut(make_workspa
     import duckdb
     from wealthlens import cli
     a = make_workspace("alpha", {"Shares": 1000}, as_of="2026-05-31")
-    con = duckdb.connect(":memory:"); cli._attach(con, "wl", a / "wealth_v3.duckdb", (a / "store.key").read_text()); con.execute("USE wl")
+    con = duckdb.connect(":memory:")
+    cli._attach(con, "wl", a / "wealth_v3.duckdb", (a / "store.key").read_text())
+    con.execute("USE wl")
     con.execute("INSERT INTO position_snapshots (instrument_id, account_id, as_of, value_inr, source, source_id) "
                 "VALUES ('inst:alpha:0', 'demat:alpha', DATE '2026-06-30', 3000, 'stmt', 'src:test')")
-    con.execute("CHECKPOINT wl"); con.close()
+    con.execute("CHECKPOINT wl")
+    con.close()
     got = aggregate.performance(_manifest(_entity("alpha", a)), on="2026-05-31")
     assert got.total == money.Money(Decimal("1000.00"), "INR")                 # the donut at D
     last = max(p["date"] for p in got.series)

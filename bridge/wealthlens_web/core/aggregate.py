@@ -434,7 +434,8 @@ def performance(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] 
     #    only credit_card/payable, so the loan classes would otherwise stack as negative bands (a real bug the
     #    synthetic family surfaced). An unknown-to-the-vocabulary class is stacked rather than hidden. ──
     info = {c["asset_class"]: c for c in classes}
-    is_liability = lambda c: info.get(c, {}).get("category") == "liability"   # noqa: E731
+    def is_liability(c):
+        return info.get(c, {}).get("category") == "liability"
     val = {(d, c): (money.total(v) or zero) for (d, c), v in series.items()}
     dates = sorted({d for (d, _c) in val if d})
     present = {c for (_d, c) in val}

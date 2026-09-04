@@ -183,7 +183,7 @@ def _account_fold(con) -> dict[str, str]:
     try:
         return {aid: (canon or aid) for aid, canon in
                 con.execute("SELECT account_id, canonical_id FROM accounts").fetchall()}
-    except Exception:  # noqa: BLE001 — the label is a nicety; never let it break the ledger
+    except Exception:
         return {}
 
 

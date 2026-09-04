@@ -226,7 +226,8 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         empty report rather than 404 — nothing to diagnose is not an error."""
         m = _manifest()
         path = _target_workspace(m, entity_id, named)
-        from wealthlens import store_diagnose, workspace as wl_workspace
+        from wealthlens import store_diagnose
+        from wealthlens import workspace as wl_workspace
         with wl_workspace.resolve(path).open() as con:
             bundle = store_diagnose.diagnose_holding(instrument_id, con=con)
         if bundle is None:

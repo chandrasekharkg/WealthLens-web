@@ -30,8 +30,8 @@ def _store(tmp_path: pathlib.Path):
 def test_a_derived_holdings_row_yields_none_audit_not_the_string_nat(tmp_path):
     """A cash position is computed from a running bank balance — it has no source and no ingest timestamp, so
     its audit columns must be None. Regression guard: a NULL TIMESTAMP once serialised as the literal 'NaT'."""
-    import duckdb
-    from wealthlens import cli, workspace as wl_workspace
+    from wealthlens import workspace as wl_workspace
+
     from wealthlens_web.core import lens_api
 
     ws, con = _store(tmp_path)
@@ -58,7 +58,9 @@ def test_a_position_with_no_account_serialises_account_id_as_none_not_nan(tmp_pa
     as None — a bare NaN failed the `str | None` response model with a 500, which surfaced as a report that
     would not load on the point-in-time dates where such a row exists."""
     import pandas as pd
-    from wealthlens import lens, workspace as wl_workspace
+    from wealthlens import lens
+    from wealthlens import workspace as wl_workspace
+
     from wealthlens_web.core import lens_api
 
     ws, con = _store(tmp_path)
@@ -91,6 +93,7 @@ def test_a_bill_payment_carries_the_source_of_its_bank_debit(tmp_path):
     """The Payments table's own provenance: a bill payment is one bank debit, so it traces to the bank
     statement that debit was parsed from — regardless of whether the bill matched exactly or by cycle."""
     from wealthlens import workspace as wl_workspace
+
     from wealthlens_web.core import lens_api
 
     ws, con = _store(tmp_path)

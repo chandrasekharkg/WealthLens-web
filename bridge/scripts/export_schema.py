@@ -16,7 +16,9 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "bridge"))
 
-from wealthlens_web.api.app import create_app  # noqa: E402
+from wealthlens_web.api.app import (  # noqa: E402 — must follow the sys.path insert above (the bridge is imported from the repo, not site-packages)
+    create_app,
+)
 
 SCHEMA_PATH = ROOT / "frontend" / "src" / "api" / "openapi.json"
 
