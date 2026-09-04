@@ -39,6 +39,21 @@ def net_worth_by_class(con, *, on: str | None, owner: str, currency: str) -> lis
             for _, r in df.iterrows() if str(r["asset_class"]).upper() != TOTAL_ROW]
 
 
+def asset_classes(con) -> list[dict]:
+    """The engine's asset-class vocabulary — the SINGLE source a chart colours, labels, orders, and groups
+    from. Published so the bridge stops hard-coding a stack subset and the frontend stops keeping its own copy
+    (the class list was triplicated across `_STACK_ORDER`, the UI's `BUCKETS`, and the i18n `class.*` keys, and
+    an engine that added a class silently dropped it from the growth top-line). `order` is a stable rank the UI
+    assigns a colour by; `category` ('asset'/'liability') and `group` ('cash'/'equity'/'fixed_income'/…) let a
+    surface segregate consistently. Read from a store because the vocabulary lives in the `asset_classes` table
+    (seeded identically across stores)."""
+    from wealthlens import lens
+    df = lens.asset_groups(con=con)
+    return [{"asset_class": str(r["asset_class"]), "label": _str(r["label"]),
+             "group": _str(r["group"]), "category": _str(r["category"]), "order": i}
+            for i, (_, r) in enumerate(df.iterrows())]
+
+
 def value_series(con, *, currency: str, owner: str = "self", months: int = 36) -> list[dict]:
     """Portfolio value per asset class at each month-end — the growth-chart series. Asset value, not net
     worth (liabilities excluded)."""

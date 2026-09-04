@@ -13,30 +13,14 @@ import type { Formatter, MessageKey } from "../i18n";
  * axis labels and the stack edges — arrives decided from the bridge (core/aggregate.performance). This maps
  * those to render shapes (a share to an arc, a Money to a fraction of the axis) and assigns each type a
  * stable colour; it never sums or converts money.
+ *
+ * The asset-class vocabulary — the labels, and the ORDER a colour is assigned by — is the engine's, published
+ * on the payload (`classes`), so this screen keeps no list of its own (finding B3: the list was triplicated,
+ * and an engine that added a class silently fell out of the chart). The growth chart's `omitted` classes and
+ * any excluded store arrive named, so the top-line reconciles with the donut and nothing vanishes silently.
  */
 
 type Load<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error" };
-
-// The known asset types, in a fixed order — this order is both the legend order and the colour assignment
-// (a type keeps its colour across both charts). Retirement classes (EPF/PPF/NPS/gratuity) are listed so they
-// get their own colours rather than all collapsing onto the first; liabilities follow (they carry no positive
-// share, so the donut filters them out — listed only to keep the assignment total). Real estate is last among
-// assets; the growth chart drops it.
-const BUCKETS = [
-  "mutual_fund", "listed_equity", "fixed_deposit", "savings", "bond", "unlisted_equity",
-  "epf", "ppf", "nps", "gratuity", "real_estate",
-  "credit_card", "auto_loan", "home_loan",
-] as const;
-
-// A class outside the known list still gets a stable, distinct-ish colour (hashed into the palette) instead of
-// silently sharing the first — so a new engine asset class is legible before this list is updated.
-const colorFor = (key: string): string => {
-  const i = BUCKETS.indexOf(key as (typeof BUCKETS)[number]);
-  if (i >= 0) return PALETTE[i % PALETTE.length] ?? PALETTE[0];
-  let h = 0;
-  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return PALETTE[h % PALETTE.length] ?? PALETTE[0];
-};
 
 /** "2026-08-31" → "Aug '26". */
 function monthLabel(iso: string): string {
@@ -60,28 +44,51 @@ export function Performance({ format }: PerformanceProps) {
       .catch(() => setPerf({ state: "error" }));
   }, []);
 
-  const label = (key: string) => t(`class.${key}` as MessageKey);
+  const data = perf.state === "ready" ? perf.data : null;
+
+  // The engine's vocabulary drives both colour and label. A class's colour is its published `order` (so a
+  // type keeps its colour across both charts and across the app); a class outside the published list still
+  // gets a stable, distinct-ish colour (hashed into the palette) rather than sharing the first.
+  const classInfo = useMemo(() => {
+    const byKey = new Map((data?.classes ?? []).map((c) => [c.asset_class, c]));
+    const colorFor = (key: string): string => {
+      const order = byKey.get(key)?.order;
+      if (order != null) return PALETTE[order % PALETTE.length] ?? PALETTE[0];
+      let h = 0;
+      for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      return PALETTE[h % PALETTE.length] ?? PALETTE[0];
+    };
+    // i18n label first (curated / translatable); fall back to the engine's own label, then the raw code.
+    const label = (key: string): string => {
+      const k = `class.${key}` as MessageKey;
+      const translated = t(k);
+      if (translated !== k) return translated;
+      return byKey.get(key)?.label ?? key;
+    };
+    return { colorFor, label };
+  }, [data, t]);
+  const { colorFor, label } = classInfo;
 
   // The breakup: positive asset buckets only (a donut of what's owned, not net of liabilities). Value and
   // share come from the bridge; this only names, colours, and formats.
   const slices = useMemo<Slice[]>(() => {
-    if (perf.state !== "ready") return [];
-    return perf.data.breakup
+    if (!data) return [];
+    return data.breakup
       .filter((b) => b.share > 0)
       .map((b) => ({ label: label(b.asset_class), color: colorFor(b.asset_class),
                      share: b.share, valueText: money(b.value) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [perf, t]);
 
-  const centerValue = perf.state === "ready" && perf.data.total ? money(perf.data.total) : "—";
+  const centerValue = data && data.total ? money(data.total) : "—";
 
   // The growth chart: the bridge pre-summed the stack (each point carries its base/top), so this only maps
   // those Money edges to fractions of the axis maximum. No values are added here.
   const { bands, dateLabels, ticks, months } = useMemo(() => {
     const empty = { bands: [] as Band[], dateLabels: [] as string[], ticks: [] as Tick[], months: 0 };
-    if (perf.state !== "ready" || !perf.data.axis_max) return empty;
-    const max = Number(perf.data.axis_max.amount) || 1;
-    const series = perf.data.series;
+    if (!data || !data.axis_max) return empty;
+    const max = Number(data.axis_max.amount) || 1;
+    const series = data.series;
     const dates = [...new Set(series.map((p) => p.date).filter((d): d is string => !!d))].sort();
     // Class order = first appearance in the series, which the bridge emits in stack order.
     const classes = [...new Set(series.map((p) => p.asset_class))];
@@ -94,9 +101,9 @@ export function Performance({ format }: PerformanceProps) {
         return { base: p?.base ? Number(p.base.amount) / max : 0, top: p?.top ? Number(p.top.amount) / max : 0 };
       }),
     }));
-    const built_ticks: Tick[] = perf.data.axis_ticks.map((m) => ({
+    const built_ticks: Tick[] = data.axis_ticks.map((m) => ({
       frac: Number(m.amount) / max,
-      label: compact(Number(m.amount), perf.data.reporting_currency),
+      label: compact(Number(m.amount), data.reporting_currency),
     }));
     return { bands: built, dateLabels: dates.map(monthLabel), ticks: built_ticks, months: dates.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,11 +111,22 @@ export function Performance({ format }: PerformanceProps) {
 
   if (perf.state === "loading") return <p role="status">…</p>;
   if (perf.state === "error") return <p role="alert">{t("error.load")}</p>;
-  if (slices.length === 0) return <p>{t("perf.none")}</p>;
+  if (!data || slices.length === 0) return <p>{t("perf.none")}</p>;
+
+  const excluded = data.excluded ?? [];
 
   return (
     <main className="performance">
       <h1>{t("perf.pageTitle")}</h1>
+
+      {data.is_partial ? (
+        // B2: a store that could not be read is NAMED — the charts say they are partial rather than being
+        // silently smaller. The same honesty the total and every row set carry.
+        <p className="perf-partial" data-tone="warning" role="status">
+          {t("perf.partial")}
+          {excluded.length > 0 ? ` ${excluded.map((e) => e.label).join(", ")}.` : ""}
+        </p>
+      ) : null}
 
       <section className="perf-card">
         <h2>{t("perf.breakupTitle")}</h2>
@@ -129,6 +147,17 @@ export function Performance({ format }: PerformanceProps) {
               </li>
             ))}
           </ul>
+          {data.omitted.length > 0 ? (
+            // B1: the growth top-line leaves these classes out (real estate &c.) — say so, with each value,
+            // so the reader can see it still reconciles with the donut rather than silently disagreeing.
+            <p className="chart-note" role="note">
+              {t("perf.growthExcludes")}{" "}
+              {data.omitted
+                .map((o) => `${label(o.asset_class)} (${money(o.value)})`)
+                .join(", ")}
+              .
+            </p>
+          ) : null}
         </section>
       ) : null}
     </main>

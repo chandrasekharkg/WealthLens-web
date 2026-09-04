@@ -18,7 +18,13 @@ from __future__ import annotations
 
 import dataclasses
 
-from wealthlens_web.core.aggregate import EntityRows, EntityView, FamilyNetWorth, FamilyRows
+from wealthlens_web.core.aggregate import (
+    EntityRows,
+    EntityView,
+    FamilyNetWorth,
+    FamilyPerformance,
+    FamilyRows,
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -101,6 +107,20 @@ def for_drilldown(*, title: str, scope: str, reporting_currency: str, as_of: str
     The reporting currency is a bridge decision like everywhere else — the UI must not pick it off row[0]."""
     return Provenance(title=title, scope=scope, as_of=as_of, reporting_currency=reporting_currency,
                       stores=stores, row_count=row_count)
+
+
+def for_performance(got: FamilyPerformance) -> Provenance:
+    """The header for the portfolio charts. Same shape as a row set's — a scope keyed on the DECLARED members,
+    the date the breakup was valued at, and the caveats a shared date does not fix (who was excluded, who is
+    stale). The charts are a family view, so this keeps them from reading as a complete personal statement
+    when a store was left out."""
+    return Provenance(
+        title="Portfolio",
+        scope=_scope(got.entities),
+        as_of=got.as_of,
+        reporting_currency=got.reporting_currency,
+        warnings=_warnings(got.entities, got.as_of),
+    )
 
 
 def for_rows(got: FamilyRows, *, filters: tuple[str, ...] = ()) -> Provenance:

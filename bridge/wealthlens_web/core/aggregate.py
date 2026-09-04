@@ -296,10 +296,16 @@ def card_bill_payments(m: Manifest, *, our_pids: frozenset[int] = frozenset()) -
                  fetch=lambda con, entity: lens_api.card_bill_payments(con, currency=m.reporting_currency))
 
 
-# The growth chart's stack order — bottom band first. It lives here, not in the UI, because the bridge now
-# pre-sums the stack (base/top per band), and the cumulative sum depends on this order. Real estate is
-# deliberately absent: it is a lumpy mark, not a market-valued growth series. The UI keeps only colour.
-_STACK_ORDER = ("mutual_fund", "listed_equity", "fixed_deposit", "savings", "bond", "unlisted_equity")
+# Real estate and other lumpy, manually-marked assets are deliberately kept OUT of the growth stack — a
+# purchase figure is not a monthly value trend. But they are no longer dropped SILENTLY (the bug B1): every
+# such class is reported in `omitted` with its reason and its current value, so the growth top-line
+# reconciles with the donut, which does include them. Every OTHER asset class the engine values is stacked,
+# and the stack order comes from the published vocabulary (lens_api.asset_classes), not a hand-kept subset
+# here — so an engine that adds a class (a retirement corpus, crypto) appears in the chart, not vanishes.
+_NOT_A_GROWTH_SERIES = {
+    "real_estate": "a lumpy purchase mark, not a monthly market value",
+    "personal_property": "a manual mark, not a monthly market value",
+}
 
 # The human axis-step ladder: a rough step rounds UP to the smallest of these × 10ⁿ. Half-steps stay clean too
 # (½·6 = 3, ½·2.5 = 1.25), so a 3-tick axis reads round both at the top and the middle.
@@ -324,33 +330,92 @@ def _nice_axis_step(raw: Decimal) -> Decimal:
     return Decimal("10") * mag
 
 
-def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: int = 60) -> dict:
+@dataclasses.dataclass(frozen=True)
+class FamilyPerformance:
+    """The portfolio charts, carrying the same availability honesty a total or a row set does. An entity that
+    could not be read, or is owned by somebody else, is NAMED in `entities`/`excluded` and the charts are
+    marked partial — never silently smaller (B2: `/api/performance` had no envelope, so an unreadable store
+    vanished from both charts with no signal). The breakup/series/axis are pre-summed for the UI, and
+    `omitted` reconciles the growth top-line with the donut (B1). `classes` is the published vocabulary the UI
+    colours and labels from (B3)."""
+
+    as_of: str
+    reporting_currency: str
+    total: money.Money | None
+    breakup: tuple[dict, ...]
+    series: tuple[dict, ...]
+    axis_max: money.Money | None
+    axis_ticks: tuple[money.Money, ...]
+    omitted: tuple[dict, ...]
+    classes: tuple[dict, ...]
+    entities: tuple[EntityRows, ...]
+
+    @property
+    def excluded(self) -> tuple[EntityRows, ...]:
+        return tuple(e for e in self.entities if not e.contributes)
+
+    @property
+    def is_partial(self) -> bool:
+        return bool(self.excluded)
+
+
+def performance(m: Manifest, *, on: str | None = None, our_pids: frozenset[int] = frozenset(),
+                months: int = 60) -> FamilyPerformance:
     """The household portfolio, for the charts: the current value BREAKUP by asset class, and a monthly value
-    SERIES per class. Both summed across the family's readable stores. The breakup is owner-weighted (net
-    worth per class); the series is the portfolio's asset value over time (unweighted — a value trend, not a
-    beneficial-share total)."""
+    SERIES per class. Both summed across the family's READABLE stores — and, exactly like net worth, an entity
+    that is unreadable or owned by somebody else is excluded and NAMED rather than dropped, and `on` fixes the
+    point in time the breakup is valued at. The breakup is owner-weighted (net worth per class); the series is
+    the portfolio's asset value over time (unweighted — a value trend, not a beneficial-share total)."""
+    if m.reporting_currency not in SUPPORTED_REPORTING_CURRENCIES:
+        raise UnsupportedReportingCurrency(
+            f"this engine can report in {', '.join(sorted(SUPPORTED_REPORTING_CURRENCIES))}, not "
+            f"{m.reporting_currency}.")
+
     from collections import defaultdict
 
     from wealthlens import workspace as wl_workspace
 
+    on = resolve_date(on)
+    ccy = m.reporting_currency
+    zero = money.Money(Decimal("0"), ccy)
+
     breakup: dict[str, list] = defaultdict(list)
     series: dict[tuple[str, str], list] = defaultdict(list)
+    classes: tuple[dict, ...] = ()
+    entities: list[EntityRows] = []
+
     for entity in m.entities:
         statuses = tuple(workspaces.check_entity(entity, our_pids=our_pids))
-        for status in (s for s in statuses if s.is_readable):
+        readable = [s for s in statuses if s.is_readable]
+        if not readable:
+            entities.append(EntityRows(entity.id, entity.label, excluded_reason=_why_excluded(statuses)))
+            continue
+
+        contributed, evidence, warning = False, [], None
+        for status in readable:
             with wl_workspace.resolve(status.path).open() as con:
                 declared = lens_api.owner_entities(con)
                 if declared and entity.owner not in declared:
+                    warning = (
+                        f"{status.label} attributes ownership to {', '.join(sorted(declared))}, but this "
+                        f"entity is configured as {entity.owner!r}; its holdings would be valued at zero.")
                     continue
-                for row in lens_api.net_worth_by_class(con, on=None, owner=entity.owner,
-                                                       currency=m.reporting_currency):
+                if not classes:                     # the vocabulary is seed data — read it once, from any store
+                    classes = tuple(lens_api.asset_classes(con))
+                for row in lens_api.net_worth_by_class(con, on=on, owner=entity.owner, currency=ccy):
                     breakup[row["asset_class"]].append(row["value"])
-                for row in lens_api.value_series(con, currency=m.reporting_currency,
-                                                 owner=entity.owner, months=months):
+                for row in lens_api.value_series(con, currency=ccy, owner=entity.owner, months=months):
                     series[(row["date"], row["asset_class"])].append(row["value"])
+                evidence.append(lens_api.evidence_as_of(con))
+                contributed = True
 
-    ccy = m.reporting_currency
-    zero = money.Money(Decimal("0"), ccy)
+        if warning and not contributed:
+            entities.append(EntityRows(entity.id, entity.label, excluded_reason="ownership is misconfigured",
+                                       owner_warning=warning))
+            continue
+        dated = [d for d in evidence if d]
+        entities.append(EntityRows(entity.id, entity.label,
+                                   evidence_as_of=min(dated) if dated else None, owner_warning=warning))
 
     # ── the breakup (donut): value + the SHARE, so the UI never divides money to get a percent ──
     breakup_vals = {k: (money.total(v) or zero) for k, v in breakup.items()}
@@ -362,10 +427,19 @@ def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: 
          for k, mv in breakup_vals.items()),
         key=lambda r: r["value"].amount, reverse=True)
 
-    # ── the growth chart: the stack is PRE-SUMMED here (base/top per band) so the UI only maps value→pixel ──
+    # ── the growth chart: the stack is PRE-SUMMED here (base/top per band) so the UI only maps value→pixel.
+    #    Membership + order come from the published vocabulary — every ASSET class is stacked (nothing dropped
+    #    silently, finding B1), minus the deliberately-omitted lumpy ones. LIABILITIES are excluded by their
+    #    `category`, because this chart is asset VALUE over time, not net worth — and WLC's value_series drops
+    #    only credit_card/payable, so the loan classes would otherwise stack as negative bands (a real bug the
+    #    synthetic family surfaced). An unknown-to-the-vocabulary class is stacked rather than hidden. ──
+    info = {c["asset_class"]: c for c in classes}
+    is_liability = lambda c: info.get(c, {}).get("category") == "liability"   # noqa: E731
     val = {(d, c): (money.total(v) or zero) for (d, c), v in series.items()}
     dates = sorted({d for (d, _c) in val if d})
-    stacked = [c for c in _STACK_ORDER if any((d, c) in val for d in dates)]  # only classes with any data
+    present = {c for (_d, c) in val}
+    stacked = sorted((c for c in present if not is_liability(c) and c not in _NOT_A_GROWTH_SERIES),
+                     key=lambda c: (info.get(c, {}).get("order", len(info)), c))
     series_rows, date_total = [], {}
     for d in dates:
         running = Decimal("0")
@@ -386,8 +460,21 @@ def performance(m: Manifest, *, our_pids: frozenset[int] = frozenset(), months: 
     else:
         axis_max, axis_ticks = None, []
 
-    return {"reporting_currency": ccy, "total": donut_total, "breakup": breakup_rows,
-            "series": series_rows, "axis_max": axis_max, "axis_ticks": axis_ticks}
+    # ── omitted (B1): every positive DONUT class the growth line leaves out — the deliberate ones (real
+    #    estate & co.) with their reason, and any class with no series in the window — each with its value, so
+    #    a reader can see the top-line reconciles: Σ(growth top at the last date) = total − Σ(omitted). ──
+    stacked_set = set(stacked)
+    omitted = [
+        {"asset_class": r["asset_class"],
+         "reason": _NOT_A_GROWTH_SERIES.get(r["asset_class"], "no monthly value series in this window"),
+         "value": r["value"]}
+        for r in breakup_rows if r["value"].amount > 0 and r["asset_class"] not in stacked_set
+    ]
+
+    return FamilyPerformance(
+        as_of=on, reporting_currency=ccy, total=donut_total, breakup=tuple(breakup_rows),
+        series=tuple(series_rows), axis_max=axis_max, axis_ticks=tuple(axis_ticks),
+        omitted=tuple(omitted), classes=classes, entities=tuple(entities))
 
 
 def _rows(m: Manifest, granularity: Granularity, *, on: str | None,

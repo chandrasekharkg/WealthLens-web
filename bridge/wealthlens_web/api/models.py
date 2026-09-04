@@ -426,16 +426,48 @@ class PerformancePoint(BaseModel):
     top: Money | None = Field(default=None, description="Cumulative stack ceiling incl. this band")
 
 
+class AssetClassInfo(BaseModel):
+    """One asset class in the engine's published vocabulary — the SINGLE source the UI colours, labels, and
+    orders a chart from (it no longer keeps its own copy). `order` is the stable rank a colour is assigned by;
+    `category` and `group` let a surface segregate consistently."""
+
+    asset_class: str
+    label: str | None = None
+    group: str | None = Field(default=None, description="cash | equity | fixed_income | funds | retirement | …")
+    category: str | None = Field(default=None, description="asset | liability")
+    order: int = Field(description="Stable rank — the UI assigns a colour by this, not by a hard-coded list")
+
+
+class PerformanceOmission(BaseModel):
+    """One asset class the growth top-line leaves OUT — reported, never dropped silently. A deliberate lumpy
+    class (real estate) carries its reason; its value is stated so the growth line reconciles with the donut:
+    Σ(growth top at the last date) = total − Σ(omitted)."""
+
+    asset_class: str
+    reason: str = Field(description="Why it is not stacked — a lumpy mark, or no monthly series in the window")
+    value: Money = Field(description="Its current value (in the donut), so the top-line reconciles")
+
+
 class Performance(BaseModel):
     """The portfolio, for the charts: the current value breakup and the monthly value series per class.
-    Every figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI."""
+    Every figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI. It
+    carries the honesty envelope every other read does — `as_of`, `is_partial`, `excluded`, `provenance` — so
+    an unreadable or wrongly-owned store is NAMED rather than silently missing from both charts."""
 
     reporting_currency: str
+    as_of: str | None = Field(default=None, description="The date the breakup was valued at")
+    is_partial: bool = Field(default=False, description="True when a declared entity could not be included")
+    excluded: list[Excluded] = []
     total: Money | None = Field(default=None, description="Portfolio total = sum of positive buckets")
     breakup: list[PerformanceBucket] = []
     series: list[PerformancePoint] = []
     axis_max: Money | None = Field(default=None, description="Growth-chart Y-axis maximum")
     axis_ticks: list[Money] = Field(default=[], description="Growth-chart Y-axis tick values (money labels)")
+    omitted: list[PerformanceOmission] = Field(
+        default=[], description="Classes the growth line leaves out (real estate &c.) — the donut caveat")
+    classes: list[AssetClassInfo] = Field(
+        default=[], description="The engine's asset-class vocabulary the UI colours/labels/orders from")
+    provenance: Provenance
 
 
 class FamilyMemberRow(BaseModel):

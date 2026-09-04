@@ -950,6 +950,11 @@ input[type="date"] {
 .chart-tick-x[data-align="mid"]   { transform: translateX(-50%); }
 .chart-tick-x[data-align="end"]   { transform: translateX(-100%); }
 
+/* The growth chart's honesty caveat: which classes its top-line leaves out, and their value — so a reader can
+   see it still reconciles with the donut (finding B1). Muted, below the legend, next to what it qualifies. */
+.chart-note { color: var(--muted); font-size: 0.8rem; margin: 0.5rem 0 0; max-width: 64ch; }
+.perf-partial { margin: 0 0 1rem; max-width: 72ch; }
+
 /* ── Family ───────────────────────────────────────────────────────────────────────────────────────── */
 .family-list { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
 .family-tile {

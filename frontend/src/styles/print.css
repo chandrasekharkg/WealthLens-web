@@ -141,4 +141,25 @@
   a[href]::after {
     content: "";
   }
+
+  /*
+   * The performance charts are DRAWN, not tabular, so the table rules above do not reach them and two things
+   * break on paper by default. First, `body`'s palette economy flattens an SVG's fills — a stacked area or a
+   * donut with no colour is unreadable — so the charts opt back into exact colour. Second, the axis labels
+   * are an HTML overlay absolutely positioned against the chart box (`.chart-area-inner`); a page break
+   * through the box strands a tick from its gridline, so the whole card is kept on one page.
+   */
+  .perf-card,
+  .chart-area-inner,
+  .chart-donut {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .chart-area svg,
+  .chart-donut svg,
+  .chart-swatch {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

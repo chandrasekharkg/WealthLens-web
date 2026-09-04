@@ -157,15 +157,25 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                     reporting_currency=m.reporting_currency, row_count=len(transfers)).as_dict()}
 
     @app.get("/api/performance", response_model=models.Performance)
-    def performance() -> dict:
-        got = aggregate.performance(_manifest(), our_pids=app.state.runner.our_pids)
+    def performance(on: str | None = Query(default=None)) -> dict:
+        try:
+            got = aggregate.performance(_manifest(), on=on, our_pids=app.state.runner.our_pids)
+        except aggregate.UnsupportedReportingCurrency as e:
+            raise HTTPException(status_code=422, detail={"error": "currency", "reason": str(e)}) from None
         return {
-            "reporting_currency": got["reporting_currency"],
-            "total": got["total"].as_dict() if got["total"] else None,
-            "breakup": [_row(b) for b in got["breakup"]],
-            "series": [_row(p) for p in got["series"]],
-            "axis_max": got["axis_max"].as_dict() if got["axis_max"] else None,
-            "axis_ticks": [t.as_dict() for t in got["axis_ticks"]],
+            "reporting_currency": got.reporting_currency,
+            "as_of": got.as_of,
+            "is_partial": got.is_partial,
+            "excluded": [{"entity_id": e.entity_id, "label": e.label, "reason": e.excluded_reason,
+                          "owner_warning": e.owner_warning} for e in got.excluded],
+            "total": got.total.as_dict() if got.total else None,
+            "breakup": [_row(b) for b in got.breakup],
+            "series": [_row(p) for p in got.series],
+            "axis_max": got.axis_max.as_dict() if got.axis_max else None,
+            "axis_ticks": [t.as_dict() for t in got.axis_ticks],
+            "omitted": [_row(o) for o in got.omitted],
+            "classes": list(got.classes),
+            "provenance": provenance.for_performance(got).as_dict(),
         }
 
     @app.get("/api/cards/{entity_id}/{issuer}/statements", response_model=models.CardStatements)

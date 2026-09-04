@@ -324,25 +324,113 @@ def test_performance_pre_sums_the_charts(make_workspace):
     got = aggregate.performance(_manifest(_entity("alpha", a)))
 
     # the donut total is the sum of positive buckets, and every bucket carries its share (percent)
-    assert got["total"] == money.Money(Decimal("1000.00"), "INR")
-    assert all("share" in b for b in got["breakup"])
-    assert round(sum(b["share"] for b in got["breakup"]), 0) == 100
+    assert got.total == money.Money(Decimal("1000.00"), "INR")
+    assert all("share" in b for b in got.breakup)
+    assert round(sum(b["share"] for b in got.breakup), 0) == 100
 
     # the growth series is pre-summed: base+value == top on every point, and each date's stack starts at 0
-    assert got["series"], "a single valued holding still produces a growth point"
+    assert got.series, "a single valued holding still produces a growth point"
     by_date: dict = {}
-    for p in got["series"]:
+    for p in got.series:
         assert p["top"].amount == p["base"].amount + p["value"].amount
         by_date.setdefault(p["date"], []).append(p)
     for points in by_date.values():
         assert points[0]["base"].amount == Decimal("0")
 
     # the axis ticks are money the UI prints verbatim — first is zero, last is the axis maximum
-    if got["axis_max"]:
-        assert got["axis_ticks"][0].amount == Decimal("0")
-        assert got["axis_ticks"][-1].amount == got["axis_max"].amount
+    if got.axis_max:
+        assert got.axis_ticks[0].amount == Decimal("0")
+        assert got.axis_ticks[-1].amount == got.axis_max.amount
         # the top tick sits at or above the peak stack, so every bar fits under it
-        assert got["axis_max"].amount >= Decimal("1000")
+        assert got.axis_max.amount >= Decimal("1000")
+
+
+def test_performance_carries_the_honesty_envelope(make_workspace, tmp_path):
+    """B2: the charts must NOT let an unreadable store vanish silently. A missing workspace is named in
+    `excluded`, the charts are marked partial, and the provenance header says who was left out — exactly like
+    net worth. `as_of` is the concrete date the breakup was valued at."""
+    a = make_workspace("alpha", {"A": 1000})
+    gone = tmp_path / "beta-WealthLens-data"       # declared but never built → unreadable
+    got = aggregate.performance(_manifest(_entity("alpha", a), _entity("beta", gone)))
+
+    assert got.is_partial is True
+    assert [e.entity_id for e in got.excluded] == ["beta"]
+    assert got.excluded[0].excluded_reason
+    assert got.as_of == aggregate.resolve_date(None)
+    # the contributing store still charts
+    assert got.total == money.Money(Decimal("1000.00"), "INR")
+
+
+def test_performance_excludes_a_wrongly_owned_store_rather_than_charting_zero(make_workspace):
+    """An owner mismatch is a misconfiguration, not a portfolio of zero — the same rule net worth follows."""
+    a = make_workspace("alpha", {"A": 1000}, owner="someone_else")
+    got = aggregate.performance(_manifest(_entity("alpha", a, owner="alpha")))
+    assert got.is_partial is True and [e.entity_id for e in got.excluded] == ["alpha"]
+    assert got.excluded[0].owner_warning
+
+
+def test_performance_publishes_the_asset_class_vocabulary(make_workspace):
+    """B3: the class list is published from the engine, so the UI stops keeping its own copy. Every class
+    carries a stable order (the colour rank) and its group/category."""
+    a = make_workspace("alpha", {"A": 1000})
+    got = aggregate.performance(_manifest(_entity("alpha", a)))
+    classes = {c["asset_class"]: c for c in got.classes}
+    assert "listed_equity" in classes and "real_estate" in classes and "credit_card" in classes
+    assert classes["credit_card"]["category"] == "liability"
+    orders = [c["order"] for c in got.classes]
+    assert orders == sorted(orders) and len(set(orders)) == len(orders)  # a stable, distinct rank
+
+
+def test_the_growth_line_reconciles_with_the_donut(make_workspace):
+    """B1: the growth stack must not silently drop a class. Real estate is deliberately kept out of the stack
+    (a lumpy mark, not a monthly value trend) — but it is REPORTED in `omitted` with its value, so the growth
+    top-line and the donut reconcile: Σ(growth top at the last date) = total − Σ(omitted). A retirement or
+    real-estate corpus can no longer make the growth headline disagree with the breakdown with no caveat."""
+    a = make_workspace("alpha", {"Shares": 1000, "The house": 4000, "Mortgage": -600},
+                       classes={"The house": "real_estate", "Mortgage": "home_loan"}, as_of="2026-06-30")
+    got = aggregate.performance(_manifest(_entity("alpha", a)))
+
+    # the donut total is the positive assets only (the liability nets against nothing in a value breakup)
+    assert got.total == money.Money(Decimal("5000.00"), "INR")
+    omitted = {o["asset_class"]: o for o in got.omitted}
+    assert "real_estate" in omitted and omitted["real_estate"]["value"].amount == Decimal("4000.00")
+    assert "market value" in omitted["real_estate"]["reason"]
+    assert not any(p["asset_class"] == "real_estate" for p in got.series)  # deliberate omission, never stacked
+
+    # a LIABILITY is never stacked into a value-over-time chart (WLC's value_series drops only some) — else it
+    # would drag the top-line down as a negative band and the reconciliation below would break
+    assert not any(p["asset_class"] == "home_loan" for p in got.series)
+
+    # the reconciliation the omitted field exists to make visible: Σ(growth top) + Σ(omitted) = total
+    last = max(p["date"] for p in got.series)
+    top = max(p["top"].amount for p in got.series if p["date"] == last)
+    omitted_sum = sum(o["value"].amount for o in got.omitted)
+    assert top == got.total.amount - omitted_sum
+
+
+def test_the_asset_class_vocabulary_is_not_triplicated(make_workspace):
+    """B3: the class list lived in three places — the bridge's stack subset, the UI's `BUCKETS`, and the
+    i18n `class.*` keys — and an engine that added a class silently fell out of the chart. Now the engine is
+    the source: the bridge keeps only a deliberate OMIT set (which must be real classes), and the frontend
+    must carry a label for every class the engine defines. This is the parity guard across the three surfaces."""
+    import pathlib
+    import re
+
+    a = make_workspace("alpha", {"A": 1000})
+    from wealthlens import workspace as wl_workspace
+    from wealthlens_web.core import lens_api
+    with wl_workspace.resolve(a).open() as con:
+        codes = {c["asset_class"] for c in lens_api.asset_classes(con)}
+    assert codes, "the engine defines an asset-class vocabulary"
+
+    # the bridge's deliberate-omit set is real classes, never a typo that silently omits nothing
+    assert set(aggregate._NOT_A_GROWTH_SERIES) <= codes
+
+    # the frontend carries a label for every engine class (a new class shows a name, not its raw code)
+    en = (pathlib.Path(__file__).resolve().parents[2] / "frontend" / "src" / "i18n" / "en.ts").read_text()
+    labelled = set(re.findall(r'"class\.([a-z_]+)"', en))
+    missing = codes - labelled
+    assert not missing, f"frontend i18n has no class.* label for: {sorted(missing)}"
 
 
 def test_the_growth_axis_snaps_to_round_gridlines():

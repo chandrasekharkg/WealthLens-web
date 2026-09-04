@@ -1,6 +1,61 @@
 {
   "components": {
     "schemas": {
+      "AssetClassInfo": {
+        "description": "One asset class in the engine's published vocabulary \u2014 the SINGLE source the UI colours, labels, and\norders a chart from (it no longer keeps its own copy). `order` is the stable rank a colour is assigned by;\n`category` and `group` let a surface segregate consistently.",
+        "properties": {
+          "asset_class": {
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "asset | liability",
+            "title": "Category"
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "cash | equity | fixed_income | funds | retirement | \u2026",
+            "title": "Group"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "order": {
+            "description": "Stable rank \u2014 the UI assigns a colour by this, not by a hard-coded list",
+            "title": "Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "asset_class",
+          "order"
+        ],
+        "title": "AssetClassInfo",
+        "type": "object"
+      },
       "Availability": {
         "description": "Why a workspace can or cannot be read right now. The order is the order a caller should check.",
         "enum": [
@@ -2461,8 +2516,20 @@
         "type": "object"
       },
       "Performance": {
-        "description": "The portfolio, for the charts: the current value breakup and the monthly value series per class.\nEvery figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI.",
+        "description": "The portfolio, for the charts: the current value breakup and the monthly value series per class.\nEvery figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI. It\ncarries the honesty envelope every other read does \u2014 `as_of`, `is_partial`, `excluded`, `provenance` \u2014 so\nan unreadable or wrongly-owned store is NAMED rather than silently missing from both charts.",
         "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The date the breakup was valued at",
+            "title": "As Of"
+          },
           "axis_max": {
             "anyOf": [
               {
@@ -2491,6 +2558,41 @@
             "title": "Breakup",
             "type": "array"
           },
+          "classes": {
+            "default": [],
+            "description": "The engine's asset-class vocabulary the UI colours/labels/orders from",
+            "items": {
+              "$ref": "#/components/schemas/AssetClassInfo"
+            },
+            "title": "Classes",
+            "type": "array"
+          },
+          "excluded": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Excluded"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "is_partial": {
+            "default": false,
+            "description": "True when a declared entity could not be included",
+            "title": "Is Partial",
+            "type": "boolean"
+          },
+          "omitted": {
+            "default": [],
+            "description": "Classes the growth line leaves out (real estate &c.) \u2014 the donut caveat",
+            "items": {
+              "$ref": "#/components/schemas/PerformanceOmission"
+            },
+            "title": "Omitted",
+            "type": "array"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
           "reporting_currency": {
             "title": "Reporting Currency",
             "type": "string"
@@ -2516,7 +2618,8 @@
           }
         },
         "required": [
-          "reporting_currency"
+          "reporting_currency",
+          "provenance"
         ],
         "title": "Performance",
         "type": "object"
@@ -2543,6 +2646,31 @@
           "value"
         ],
         "title": "PerformanceBucket",
+        "type": "object"
+      },
+      "PerformanceOmission": {
+        "description": "One asset class the growth top-line leaves OUT \u2014 reported, never dropped silently. A deliberate lumpy\nclass (real estate) carries its reason; its value is stated so the growth line reconciles with the donut:\n\u03a3(growth top at the last date) = total \u2212 \u03a3(omitted).",
+        "properties": {
+          "asset_class": {
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Why it is not stacked \u2014 a lumpy mark, or no monthly series in the window",
+            "title": "Reason",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Its current value (in the donut), so the top-line reconciles"
+          }
+        },
+        "required": [
+          "asset_class",
+          "reason",
+          "value"
+        ],
+        "title": "PerformanceOmission",
         "type": "object"
       },
       "PerformancePoint": {
@@ -4685,6 +4813,24 @@
     "/api/performance": {
       "get": {
         "operationId": "performance_api_performance_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "on",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "On"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -4695,6 +4841,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Performance"

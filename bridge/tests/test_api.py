@@ -150,6 +150,69 @@ workspace = "{tmp_path / 'nowhere-WealthLens-data'}"
     assert ghost["workspaces"][0]["availability"] == "missing"
 
 
+def test_performance_carries_the_envelope_and_the_chart_payload(app_and_client):
+    """B2: `/api/performance` must carry the same honesty envelope every other read does — `as_of`,
+    `is_partial`, `excluded`, `provenance` — and the pre-summed chart payload the UI renders verbatim."""
+    _, client = app_and_client
+    body = client.get("/api/performance").json()
+    assert body["is_partial"] is False and body["as_of"]
+    assert body["provenance"]["reporting_currency"] == "INR"
+    assert body["total"] == {"amount": "3500.00", "currency": "INR"}
+    assert body["breakup"] and all("share" in b for b in body["breakup"])
+    # B3: the class vocabulary is published, ordered, so the UI keeps no copy
+    assert any(c["asset_class"] == "listed_equity" for c in body["classes"])
+
+
+def test_performance_accepts_a_point_in_time(app_and_client):
+    """The breakup values at a stated date, like every other read — not silently at today."""
+    _, client = app_and_client
+    body = client.get("/api/performance?on=2026-07-31").json()
+    assert body["as_of"] == "2026-07-31"
+
+
+def test_performance_names_an_excluded_store_rather_than_charting_it_away(tmp_path, make_workspace):
+    """B2, at the HTTP boundary: an unreadable store is in `excluded` and the charts say they are partial."""
+    a = make_workspace("alpha", {"A Share": 1000})
+    mf = tmp_path / "family.toml"
+    mf.write_text(f'[family]\nreporting_currency = "INR"\n\n[[entity]]\nid = "alpha"\nworkspace = "{a}"\n\n'
+                  f'[[entity]]\nid = "ghost"\nworkspace = "{tmp_path / "nowhere-WealthLens-data"}"\n')
+    client = TestClient(create_app(mf, token="t"), headers={"host": HOST})
+    body = client.get("/api/performance").json()
+    assert body["is_partial"] is True
+    assert [e["entity_id"] for e in body["excluded"]] == ["ghost"]
+
+
+def _money_leaves(node, path="") -> list[tuple[str, object]]:
+    """Every {amount, currency}-shaped leaf under a response, with its path — so the Money-string invariant
+    can be walked over the NESTED chart fields (base/top/value/ticks/omitted), not just the top-level total."""
+    found = []
+    if isinstance(node, dict):
+        if set(node) == {"amount", "currency"}:
+            found.append((path, node))
+        else:
+            for k, v in node.items():
+                found.extend(_money_leaves(v, f"{path}.{k}"))
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            found.extend(_money_leaves(v, f"{path}[{i}]"))
+    return found
+
+
+def test_every_money_on_the_chart_payload_is_a_string_not_a_number(app_and_client):
+    """The reported-money contract, walked over the chart's NESTED fields. A JSON number is an IEEE double;
+    the store keeps DECIMAL(18,2) and every figure the charts print — total, each band's base/top, each axis
+    tick, each omitted value — must cross the wire as an exact string, or the boundary has a hole in it."""
+    _, client = app_and_client
+    body = client.get("/api/performance").json()
+    leaves = _money_leaves(body)
+    assert leaves, "the payload has money in it to check"
+    for path, m in leaves:
+        assert isinstance(m["amount"], str), f"{path} serialised money as a number"
+    # the fields the review named specifically are present and covered
+    paths = " ".join(p for p, _ in leaves)
+    assert ".base" in paths and ".top" in paths and ".axis_ticks" in paths
+
+
 def test_granularity_is_stated_on_every_read(app_and_client):
     _, client = app_and_client
     assert client.get("/api/networth").json()["granularity"] == "aggregate"

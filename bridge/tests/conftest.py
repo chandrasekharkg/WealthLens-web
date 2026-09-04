@@ -25,6 +25,7 @@ def make_workspace(tmp_path):
 
     def _build(name: str, holdings: dict[str, float] | None = None, *,
                owner: str | None = None, as_of: str = "2026-06-30",
+               classes: dict[str, str] | None = None,
                cards: dict | None = None) -> pathlib.Path:
         ws = tmp_path / f"{name}-WealthLens-data"
         ws.mkdir(parents=True)
@@ -39,8 +40,9 @@ def make_workspace(tmp_path):
                     "VALUES ('src:test', 'file', 'test', 'test')")
         for i, (label, value) in enumerate((holdings or {}).items()):
             iid = f"inst:{name}:{i}"
+            asset_class = (classes or {}).get(label, "listed_equity")   # per-holding class; equity by default
             con.execute("INSERT INTO instruments (instrument_id, name, asset_class, source_id) "
-                        "VALUES (?, ?, 'listed_equity', 'src:test')", [iid, label])
+                        "VALUES (?, ?, ?, 'src:test')", [iid, label, asset_class])
             con.execute("INSERT INTO position_snapshots "
                         "(instrument_id, account_id, as_of, value_inr, source, source_id) "
                         "VALUES (?, ?, CAST(? AS DATE), ?, 'stmt', 'src:test')",

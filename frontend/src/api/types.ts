@@ -591,6 +591,33 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AssetClassInfo
+         * @description One asset class in the engine's published vocabulary — the SINGLE source the UI colours, labels, and
+         *     orders a chart from (it no longer keeps its own copy). `order` is the stable rank a colour is assigned by;
+         *     `category` and `group` let a surface segregate consistently.
+         */
+        AssetClassInfo: {
+            /** Asset Class */
+            asset_class: string;
+            /**
+             * Category
+             * @description asset | liability
+             */
+            category?: string | null;
+            /**
+             * Group
+             * @description cash | equity | fixed_income | funds | retirement | …
+             */
+            group?: string | null;
+            /** Label */
+            label?: string | null;
+            /**
+             * Order
+             * @description Stable rank — the UI assigns a colour by this, not by a hard-coded list
+             */
+            order: number;
+        };
+        /**
          * Availability
          * @description Why a workspace can or cannot be read right now. The order is the order a caller should check.
          * @enum {string}
@@ -1545,9 +1572,16 @@ export interface components {
         /**
          * Performance
          * @description The portfolio, for the charts: the current value breakup and the monthly value series per class.
-         *     Every figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI.
+         *     Every figure the charts REPORT (total, share, axis ticks, stack edges) is computed here, not the UI. It
+         *     carries the honesty envelope every other read does — `as_of`, `is_partial`, `excluded`, `provenance` — so
+         *     an unreadable or wrongly-owned store is NAMED rather than silently missing from both charts.
          */
         Performance: {
+            /**
+             * As Of
+             * @description The date the breakup was valued at
+             */
+            as_of?: string | null;
             /** @description Growth-chart Y-axis maximum */
             axis_max?: components["schemas"]["Money"] | null;
             /**
@@ -1561,6 +1595,30 @@ export interface components {
              * @default []
              */
             breakup: components["schemas"]["PerformanceBucket"][];
+            /**
+             * Classes
+             * @description The engine's asset-class vocabulary the UI colours/labels/orders from
+             * @default []
+             */
+            classes: components["schemas"]["AssetClassInfo"][];
+            /**
+             * Excluded
+             * @default []
+             */
+            excluded: components["schemas"]["Excluded"][];
+            /**
+             * Is Partial
+             * @description True when a declared entity could not be included
+             * @default false
+             */
+            is_partial: boolean;
+            /**
+             * Omitted
+             * @description Classes the growth line leaves out (real estate &c.) — the donut caveat
+             * @default []
+             */
+            omitted: components["schemas"]["PerformanceOmission"][];
+            provenance: components["schemas"]["Provenance"];
             /** Reporting Currency */
             reporting_currency: string;
             /**
@@ -1584,6 +1642,23 @@ export interface components {
              * @default 0
              */
             share: number;
+            value: components["schemas"]["Money"];
+        };
+        /**
+         * PerformanceOmission
+         * @description One asset class the growth top-line leaves OUT — reported, never dropped silently. A deliberate lumpy
+         *     class (real estate) carries its reason; its value is stated so the growth line reconciles with the donut:
+         *     Σ(growth top at the last date) = total − Σ(omitted).
+         */
+        PerformanceOmission: {
+            /** Asset Class */
+            asset_class: string;
+            /**
+             * Reason
+             * @description Why it is not stacked — a lumpy mark, or no monthly series in the window
+             */
+            reason: string;
+            /** @description Its current value (in the donut), so the top-line reconciles */
             value: components["schemas"]["Money"];
         };
         /**
@@ -2563,7 +2638,9 @@ export interface operations {
     };
     performance_api_performance_get: {
         parameters: {
-            query?: never;
+            query?: {
+                on?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2577,6 +2654,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Performance"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
