@@ -57,8 +57,10 @@ cd frontend && npm run e2e:install   # once
 npm run e2e
 ```
 
-**GitHub CI runs once a day**, not per push (and on demand from the Actions tab). The local hooks are the
-real gate; the scheduled run adds what a hook cannot afford — the E2E flows and a clean-machine install.
+**GitHub CI runs the PII/secret scan on every PR** (a contributor's PR can't run the local hooks), and the
+heavier build/test/E2E jobs **once a day** and on demand from the Actions tab. The local hooks are the real
+gate for build/test; the scheduled run adds what a hook cannot afford — the E2E flows and a clean-machine
+install.
 
 ## What it does
 
