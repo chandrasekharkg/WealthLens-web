@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { openOperationsTab } from "./setup/nav";
+
 /**
  * Promotion is unreachable without its completed check (ADR-0005/0006).
  *
@@ -14,7 +16,7 @@ import { expect, test } from "@playwright/test";
 
 test("promotion cannot be reached, or requested, without a reviewed rebuild", async ({ page, request }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Operations" }).click();
+  await openOperationsTab(page, "Operations");
 
   // 1. The UI does not offer it. There is no confirmation field to fill in, because there is nothing to
   //    have agreed to.
@@ -34,7 +36,7 @@ test("promotion cannot be reached, or requested, without a reviewed rebuild", as
 
 test("a rebuild makes promotion available, and the confirmation still has to be typed", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Operations" }).click();
+  await openOperationsTab(page, "Operations");
   await page.getByRole("button", { name: "Rebuild" }).click();
 
   const confirm = page.getByLabel("Type e2e to confirm");

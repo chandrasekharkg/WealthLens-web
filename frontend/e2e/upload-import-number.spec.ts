@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "@playwright/test";
 
+import { openOperationsTab } from "./setup/nav";
+
 /**
  * Upload → import → a number appears.
  *
@@ -28,8 +30,9 @@ test("a statement uploaded in the browser becomes a figure on the dashboard", as
   await expect(page.getByRole("heading", { name: /trustworthy/i })).toBeVisible();
   await expect(page.getByTestId("net-worth-total")).not.toContainText(ACQ_COST);
 
-  await page.getByRole("button", { name: "Import" }).click();
-  await page.getByLabel("Choose statement files").setInputFiles(FIXTURE);
+  await openOperationsTab(page, "Import");
+  // the dropzone label IS the file input's label (Import.tsx `htmlFor="files"`)
+  await page.getByLabel("Drop statements here, or click to choose").setInputFiles(FIXTURE);
   await expect(page.getByText(/is in the inbox/)).toBeVisible();
 
   await page.getByRole("button", { name: "Import now" }).click();

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import pathlib
 
-import duckdb
 import pytest
 
 
@@ -28,6 +27,9 @@ def test_the_bridge_never_opens_a_store_raw(make_workspace):
 
 
 def test_the_bridge_opens_stores_read_only(make_workspace):
+    # engine-less CI (the `bridge` job) has neither the engine nor duckdb: import lazily so the grep-guard above
+    # still runs there and only THIS test skips (a module-level `import duckdb` broke collection, 2026-09-05)
+    duckdb = pytest.importorskip("duckdb", reason="engine-less run: no duckdb, nothing to open")
     from wealthlens import workspace as wl_workspace
 
     ws = make_workspace("alpha", {"A Share": 100})

@@ -128,3 +128,12 @@ jobs:
       # waits forever for a button that never renders — this job is its own checkout, so build here.
       - run: npm run build
       - run: npm run e2e
+      # A Playwright timeout on CI says only "waiting for button X" — the page snapshot it captured
+      # (test-results/**/error-context.md + traces) is what actually says WHY. Keep it when a flow fails.
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7

@@ -497,9 +497,15 @@ function Verdict({
   // action (locked / unrecognised). The rest are the re-walk of an already-loaded corpus (0 new rows); a
   // single-file import otherwise printed a line per provider with "0". Collapse them into a count — never
   // dropped, openable below (no statement the engine touched disappears).
+  // A file is "quiet" only when the engine SAID nothing changed: skipped, or re-parsed with an explicit
+  // 0 new rows. An `imported` file whose row count the engine did not report (overlays such as
+  // real_estate.json report properties/snapshots in their message, not `loaded`) is a change the household
+  // must see — folding it under "already up to date" told a user "nothing new" about a file just imported
+  // (the upload e2e flow caught this on 2026-09-05).
   const changed = files.filter(
     (file) =>
       (file.loaded ?? 0) > 0 ||
+      (file.status === "imported" && (file.loaded === undefined || file.loaded === null)) ||
       (file.warnings?.length ?? 0) > 0 ||
       Boolean(file.error) ||
       (file.status !== undefined && file.status !== "imported" && file.status !== "skipped"),

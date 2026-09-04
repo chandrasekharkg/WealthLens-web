@@ -59,6 +59,31 @@ describe("the import verdict collapses the re-walk", () => {
     // … and the three unchanged re-walk files are folded into a count, not three "0" lines
     expect(screen.getByText("Already up to date (3)")).toBeTruthy();
   });
+
+  it("never folds an imported file whose row count the engine did not report into 'already up to date'", async () => {
+    // an overlay (real_estate.json) reports "properties 1, snapshots 1" in its message and `loaded: null`;
+    // that is an import, not a re-walk — it must be shown up front, and the quiet fold must not claim
+    // "nothing new" about it (the e2e upload flow went red on exactly this, 2026-09-05)
+    const job = {
+      id: "j3", verb: "import", entity_id: "self", state: "finished", outcome: "imported",
+      gate: null, message: null, changed_something: true, exit_code: 0,
+      result: { imported: 1, attention: 0, files: [
+        { file: "real_estate.json", status: "imported", loaded: null, message: "imported — properties 1" },
+        { file: "README.txt", status: "skipped", loaded: null },
+      ] },
+    };
+    vi.stubGlobal("fetch", vi.fn((url: string) => {
+      const body = url.startsWith("/api/jobs") ? job : {};
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(body) } as Response);
+    }));
+    render(<Import entities={entities} format={formatter()} />);
+    fireEvent.click(screen.getByText("Import now"));
+    // two tables: the up-front one and the folded one (jsdom does not hide <details> content)
+    await waitFor(() => expect(screen.getAllByRole("table").length).toBeGreaterThan(0));
+    expect(screen.getAllByRole("table")[0]?.textContent).toContain("real_estate.json");
+    expect(screen.queryByText(/already up to date — nothing new/i)).toBeNull();
+    expect(screen.getByText("Already up to date (1)")).toBeTruthy();   // only the skipped README folds
+  });
 });
 
 describe("adding multiple files", () => {
