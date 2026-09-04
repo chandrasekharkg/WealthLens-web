@@ -1,6 +1,9 @@
 # ADR-0004 — The bridge: a thin read-only Python API, and a phased security posture
 
-**Status:** ACCEPTED 2026-08-22 (phase 1); phase 2 requires its own superseding ADR before any code
+**Status:** ACCEPTED 2026-08-22 (phase 1); phase 2 requires its own superseding ADR before any code ·
+**SUPERSEDED on the LAN / phase-2 question by [ADR-0020](0020-lan-serving-and-write-surface.md) (2026-09-04)** —
+LAN serving via `WLW_HOST` shipped; ADR-0020 records the as-built trusted-LAN posture. The phase-1 controls
+below (loopback default, Host/Origin guard, session token, no store writes) still stand.
 
 ## Context
 

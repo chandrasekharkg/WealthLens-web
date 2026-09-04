@@ -19,10 +19,12 @@ custodian**; the boundary between the two is this project's first law.
   No combined store, no materialized family view, no cross-entity rows. Every aggregated figure remains
   attributable to its entity ("whose is this?" must always be answerable) — this preserves WLC's
   federated-store semantics (WLC ADR-0008) and its per-entity encryption boundary.
-- **Local-first, private by default.** Binds to 127.0.0.1; zero telemetry; no CDN assets, no external
-  fonts, nothing leaves the machine. Serving beyond localhost (LAN / a family member's device) is a
-  designed capability behind its own ADR **with authentication** — never a config flag on an unauthenticated
-  server.
+- **Local-first, private by default.** Binds to `127.0.0.1` by default; zero telemetry; no CDN assets, no
+  external fonts, nothing leaves the machine. LAN serving (a family member's device on the home network)
+  ships as an **off-by-default** capability via the `WLW_HOST` config — but only under a **trusted-home-LAN**
+  assumption: the server currently has **no per-user authentication**, and TLS / per-viewer authorization
+  remain open. See [ADR-0020](decisions/0020-lan-serving-and-write-surface.md) (which supersedes ADR-0004's
+  "phase 2 doesn't exist" stance).
 - **Keys never reach the browser.** Store decryption happens only in the bridge process, with the same
   workspace/key resolution WLC itself uses.
 - **The bridge API is honest about provenance.** WLC's `basis` / staleness / footing signals flow through
@@ -30,8 +32,9 @@ custodian**; the boundary between the two is this project's first law.
 
 ## Layout
 
-- `bridge/` — the read-only Python API over `lens.py` (per-entity access, aggregation, family.toml, the
-  import trigger). Depends on `wealthlens` (WLC) as a library.
+- `bridge/` — the Python API over `lens.py` (per-entity store reads, aggregation, family.toml), plus a
+  closed, enumerated set of side-effecting hand-offs to WLC (running WLC verbs as subprocesses, upload/inbox,
+  config/secret writes — no endpoint writes a WLC store). Depends on `wealthlens` (WLC) as a library.
 - `frontend/` — the SPA (stack per ADR-0003). Talks ONLY to the bridge.
 - `family.example.toml` — the manifest format, documented by example.
 

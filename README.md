@@ -9,10 +9,12 @@ aggregator** — guided configuration instead of editing TOML, dashboards instea
 family view over stores that remain strictly separate underneath.
 
 > **Division of duties, in one line:** WLC owns the truth; WLW shows it.
-> WLW never parses a statement, never writes a store, and holds **no database** — it is a stateless
-> read-only presenter over [`lens.py`](https://github.com/chandrasekharkg/WealthLens-core), plus one
-> durable artifact: the **family manifest** (`family.toml` — which workspaces exist, whose they are, and
-> how to present them).
+> WLW never parses a statement and never writes a WLC store, and holds **no database** of its own — it is a
+> thin presenter over [`lens.py`](https://github.com/chandrasekharkg/WealthLens-core) whose only side effects
+> are a small, **closed set of hand-offs to WLC** (running WLC verbs, depositing an upload, writing a
+> config/secret value by WLC's own convention — see [`bridge-api`](openspec/specs/bridge-api/spec.md)), plus
+> one durable artifact of its own: the **family manifest** (`family.toml` — which workspaces exist, whose they
+> are, and how to present them).
 
 ## Working on this repo
 
@@ -78,24 +80,31 @@ real gate; the scheduled run adds what a hook cannot afford — the E2E flows an
 
 ## What it deliberately is not
 
-- **Not a custodian.** No parsing, no ingestion logic, no schema, no store writes (the single exception:
-  triggering `wealthlens import` as a subprocess, which is WLC writing to its own store).
+- **Not a custodian.** No parsing, no ingestion logic, no schema, no WLC-store writes. The side-effecting
+  surface is a **closed, enumerated set** of hand-offs to WLC — running WLC verbs as subprocesses
+  (`import`/`rebuild`/`verify`/`diagnose`/…), depositing an upload into a workspace inbox, deleting a staged
+  inbox file, and writing a config/secret value by WLC's own convention — plus writing WLW's own manifest.
+  Each is WLC (or WLW's manifest) acting; none writes a WLC store from the bridge. See
+  [`bridge-api`](openspec/specs/bridge-api/spec.md).
 - **Not a database.** State = the WLC stores (theirs) + `family.toml` (ours) + ephemeral UI state.
-- **Not a cloud service.** Local-first, zero telemetry, nothing leaves the machine. Binding beyond
-  localhost (a family member's phone on the LAN) is a designed, ADR-gated step with an auth story — not a
-  default.
+- **Not a cloud service.** Local-first, zero telemetry, nothing leaves the machine. It binds `127.0.0.1` by
+  default; **LAN serving** (a family member's phone on the home network) is a supported, **off-by-default**
+  capability via `WLW_HOST` — but only under a **trusted-LAN** assumption, with **no per-user authentication**
+  yet ([ADR-0020](openspec/decisions/0020-lan-serving-and-write-surface.md)).
 
 ## Architecture (two thin layers)
 
 ```
  frontend/   the SPA (setup, reports, cards,     — talks only to the bridge
              transactions, performance, family)
- bridge/     read-only Python API over lens.py  — per-entity store access, aggregation, family.toml
-             └─ one write-ish endpoint: POST /import → runs `wealthlens import` in a subprocess
+ bridge/     Python API over lens.py            — per-entity store reads, aggregation, family.toml
+             └─ + a closed set of side-effecting hand-offs to WLC (verb runs, upload, config writes)
 ```
 
 The stores are encrypted DuckDB files; their keys never reach a browser. The bridge opens each store
-**read-only** with the same workspace resolution WLC itself uses.
+**read-only** (no endpoint writes a store) with the same workspace resolution WLC itself uses; the
+side-effecting endpoints hand off to WLC verbs or write WLW's own manifest — see
+[`bridge-api`](openspec/specs/bridge-api/spec.md).
 
 ## Governance
 

@@ -24,16 +24,21 @@ follows from one sentence:
 
 ## Five load-bearing principles
 
-1. **Custodian/presenter split** — separate repo, API boundary, no store writes, no parsing.
-   → [ADR-0001](openspec/decisions/0001-custodian-presenter-split.md)
+1. **Custodian/presenter split** — separate repo, API boundary, **no WLC-store writes, no parsing**; side
+   effects are a closed, enumerated set of hand-offs to WLC (verb runs, upload, config/secret writes) plus
+   WLW's own manifest.
+   → [ADR-0001](openspec/decisions/0001-custodian-presenter-split.md) · [bridge-api](openspec/specs/bridge-api/spec.md)
 2. **No database** — stores + `family.toml` + ephemeral UI state; restart-surviving caches are prohibited.
    → [ADR-0002](openspec/decisions/0002-no-database.md)
 3. **One store per entity, aggregation at read time** — family views compose in memory and every figure
    stays attributable; WLC's federation semantics (its ADR-0008) are the foundation.
    → [family-aggregation](openspec/specs/family-aggregation/spec.md)
-4. **Keys never reach the browser; localhost hardened; LAN is ADR-gated** — Host/Origin checks + session
-   token now; any bind beyond loopback requires the phase-2 ADR with a real auth model.
-   → [ADR-0004](openspec/decisions/0004-bridge-and-security-posture.md) ·
+4. **Keys never reach the browser; loopback-hardened; LAN serving is trusted-LAN** — Host/Origin checks +
+   a per-session token on every state-changing endpoint; loopback by default. LAN serving via `WLW_HOST`
+   **ships (off by default)** under a **trusted-home-LAN** assumption — there is **no per-user auth yet**, and
+   TLS / per-viewer authorization remain open.
+   → [ADR-0020](openspec/decisions/0020-lan-serving-and-write-surface.md) (supersedes ADR-0004 on LAN) ·
+   [ADR-0004](openspec/decisions/0004-bridge-and-security-posture.md) ·
    [bridge-api](openspec/specs/bridge-api/spec.md) ·
   [export-and-print](openspec/specs/export-and-print/spec.md) ·
   [identity-and-settings](openspec/specs/identity-and-settings/spec.md)
@@ -72,7 +77,8 @@ follows from one sentence:
   [0016 currency & point-in-time](openspec/decisions/0016-currency-and-point-in-time.md) ·
   [0017 fleet uniformity](openspec/decisions/0017-fleet-uniformity.md) ·
   [0018 backend-first testing](openspec/decisions/0018-backend-first-testing.md) ·
-  [0019 secret exposure](openspec/decisions/0019-secret-exposure.md)
+  [0019 secret exposure](openspec/decisions/0019-secret-exposure.md) ·
+  [0020 LAN serving & write surface](openspec/decisions/0020-lan-serving-and-write-surface.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·
