@@ -116,6 +116,11 @@ architecturally significant choices are [ADRs](openspec/decisions/). Same licens
 
 ## Status
 
+> **Parked TODOs (2026-09-05), pending Krishnu's feedback on the latest build:** the web half of the adoption
+> review — a per-PR test gate with hooks and branch protection, daily-CI failure alerting, an add-a-member
+> flow, a `gaps` summary on Operations, and a one-command update for household boxes. The list with detail
+> lives in WealthLens-core's `openspec/ROADMAP.md` → "Loose TODOs" → "Parked until Krishnu…".
+
 **Runs natively** — `python bootstrap.py` (Python 3.11/3.12), no Docker required. A container for the
 always-on family-aggregator deployment is designed but deliberately deferred until real usage says what
 belongs in it ([ADR-0009](openspec/decisions/0009-distribution-and-deployment.md)).
