@@ -323,7 +323,7 @@ export const en = {
   "column.from": "From",
 
   "diary.title": "{name} — full transcript",
-  "diary.subtitle": "Every line the depository statements carried for this holding, in order — buys and sells, pledges and their release, settlement legs, and the balance breakdown. The role says why each did or didn't move ownership.",
+  "diary.subtitle": "Every line the depository statements carried for this holding, newest first — buys and sells, pledges and their release, settlement legs, and the balance breakdown. The role says why each did or didn't move ownership.",
   "diary.open": "Transcript",
   "diary.none": "No depository transcript for this holding.",
   "diary.close": "Close",

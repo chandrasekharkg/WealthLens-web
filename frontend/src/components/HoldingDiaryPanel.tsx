@@ -185,7 +185,14 @@ export function HoldingDiaryPanel({
   // preference is never overwritten, only overridden while a hidden line is being pointed at.
   const targetFolded = focusDiaryId ? folded.some((r) => r.diary_id === focusDiaryId) : true;
   const effectiveCollapsed = collapsed && targetFolded;
-  const rows: DiaryRow[] = effectiveCollapsed ? folded : lines;
+  // Newest first (KG, 2026-09-05): the transcript is read from "what happened last" backwards, and with a page
+  // of 50 the chronological order put a decade-old buy on page 1 and last month's pledge on page 4. The fold is
+  // computed on the chronological list (runs are adjacency, which a reversal preserves) and reversed AFTER, so
+  // a run's from/to dates stay chronological inside its label.
+  const rows: DiaryRow[] = useMemo(
+    () => [...(effectiveCollapsed ? folded : lines)].reverse(),
+    [effectiveCollapsed, folded, lines],
+  );
 
   const [source, setSource] = useState<string | null>(null);
   const openSource = useCallback((row: DiaryLine) => {

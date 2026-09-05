@@ -162,4 +162,18 @@ describe("HoldingDiaryPanel", () => {
     await waitFor(() =>
       expect(screen.getByText("No depository transcript for this holding.")).toBeTruthy());
   });
+
+
+  it("lists the transcript newest first — the latest line is the first data row", async () => {
+    // fixture lines: 2026-05-10 buy, 2026-05-11 custody, 2026-05-31 balance → the balance leads, the buy is last
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve(DIARY) } as Response)));
+    render(<HoldingDiaryPanel entity="self" instrument="INE000A01001" name="ALPHA LTD"
+      format={formatter()} onClose={() => {}} />);
+    const table = await screen.findByRole("table", { name: /full transcript/ });
+    const dataRows = Array.from(table.querySelectorAll("tbody tr"));
+    expect(dataRows.length).toBe(3);
+    expect(dataRows[0]!.textContent).toContain("31 May 2026");
+    expect(dataRows[2]!.textContent).toContain("10 May 2026");
+  });
 });
