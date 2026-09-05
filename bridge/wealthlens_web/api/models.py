@@ -567,13 +567,16 @@ class BecameFact(BaseModel):
 
 
 class RawParseLine(BaseModel):
-    """One extracted line, placed by geometry and reduced to its masked shape. NO raw content — the shape and
-    the box are safe to share; the real text lives only on the PDF the browser renders locally."""
+    """One extracted line, placed by geometry, with its masked shape and — for this LOCAL view — its raw text.
+    The shape and the box are what may leave the machine (the copy-for-issue report uses only those); the
+    text is for the person reading their own statement beside its interpretation."""
 
     bbox: dict = Field(description="Word bounding box in PDF points: {x0, x1, top, bottom}")
     fate: str = Field(description="interpreted | not_interpreted | dropped | furniture")
     reason: str | None = None
     shape: str = Field(description="The masked shape (# per digit, <ISIN>, <W> per word) — safe to share")
+    text: str | None = Field(default=None, description="The raw extracted line, for the local side-by-side view "
+                             "only — never put this in a report or a file that leaves the machine")
     became: BecameFact | None = Field(default=None, description="For an interpreted line: WHAT fact it produced "
                                       "(the 2a chip) — table/kind/bound-field-names, structure only, no values")
 

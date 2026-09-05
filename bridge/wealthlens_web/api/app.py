@@ -440,9 +440,11 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
     @app.post("/api/workspace/{entity_id}/raw-parse", response_model=models.RawParseView)
     def raw_parse_view(entity_id: str, body: dict) -> dict:
         """The geometry-aware fate of every extracted line of a statement — the RIGHT half of the
-        PDF-beside-interpretation view. Structure only (masked shapes + boxes); the real values live on the
-        PDF the browser renders from `/document`. Runs the `raw-parse` verb in the workspace context, so WLC
-        owns password resolution (custodian/presenter boundary, constitution #10)."""
+        PDF-beside-interpretation view. Each line carries its masked shape AND (`--with-text`) its raw text:
+        this is the owner's own machine and the same words are on the page image beside it, so hiding them
+        here only made the pane unreadable (`<W×3>` for a wrapped company name). The copy-for-issue report the
+        UI builds still uses the shape alone. Runs the `raw-parse` verb in the workspace context, so WLC owns
+        password resolution (custodian/presenter boundary, constitution #10)."""
         m = _manifest()
         target = _target_workspace(m, entity_id, body.get("workspace"))
         try:
@@ -451,7 +453,8 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
                 provider=body.get("provider"), filename=body.get("filename"))
         except collateral.DocumentNotFound as e:
             raise HTTPException(status_code=404, detail={"error": "document", "reason": str(e)}) from None
-        job = app.state.runner.run("raw-parse", entity_id=entity_id, workspace=target, args=[str(real)])
+        job = app.state.runner.run("raw-parse", entity_id=entity_id, workspace=target,
+                                   args=[str(real), "--with-text"])
         if job.outcome is not verbs.Outcome.OK or not isinstance(job.result, dict):
             raise HTTPException(status_code=422, detail={"error": "raw-parse", "reason":
                                 job.message or "this file is not a depository CAS the raw-parse view reads yet"})

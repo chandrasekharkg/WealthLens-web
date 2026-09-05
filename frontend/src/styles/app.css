@@ -1231,6 +1231,10 @@ tr[data-focused="true"] > td { background: var(--accent-soft); animation: rowFla
 .rawparse__lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .rawparse__line { display: flex; gap: 0.4rem; align-items: baseline; padding: 0.1rem 0.25rem; border-radius: 3px; }
 .rawparse__line code { font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* the raw line leads (this is the owner's own statement, on their own machine); its masked shape — what a
+   copied report carries — sits beside it, muted */
+.rawparse__text { font-size: 0.74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+.rawparse__line code.rawparse__shape { font-size: 0.64rem; color: var(--muted, #6b7280); opacity: 0.7; flex: 0 2 auto; }
 .rawparse__line.is-on { background: rgba(59,130,246,0.14); }
 .rawparse__line--flag { background: rgba(239,68,68,0.12); }
 .rawparse__line--sibling { background: rgba(245,158,11,0.1); }  /* amber: booked by an overlapping sibling */

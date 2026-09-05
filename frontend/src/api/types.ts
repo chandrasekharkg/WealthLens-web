@@ -532,9 +532,11 @@ export interface paths {
         /**
          * Raw Parse View
          * @description The geometry-aware fate of every extracted line of a statement — the RIGHT half of the
-         *     PDF-beside-interpretation view. Structure only (masked shapes + boxes); the real values live on the
-         *     PDF the browser renders from `/document`. Runs the `raw-parse` verb in the workspace context, so WLC
-         *     owns password resolution (custodian/presenter boundary, constitution #10).
+         *     PDF-beside-interpretation view. Each line carries its masked shape AND (`--with-text`) its raw text:
+         *     this is the owner's own machine and the same words are on the page image beside it, so hiding them
+         *     here only made the pane unreadable (`<W×3>` for a wrapped company name). The copy-for-issue report the
+         *     UI builds still uses the shape alone. Runs the `raw-parse` verb in the workspace context, so WLC owns
+         *     password resolution (custodian/presenter boundary, constitution #10).
          */
         post: operations["raw_parse_view_api_workspace__entity_id__raw_parse_post"];
         delete?: never;
@@ -1798,8 +1800,9 @@ export interface components {
         };
         /**
          * RawParseLine
-         * @description One extracted line, placed by geometry and reduced to its masked shape. NO raw content — the shape and
-         *     the box are safe to share; the real text lives only on the PDF the browser renders locally.
+         * @description One extracted line, placed by geometry, with its masked shape and — for this LOCAL view — its raw text.
+         *     The shape and the box are what may leave the machine (the copy-for-issue report uses only those); the
+         *     text is for the person reading their own statement beside its interpretation.
          */
         RawParseLine: {
             /**
@@ -1823,6 +1826,11 @@ export interface components {
              * @description The masked shape (# per digit, <ISIN>, <W> per word) — safe to share
              */
             shape: string;
+            /**
+             * Text
+             * @description The raw extracted line, for the local side-by-side view only — never put this in a report or a file that leaves the machine
+             */
+            text?: string | null;
         };
         /** RawParsePage */
         RawParsePage: {

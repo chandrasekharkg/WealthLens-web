@@ -391,7 +391,7 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
                     onClick={() => eff !== "interpreted" && eff !== "sibling" && toggle(pageNo, i, ln.fate)}
-                    title={`${d.mark} ${d.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.shape}\n${eff === "interpreted" && ln.became ? `→ became ${becameLabel(ln.became)}` : eff !== "interpreted" ? d.hint : ""}`}
+                    title={`${d.mark} ${d.label}${ln.reason ? ` (${ln.reason})` : ""}\n${ln.text ? `${ln.text}\n` : ""}${ln.shape}\n${eff === "interpreted" && ln.became ? `→ became ${becameLabel(ln.became)}` : eff !== "interpreted" ? d.hint : ""}`}
                   />
                 );
               })}
@@ -430,7 +430,16 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
                       {d.mark}
                     </button>
                   )}
-                  <code>{ln.shape}</code>
+                  {ln.text ? (
+                    <>
+                      <span className="rawparse__text">{ln.text}</span>{" "}
+                      <code className="rawparse__shape" title="the masked shape — what the copy-for-issue report carries">
+                        {ln.shape}
+                      </code>
+                    </>
+                  ) : (
+                    <code>{ln.shape}</code>
+                  )}
                   {eff === "interpreted" && ln.became && (
                     <span className="rawparse__became" title="what this line became in the store — table · kind (the fields that bound). Structure only; the values are on the page image.">
                       → {becameLabel(ln.became)}

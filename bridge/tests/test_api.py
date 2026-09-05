@@ -496,3 +496,28 @@ def test_the_web_passes_the_waivers_and_the_quarantine_flag_to_the_engine(app_an
     r = client.post("/api/jobs", json={"verb": "promote", "entity": "alpha", "confirm": "alpha",
                                        "allow": ["schema"]}, headers=hdr)
     assert r.status_code == 400 and r.json()["detail"]["error"] == "override"
+
+
+def test_the_raw_parse_view_asks_the_engine_for_the_raw_text_and_passes_it_through(app_and_client, monkeypatch, tmp_path):
+    """The right pane shows what was parsed, not `<W×3>`: the bridge runs `raw-parse --with-text` and the line
+    model carries `text`. (The copy-for-issue report is built in the UI from `shape` alone.)"""
+    from wealthlens_web.core import collateral
+    app, client = app_and_client
+    seen: list = []
+    fake = types.SimpleNamespace(outcome=verbs.Outcome.OK, message=None, result={
+        "summary": {"interpreted": 1}, "view": {"classified": True, "method": "cas", "pages": [
+            {"page": 1, "lines": [{"bbox": {"x0": 1, "x1": 2, "top": 3, "bottom": 4}, "fate": "interpreted",
+                                   "reason": None, "shape": "<ISIN> <W×2>", "text": "INE000A01001 SAMPLE BANK"}]}]}})
+
+    def fake_run(verb, *, entity_id, workspace, args=None):
+        seen.append((verb, list(args or [])))
+        return fake
+    monkeypatch.setattr(app.state.runner, "run", fake_run)
+    doc = tmp_path / "x.pdf"
+    doc.write_bytes(b"%PDF")
+    monkeypatch.setattr(collateral, "resolve_document_path", lambda *a, **k: doc)
+    r = client.post("/api/workspace/alpha/raw-parse", json={"filename": "x.pdf"}, headers={"x-wlw-token": "test-token"})
+    assert r.status_code == 200, r.text
+    assert seen[0][0] == "raw-parse" and "--with-text" in seen[0][1]
+    line = r.json()["pages"][0]["lines"][0]
+    assert line["text"] == "INE000A01001 SAMPLE BANK" and line["shape"] == "<ISIN> <W×2>"
