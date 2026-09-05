@@ -104,4 +104,23 @@ describe("the right pane shows the raw line beside its shape", () => {
     expect(body).not.toContain("SAMPLE BANK");
     expect(body).not.toContain("SAMPLE.NSE");                  // the folded tail is not a gap
   });
+
+  it("carries each flagged line's neighbours in the replayable geometry format", async () => {
+    // the format WealthLens-core's tests/geometry_replay.py parses: - `shape`  — page N, x a–b, y t.t  ⚑ flagged | (fate)
+    vi.stubGlobal("fetch", stubFetch());
+    const written: string[] = [];
+    Object.assign(navigator, { clipboard: { writeText: (t: string) => { written.push(t); return Promise.resolve(); } } });
+    await openTheStatement();
+    fireEvent.click(screen.getByText(/Copy for a GitHub issue/));
+    await waitFor(() => expect(written.length).toBe(1));
+    const body = written[0]!;
+    expect(body).toContain("### Context — the lines around each flagged one (masked)");
+    const lineRe = /^- `(.+?)` {2}— page (\d+), x (\d+)–(\d+), y (\d+\.\d)( {2}⚑ flagged| {2}\((\w+)\))/;
+    const contextLines = body.split("\n").filter((l) => l.startsWith("- `") && lineRe.test(l));
+    // the flagged line, and the two interpreted rows above it, all in the one parseable shape
+    expect(contextLines.some((l) => l.includes("`<DATE> <W×3> #,###.##`") && l.includes("⚑ flagged"))).toBe(true);
+    expect(contextLines.some((l) => l.includes("`<ISIN> <W×2> ##.## #,### ###.## #,##,###.##`") && l.includes("(interpreted)"))).toBe(true);
+    expect(contextLines.some((l) => l.includes("y 108.5"))).toBe(true);   // one-decimal y survives — the fold decides by a few points
+    expect(body).not.toMatch(/SAMPLE|MISSED ROW|INE000A01001 SAMPLE/); // still no text anywhere in the body
+  });
 });

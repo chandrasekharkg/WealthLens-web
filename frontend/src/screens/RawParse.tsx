@@ -263,18 +263,39 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
 
   // Assemble the PII-free GitHub-issue body: the flagged (⚑) lines across ALL pages, as masked shape + page +
   // box. Nothing but structure leaves — the raw text never enters this.
+  // One report line: shape + box in PDF points, the format `tests/geometry_replay.py` (WLC) parses back into
+  // word geometry — so a flagged report can be replayed as a regression test. y keeps one decimal because the
+  // fold decides by gaps of a few points; `⚑ flagged` marks the reporter's lines, `(fate)` the context.
+  const reportLine = (ln: RawParseLine, page: number, flaggedLine: boolean): string => {
+    const b = ln.bbox as { x0: number; x1: number; top: number };
+    const tail = flaggedLine ? "  ⚑ flagged" : `  (${ln.fate})`;
+    return (
+      `- \`${ln.shape}\`  — page ${page}, x ${Math.round(b.x0)}–${Math.round(b.x1)}, y ${b.top.toFixed(1)}` +
+      tail +
+      (flaggedLine && ln.reason ? ` (${ln.reason})` : "")
+    );
+  };
+  const CONTEXT = 3; // lines above and below a flagged one — enough to hold the row it was mis-filed against
+
   const issueBody = (v: RawParseView): string => {
     const flagged: string[] = [];
+    const context: string[] = [];
     for (const pg of v.pages ?? []) {
-      (pg.lines ?? []).forEach((ln, idx) => {
+      const pageLines = pg.lines ?? [];
+      const flaggedIdx = new Set<number>();
+      pageLines.forEach((ln, idx) => {
         if (effOf(ln.fate, pg.page, idx) === "flag") {
-          const b = ln.bbox as { x0: number; x1: number; top: number };
-          flagged.push(
-            `- \`${ln.shape}\`  — page ${pg.page}, x ${Math.round(b.x0)}–${Math.round(b.x1)}, y ${Math.round(b.top)}` +
-              (ln.reason ? ` (${ln.reason})` : ""),
-          );
+          flaggedIdx.add(idx);
+          flagged.push(reportLine(ln, pg.page, true));
         }
       });
+      if (flaggedIdx.size === 0) continue;
+      const wanted = new Set<number>();
+      for (const i of flaggedIdx) for (let k = i - CONTEXT; k <= i + CONTEXT; k += 1) if (k >= 0 && k < pageLines.length) wanted.add(k);
+      for (const k of [...wanted].sort((a, b) => a - b)) {
+        const ln = pageLines[k]!;
+        context.push(reportLine(ln, pg.page, flaggedIdx.has(k)));
+      }
     }
     const sum = Object.entries((v.summary ?? {}) as Record<string, number>)
       .map(([k, n]) => `${k} ${n}`)
@@ -297,6 +318,14 @@ function StatementView({ entity, doc }: { entity: string; doc: Doc }) {
       ``,
       `### Reporter-flagged — lines that should be read but were not`,
       ...(flagged.length ? flagged : ["_(none flagged yet — flag the lines the reader missed, then copy again)_"]),
+      ...(context.length
+        ? [
+            ``,
+            `### Context — the lines around each flagged one (masked)`,
+            `Replayable: WealthLens-core \`tests/geometry_replay.py\` rebuilds word geometry from these lines.`,
+            ...context,
+          ]
+        : []),
     ].join("\n");
   };
   const copyIssue = async (v: RawParseView) => {
