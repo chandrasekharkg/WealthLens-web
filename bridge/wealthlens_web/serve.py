@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import sys
 
 from wealthlens_web.api.app import DEFAULT_HOST, DEFAULT_PORT, create_app
 
@@ -41,3 +42,7 @@ def bound_to() -> tuple[str, int]:
 
 _host, _port = bound_to()
 app = create_app(manifest_path(), host=_host, port=_port)
+# Said once, on the server's own console: the exact address to open. Any other name or port gets the
+# wrong-address page (security.wrong_address_page) — this line is where the right one comes from.
+print(f"WealthLens web: open http://{_host}:{_port}/ — exactly this address "
+      f"(WLW_HOST / WLW_PORT change it; the wealthlens-serve launcher sets both)", file=sys.stderr)

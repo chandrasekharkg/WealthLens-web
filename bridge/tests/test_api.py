@@ -6,6 +6,7 @@ visits can issue requests to 127.0.0.1 — so these tests are mostly about what 
 from __future__ import annotations
 
 import pathlib
+import types
 
 import pytest
 from fastapi.testclient import TestClient
@@ -415,3 +416,83 @@ def test_serve_reads_the_bound_address_from_the_environment(monkeypatch):
 
     monkeypatch.delenv(serve.PORT_ENV)
     assert serve.bound_to()[1] == 7788, "the default is the port the launcher uses"
+
+
+# ── the wrong-address page (adoption review 2026-09-05, item 1) ──────────────────────────────────────────────
+
+def test_a_person_at_the_wrong_address_is_told_the_right_one(tmp_path, make_workspace):
+    """A LAN member typing the IP instead of the name (or `localhost` for a name-bound instance) used to get a
+    blank page and `{"reason": "host"}`. The page itself — a SAFE navigation — now names the exact address."""
+    a = make_workspace("alpha", {"A": 1})
+    mf = tmp_path / "family.toml"
+    mf.write_text(f'[family]\nreporting_currency = "INR"\n\n[[entity]]\nid="alpha"\nworkspace="{a}"\n')
+    app = create_app(mf, host="aipc.local", port=8765, token="t")
+    wrong = TestClient(app, headers={"host": "192.168.1.20:8765"})
+    r = wrong.get("/")
+    assert r.status_code == 403 and r.headers["content-type"].startswith("text/html")
+    assert "http://aipc.local:8765" in r.text and "192.168.1.20:8765" in r.text
+    # …but an API call from the wrong address stays terse: the page teaches a person, not a script
+    r = wrong.get("/api/version")
+    assert r.status_code == 403 and r.json() == {"error": "refused", "reason": "host"}
+    # and a WRITE to the page path is never answered with the page (a safe GET is the only teachable moment)
+    assert wrong.post("/", json={}).status_code == 403 and "text/html" not in wrong.post("/", json={}).headers["content-type"]
+
+
+def test_the_two_loopback_spellings_are_the_same_place(tmp_path, make_workspace):
+    """`localhost` cannot be made to resolve anywhere but loopback, so accepting it beside 127.0.0.1 weakens
+    nothing — and a LAN name stays exact (the rebinding defence is about names an attacker can control)."""
+    from wealthlens_web.api import security
+    assert security.accepted_hosts("127.0.0.1:7788") == {"127.0.0.1:7788", "localhost:7788"}
+    assert security.accepted_hosts("localhost:7788") == {"127.0.0.1:7788", "localhost:7788"}
+    assert security.accepted_hosts("aipc.local:8765") == {"aipc.local:8765"}
+    a = make_workspace("alpha", {"A": 1})
+    mf = tmp_path / "family.toml"
+    mf.write_text(f'[family]\nreporting_currency = "INR"\n\n[[entity]]\nid="alpha"\nworkspace="{a}"\n')
+    app = create_app(mf, host="127.0.0.1", port=7788, token="t")
+    assert TestClient(app, headers={"host": "localhost:7788"}).get("/api/version").status_code == 200
+    # a same-origin POST from the localhost spelling carries Origin: http://localhost:7788 — also ours
+    r = TestClient(app, headers={"host": "localhost:7788", "origin": "http://localhost:7788",
+                                 "x-wlw-token": "t"}).post("/api/jobs", json={"verb": "verify", "entity": "nope"})
+    assert r.status_code != 403, r.text
+    assert TestClient(app, headers={"host": "localhost:7799"}).get("/api/version").status_code == 403   # port still exact
+
+
+# ── promote waivers + rebuild quarantine from the web (adoption review 2026-09-05, items 2 and 3) ─────────────
+
+def test_only_the_two_review_gates_can_be_waived_and_unknown_names_are_refused():
+    from wealthlens_web.core import verbs
+    assert verbs.promotion_overrides(None) == []
+    assert verbs.promotion_overrides(["coverage-regression"]) == ["--allow-regressions"]
+    assert verbs.promotion_overrides(["oracle-flags", "coverage-regression", "oracle-flags"]) \
+        == ["--allow-oracle-flags", "--allow-regressions"]
+    with pytest.raises(verbs.OverrideNotAllowed):
+        verbs.promotion_overrides(["integrity"])           # a HARD gate: never from here
+    with pytest.raises(verbs.OverrideNotAllowed):
+        verbs.promotion_overrides("coverage-regression")   # not a list
+
+
+def test_the_web_passes_the_waivers_and_the_quarantine_flag_to_the_engine(app_and_client, monkeypatch):
+    """The screen's checkbox must reach the engine as the flag it maps to, and a rebuild started from the web
+    always quarantines (there is no terminal here to fix one bad file with)."""
+    app, client = app_and_client
+    seen: list = []
+
+    def _fake_job():
+        return types.SimpleNamespace(
+            id="j", verb="x", entity_id="alpha", state=verbs.JobState.FINISHED, outcome=None, gate=None,
+            message=None, changed_something=False, exit_code=0, result={}, workspace=pathlib.Path("."),
+            log_lines=[])
+
+    def fake_submit(verb, *, entity_id, workspace, args=None):
+        seen.append((verb, list(args or [])))
+        return _fake_job()
+    monkeypatch.setattr(app.state.runner, "submit", fake_submit)
+    monkeypatch.setattr(app.state.runner, "check_promotion", lambda *a, **k: _fake_job())
+    hdr = {"x-wlw-token": "test-token"}
+    assert client.post("/api/jobs", json={"verb": "rebuild", "entity": "alpha"}, headers=hdr).status_code == 202
+    assert client.post("/api/jobs", json={"verb": "promote", "entity": "alpha", "confirm": "alpha",
+                                          "allow": ["coverage-regression"]}, headers=hdr).status_code == 202
+    assert seen == [("rebuild", ["--quarantine"]), ("promote", ["--yes", "--allow-regressions"])]
+    r = client.post("/api/jobs", json={"verb": "promote", "entity": "alpha", "confirm": "alpha",
+                                       "allow": ["schema"]}, headers=hdr)
+    assert r.status_code == 400 and r.json()["detail"]["error"] == "override"

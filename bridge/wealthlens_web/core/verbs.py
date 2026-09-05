@@ -101,6 +101,31 @@ class PromotionNotReviewed(ValueError):
 ALLOWED_VERBS = frozenset({"import", "rebuild", "verify", "promote", "diagnose", "raw-parse",
                            "fetch-prices", "fetch-fx", "fetch-instruments"})
 
+# The engine's two REVIEW gates on promote — the ones it lets a person waive after reading why (a statement
+# deliberately removed from the corpus; a printed figure verified by eye). From the web they used to be
+# unreachable: the refusal named the gate and the only way on was a terminal (adoption review 2026-09-05,
+# item 3). Every other gate (schema, integrity, locked, stale-candidate, …) stays hard here as in the CLI.
+PROMOTE_OVERRIDES = {"coverage-regression": "--allow-regressions",
+                     "oracle-flags": "--allow-oracle-flags"}
+
+
+class OverrideNotAllowed(ValueError):
+    """`allow` named something that is not a waivable promote gate — or was not a list of gate names."""
+
+
+def promotion_overrides(allow) -> list[str]:
+    """Map the request's `allow` (gate names the person has reviewed) to the engine flags. Unknown names are
+    refused, not ignored: silently dropping one would promote past a gate the person believed they waived."""
+    if allow is None:
+        return []
+    if not isinstance(allow, list) or not all(isinstance(a, str) for a in allow):
+        raise OverrideNotAllowed("`allow` must be a list of gate names")
+    unknown = [a for a in allow if a not in PROMOTE_OVERRIDES]
+    if unknown:
+        raise OverrideNotAllowed(f"{unknown} cannot be waived from here — only the review gates "
+                                 f"{sorted(PROMOTE_OVERRIDES)} can; the rest are hard by design")
+    return [PROMOTE_OVERRIDES[a] for a in dict.fromkeys(allow)]
+
 
 class Runner:
     """Runs verbs, one at a time per workspace, and remembers what happened until the process ends."""

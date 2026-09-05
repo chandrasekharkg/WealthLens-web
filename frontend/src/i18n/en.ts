@@ -163,6 +163,16 @@ export const en = {
   "ops.confirmLabel": "Type {id} to confirm",
   "ops.promoted": "Promoted. {label}'s store is now the rebuilt one.",
   "ops.needsRebuild": "Rebuild first, and read the tally — there is nothing to promote until you have.",
+  "ops.quarantined":
+    "{count} file(s) could not be read and were set aside under statements/_quarantine/ with the reason beside them. The rebuild is complete except for those files — fix or share them, then import them again.",
+  "ops.refusedWhy": "Why it was refused",
+  "ops.refusedTable": "{table}: the rebuild has {rebuilt} rows, the live store has {current}.",
+  "ops.refusedSource": "{file}: this file's own rows — {rebuilt} rebuilt vs {current} live.",
+  "ops.refusedOracle": "{file}: {flag} = {value} — a loaded row contradicts the statement's printed figures.",
+  "ops.waive":
+    "I have read why, and I still want to promote past the {gate} check (for example, I removed that statement on purpose).",
+  "ops.waiveHint":
+    "Only these two review gates can be waived here. Every other gate is final, and the store name must still be typed.",
 
   "activity.title": "Activity",
   "activity.forgotten":

@@ -308,8 +308,11 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     }),
-  /** Promotion carries its review: which rebuild's tally was read, and the typed confirmation. */
-  promote: (entity: string, review: { confirm: string; after?: string }) =>
+  /**
+   * Promotion carries its review: which rebuild's tally was read, the typed confirmation, and — after a
+   * refusal at one of the engine's two REVIEW gates — the gate names the person has read and waives.
+   */
+  promote: (entity: string, review: { confirm: string; after?: string; allow?: string[] }) =>
     request<Job>("/api/jobs", {
       method: "POST",
       headers: { "content-type": "application/json" },

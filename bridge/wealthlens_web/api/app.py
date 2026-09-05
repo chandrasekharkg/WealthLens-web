@@ -506,6 +506,11 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
         target = _target_workspace(m, entity_id, body.get("workspace"))
 
         args: list[str] = []
+        if verb == "rebuild":
+            # From here a household has no terminal: one unreadable file must not make promotion impossible.
+            # The engine sets such a file aside INSIDE the workspace (statements/_quarantine/, with the reason),
+            # retracts its partial rows, and reports it in `result.quarantined` — the screen shows the list.
+            args = ["--quarantine"]
         if verb == "promote":
             # stdin is closed, so the engine's own final gate — show the tally, type the store's name —
             # cannot run and this bridge owns it instead. Enforced server-side: a disabled button is not a
@@ -517,7 +522,11 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
             except verbs.PromotionNotReviewed as e:
                 raise HTTPException(status_code=409,
                                     detail={"error": "unreviewed", "reason": str(e)}) from None
-            args = ["--yes"]
+            try:
+                waived = verbs.promotion_overrides(body.get("allow"))
+            except verbs.OverrideNotAllowed as e:
+                raise HTTPException(status_code=400, detail={"error": "override", "reason": str(e)}) from None
+            args = ["--yes", *waived]
 
         try:
             job = app.state.runner.submit(verb, entity_id=entity_id, workspace=target, args=args)

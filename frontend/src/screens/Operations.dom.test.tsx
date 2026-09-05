@@ -177,3 +177,89 @@ describe("a store that needs promoting is the one that must be selectable", () =
     expect(screen.getByRole("option", { name: "Gone" }).hasAttribute("disabled")).toBe(true);
   });
 });
+
+
+// ── a refusal explains itself, and only the two review gates can be waived (adoption review 2026-09-05, #3) ──
+
+const refusedPromotion = (gate: string, result: Record<string, unknown> = {}) => ({
+  id: "pr1",
+  verb: "promote",
+  entity_id: "alpha",
+  state: "finished",
+  outcome: "refused",
+  gate,
+  message: `the candidate reproduced FEWER rows than the live store (${gate})`,
+  changed_something: false,
+  exit_code: 3,
+  result,
+});
+
+/** Rebuild, type the word, promote — and hand the promote poll the given job. Returns the captured fetch. */
+async function promoteInto(promotionJob: unknown, rebuild = rebuildJob()) {
+  const posted: unknown[] = [];
+  const fetch = mockFetch((url, init) => {
+    if (url === "/api/jobs" && init?.method === "POST") {
+      const body = JSON.parse(init.body as string) as { verb: string };
+      posted.push(body);
+      return body.verb === "promote" ? { ...(promotionJob as object), state: "queued" } : { ...rebuild, state: "queued" };
+    }
+    if (url.startsWith("/api/jobs/pr1")) return promotionJob;
+    if (url.startsWith("/api/jobs/rb1")) return rebuild;
+    return {};
+  });
+  vi.stubGlobal("fetch", fetch);
+  show();
+  fireEvent.click(screen.getByText("Rebuild"));
+  await waitFor(() => expect(screen.getByLabelText("Type alpha to confirm")).toBeTruthy());
+  fireEvent.change(screen.getByLabelText("Type alpha to confirm"), { target: { value: "alpha" } });
+  fireEvent.click(screen.getByRole("button", { name: "Promote this rebuild" }));
+  await waitFor(() => expect(screen.getByRole("region", { name: "Why it was refused" })).toBeTruthy());
+  return posted;
+}
+
+describe("a refused promotion says WHICH file or table, not just the gate", () => {
+  it("lists the per-source rows the engine refused on, and the engine's own message", async () => {
+    await promoteInto(refusedPromotion("coverage-regression", {
+      regressions: [],
+      source_regressions: [{ payload_ref: "/ws/statements/a.pdf", current: 2, rebuilt: 1 }],
+    }));
+    expect(screen.getByText(/a\.pdf: this file's own rows — 1 rebuilt vs 2 live/)).toBeTruthy();
+    expect(screen.getByText(/reproduced FEWER rows/)).toBeTruthy();
+  });
+
+  it("offers a waiver for a review gate, and sends it as `allow` on the next promote", async () => {
+    const posted = await promoteInto(refusedPromotion("coverage-regression", {
+      source_regressions: [{ payload_ref: "/ws/statements/a.pdf", current: 2, rebuilt: 1 }],
+    }));
+    const box = screen.getByRole("checkbox");
+    fireEvent.click(box);
+    fireEvent.click(screen.getByRole("button", { name: "Promote this rebuild" }));
+    await waitFor(() => expect(posted.length).toBe(3)); // rebuild, promote, promote-with-waiver
+    expect(posted[2]).toMatchObject({ verb: "promote", confirm: "alpha", allow: ["coverage-regression"] });
+    expect(posted[1]).not.toHaveProperty("allow"); // the first attempt carried none
+  });
+
+  it("offers NO waiver for a hard gate — those are final everywhere", async () => {
+    await promoteInto(refusedPromotion("integrity"));
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.getByText(/Refused at the integrity check/)).toBeTruthy();
+  });
+});
+
+describe("a rebuild that set files aside says so (adoption review 2026-09-05, #2)", () => {
+  it("lists each quarantined file with its reason, beside the tally", async () => {
+    const job = rebuildJob({
+      result: {
+        tally: [],
+        regressions: [],
+        quarantined: [{ file: "scan.pdf", reason: "⚠️ skipped (RuntimeError: xref missing)", moved_to: "/ws/statements/_quarantine/x/scan.pdf" }],
+      },
+    });
+    vi.stubGlobal("fetch", mockFetch((url) => (url.startsWith("/api/jobs") ? job : {})));
+    show();
+    fireEvent.click(screen.getByText("Rebuild"));
+    await waitFor(() => expect(screen.getByText(/1 file\(s\) could not be read and were set aside/)).toBeTruthy());
+    expect(screen.getByText("scan.pdf")).toBeTruthy();
+    expect(screen.getByText(/xref missing/)).toBeTruthy();
+  });
+});

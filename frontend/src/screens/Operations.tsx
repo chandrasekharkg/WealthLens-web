@@ -13,6 +13,18 @@ import type { Formatter } from "../i18n";
  */
 
 type Tally = { table: string; current: number; rebuilt: number; delta: number };
+type Regression = { table: string; current: number; rebuilt: number };
+type SourceRegression = { payload_ref: string; current: number; rebuilt: number };
+type OracleFlag = { payload_ref: string; flag: string; value: unknown };
+type Quarantined = { file: string; reason: string; moved_to: string };
+
+/**
+ * The engine's two REVIEW gates — the only refusals a person may waive after reading why (the server holds
+ * the same list and refuses anything else). Everything else — schema, integrity, locked, stale — is final.
+ */
+const WAIVABLE_GATES = new Set(["coverage-regression", "oracle-flags"]);
+
+const basename = (ref: string) => ref.split("/").pop() ?? ref;
 
 /** Whether a verb can be run against this entity's store at all. */
 function isOperable(entity: NetWorth["entities"][number]): boolean {
@@ -37,6 +49,7 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [waived, setWaived] = useState<string[]>([]);
 
   const chosen = entities.find((candidate) => candidate.entity_id === entity);
 
@@ -53,6 +66,7 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
     setBusy(true);
     setRefusal(null);
     setPromotion(null);
+    setWaived([]); // a waiver belongs to ONE refusal of ONE candidate
     try {
       const started = await api.startJob("rebuild", entity);
       setRebuild(await await_(started.id));
@@ -65,7 +79,11 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
     setBusy(true);
     setRefusal(null);
     try {
-      const started = await api.promote(entity, { confirm, after: rebuild?.id });
+      const started = await api.promote(entity, {
+        confirm,
+        after: rebuild?.id,
+        ...(waived.length > 0 ? { allow: waived } : {}),
+      });
       const done = await await_(started.id);
       setPromotion(done);
       if (done.changed_something) onPromoted?.();
@@ -82,7 +100,16 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
 
   const tally = ((rebuild?.result?.tally as Tally[] | undefined) ?? []).filter((row) => row.delta !== 0);
   const regressions = (rebuild?.result?.regressions as unknown[] | undefined) ?? [];
+  const quarantined = (rebuild?.result?.quarantined as Quarantined[] | undefined) ?? [];
   const reviewed = rebuild?.state === "finished" && rebuild.changed_something;
+
+  // What the engine refused ON, verbatim from its envelope — the gate name alone left a person with no idea
+  // which file or table, and no way on but a terminal.
+  const refusedGate = promotion?.outcome === "refused" ? promotion.gate ?? null : null;
+  const refusedTables = (promotion?.result?.regressions as Regression[] | undefined) ?? [];
+  const refusedSources = (promotion?.result?.source_regressions as SourceRegression[] | undefined) ?? [];
+  const refusedOracle = (promotion?.result?.oracle_flags as OracleFlag[] | undefined) ?? [];
+  const canWaive = refusedGate !== null && WAIVABLE_GATES.has(refusedGate);
 
   return (
     <main>
@@ -100,6 +127,7 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
             setRebuild(null);
             setPromotion(null);
             setConfirm("");
+            setWaived([]);
           }}
         >
           {/*
@@ -129,6 +157,18 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
             <p role="alert" data-tone="warning">
               {t("ops.regressions", { count: number(regressions.length) })}
             </p>
+          )}
+          {quarantined.length > 0 && (
+            <section aria-label={t("ops.quarantined", { count: number(quarantined.length) })} data-tone="warning">
+              <p role="alert">{t("ops.quarantined", { count: number(quarantined.length) })}</p>
+              <ul>
+                {quarantined.map((q) => (
+                  <li key={q.moved_to}>
+                    <strong>{q.file}</strong> — {q.reason}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
           {tally.length === 0 ? (
             <p role="status">{t("ops.noChange")}</p>
@@ -184,11 +224,57 @@ export function Operations({ entities, format, onPromoted }: OperationsProps) {
           </p>
         )}
         {promotion?.outcome === "refused" && (
-          <p role="alert" data-tone="warning">
-            {t("import.nothingChanged", {
-              reason: promotion.gate ? t("import.refusedBy", { gate: promotion.gate }) : "",
-            })}
-          </p>
+          <section aria-label={t("ops.refusedWhy")} data-tone="warning">
+            <p role="alert">
+              {t("import.nothingChanged", {
+                reason: promotion.gate ? t("import.refusedBy", { gate: promotion.gate }) : "",
+              })}
+            </p>
+            {promotion.message && <p>{promotion.message}</p>}
+            {(refusedTables.length > 0 || refusedSources.length > 0 || refusedOracle.length > 0) && (
+              <ul>
+                {refusedTables.map((r) => (
+                  <li key={`t-${r.table}`}>
+                    {t("ops.refusedTable", { table: r.table, rebuilt: number(r.rebuilt), current: number(r.current) })}
+                  </li>
+                ))}
+                {refusedSources.map((r) => (
+                  <li key={`s-${r.payload_ref}`}>
+                    {t("ops.refusedSource", {
+                      file: basename(r.payload_ref),
+                      rebuilt: number(r.rebuilt),
+                      current: number(r.current),
+                    })}
+                  </li>
+                ))}
+                {refusedOracle.map((r) => (
+                  <li key={`o-${r.payload_ref}-${r.flag}`}>
+                    {t("ops.refusedOracle", { file: basename(r.payload_ref), flag: r.flag, value: String(r.value) })}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canWaive && refusedGate && (
+              <p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={waived.includes(refusedGate)}
+                    onChange={(event) =>
+                      setWaived((was) =>
+                        event.target.checked
+                          ? [...new Set([...was, refusedGate])]
+                          : was.filter((gate) => gate !== refusedGate),
+                      )
+                    }
+                  />{" "}
+                  {t("ops.waive", { gate: refusedGate })}
+                </label>
+                <br />
+                <small>{t("ops.waiveHint")}</small>
+              </p>
+            )}
+          </section>
         )}
         {promotion?.outcome === "ok" && (
           <p role="status">{t("ops.promoted", { label: chosen?.label ?? entity })}</p>
