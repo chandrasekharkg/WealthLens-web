@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type Report, type ReportSection } from "../api/client";
@@ -128,7 +128,7 @@ export function Reports({ reportId, format }: ReportsProps) {
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
   }, [diary, focusLine]);
 
-  const columns = useMemo<ColumnDef<Row>[]>(
+  const columns = useMemo<TableColumn<Row>[]>(
     () => [
       {
         id: "name",

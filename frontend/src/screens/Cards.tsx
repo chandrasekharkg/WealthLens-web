@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -237,7 +237,7 @@ export function CardStatementBody({
     PROVENANCE_HIDDEN,
   );
 
-  const columns = useMemo<ColumnDef<CardStatementLine>[]>(
+  const columns = useMemo<TableColumn<CardStatementLine>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => date(row.original.date) },
       {

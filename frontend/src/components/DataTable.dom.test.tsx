@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -17,7 +17,7 @@ const ROWS: Row[] = Array.from({ length: 12 }, (_, i) => ({
   value: { amount: `${(i + 1) * 100}.00`, currency: "INR" },
 }));
 
-const COLUMNS: ColumnDef<Row>[] = [
+const COLUMNS: TableColumn<Row>[] = [
   { id: "name", accessorKey: "name", header: "Instrument" },
   { id: "value", accessorFn: (r) => r.value.amount, header: "Value" },
 ];

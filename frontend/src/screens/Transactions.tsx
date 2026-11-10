@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type Transactions as TxnData, type TransactionRow } from "../api/client";
@@ -71,11 +71,11 @@ export function Transactions({ format }: TransactionsProps) {
     PROVENANCE_HIDDEN,
   );
 
-  const columns = useMemo<ColumnDef<TransactionRow>[]>(
+  const columns = useMemo<TableColumn<TransactionRow>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => date(row.original.date) },
       ...(multiEntity
-        ? [{ id: "whose", accessorKey: "entity_label", header: t("column.whose") } as ColumnDef<TransactionRow>]
+        ? [{ id: "whose", accessorKey: "entity_label", header: t("column.whose") } as TableColumn<TransactionRow>]
         : []),
       { id: "account", accessorFn: (r) => r.account_label ?? r.bank ?? r.account_id ?? "", header: t("column.from") },
       { id: "narration", accessorKey: "narration", header: t("column.description") },

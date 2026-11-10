@@ -1,14 +1,9 @@
 import {
-  type ColumnDef,
   type ColumnFiltersState,
-  type VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   type RowData,
-  useReactTable,
+  type ColumnVisibilityState,
+  flexRender,
+  useTable,
 } from "@tanstack/react-table";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -17,6 +12,7 @@ import "../styles/print.css";
 import { type Column, type ProvenanceHeader, toCsv } from "../lib/csv";
 import { defaultFormatter } from "../i18n";
 import { columnsThatLeave, rowsThatLeave } from "../lib/table";
+import { features, type TableColumn } from "../lib/tableFeatures";
 import { Provenance } from "./Provenance";
 
 /**
@@ -28,22 +24,13 @@ import { Provenance } from "./Provenance";
  */
 
 /**
- * A column can declare itself numeric. That is a data property, not a style: figures line up on the decimal
- * and use tabular figures so columns of digits are comparable at a glance, on screen and on paper alike.
+ * A column can declare itself numeric (`meta.numeric`, typed by the shared feature set in lib/tableFeatures).
+ * That is a data property, not a style: figures line up on the decimal and use tabular figures so columns of
+ * digits are comparable at a glance, on screen and on paper alike.
  */
-/* eslint-disable @typescript-eslint/consistent-type-definitions, @typescript-eslint/no-unused-vars --
-   a module augmentation must be an interface, and must repeat the upstream type parameters verbatim even
-   though this addition uses neither. */
-declare module "@tanstack/react-table" {
-  interface ColumnMeta<TData extends RowData, TValue> {
-    numeric?: boolean;
-  }
-}
-/* eslint-enable @typescript-eslint/consistent-type-definitions, @typescript-eslint/no-unused-vars */
-
-export type DataTableProps<Row> = {
+export type DataTableProps<Row extends RowData> = {
   readonly rows: readonly Row[];
-  readonly columns: ColumnDef<Row>[];
+  readonly columns: TableColumn<Row>[];
   /** Column definitions for what LEAVES — the same headers, mapped to plain cells. */
   readonly exportColumns: readonly Column<Row>[];
   readonly provenance: ProvenanceHeader;
@@ -64,8 +51,8 @@ export type DataTableProps<Row> = {
    * and renders exactly the columns the caller says are visible. Controlled by the caller (Reports) so the
    * choice is shared across a report's sections and persisted in one place.
    */
-  readonly columnVisibility?: VisibilityState;
-  readonly onColumnVisibilityChange?: (next: VisibilityState) => void;
+  readonly columnVisibility?: ColumnVisibilityState;
+  readonly onColumnVisibilityChange?: (next: ColumnVisibilityState) => void;
   /**
    * A stable id per row (e.g. a diary line's `diary_id`). Given this, the table can be asked to focus a row.
    * Optional — a table that never deep-links leaves both this and `focusRowId` unset and behaves as before.
@@ -84,7 +71,7 @@ function download(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function DataTable<Row>({
+export function DataTable<Row extends RowData>({
   rows,
   columns,
   exportColumns,
@@ -124,22 +111,15 @@ export function DataTable<Row>({
     };
   }, []);
 
-  // React Compiler cannot memoize TanStack's returned functions, so it skips this component. That is a
-  // known interaction with the library rather than a defect here, and a warning nobody can act on trains
-  // people to ignore warnings.
   const [globalFilter, setGlobalFilter] = useState("");
   // Per-column filters (holder / broker / ISIN / any column), revealed by the "Filter columns" toggle — a
   // precise complement to the global search, so a household can narrow to one person, one broker, one ISIN.
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [showColFilters, setShowColFilters] = useState(false);
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable<Row>({
-    data: rows as Row[],
+  const table = useTable({
+    features, // the one shared v9 feature set (sorting, filters, pagination, visibility) — lib/tableFeatures
+    data: rows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     state: { globalFilter, columnFilters, ...(columnVisibility ? { columnVisibility } : {}) },
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
@@ -156,14 +136,14 @@ export function DataTable<Row>({
   });
 
   const leaving = rowsThatLeave(table);
-  const shown = printing ? leaving : table.getPaginationRowModel().rows;
+  const shown = printing ? leaving : table.getPaginatedRowModel().rows;
   const columnsHidden = columnsThatLeave(table).length < table.getAllLeafColumns().length;
 
   // Deep-link focus: page to the requested row, then scroll it into view and flash it. Two effects because
   // paging is a state change — the row is only in the DOM to scroll to on the render AFTER the page is set.
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
-  const pageIndex = table.getState().pagination.pageIndex;
-  const pageSizeNow = table.getState().pagination.pageSize || 1;
+  const pageIndex = table.state.pagination.pageIndex;
+  const pageSizeNow = table.state.pagination.pageSize || 1;
   useEffect(() => {
     if (!focusRowId || !getRowId) return;
     const idx = table.getSortedRowModel().rows.findIndex((r) => r.id === focusRowId);
@@ -351,7 +331,7 @@ export function DataTable<Row>({
             </button>{" "}
             <span>
               {t("table.page", {
-                page: table.getState().pagination.pageIndex + 1,
+                page: table.state.pagination.pageIndex + 1,
                 pages: table.getPageCount(),
               })}
             </span>{" "}
@@ -361,7 +341,7 @@ export function DataTable<Row>({
             <label htmlFor={`${tableId}-size`}>{t("table.perPage")}</label>{" "}
             <select
               id={`${tableId}-size`}
-              value={table.getState().pagination.pageSize}
+              value={table.state.pagination.pageSize}
               onChange={(event) => table.setPageSize(Number(event.target.value))}
             >
               {[25, 50, 100, 500].map((size) => (

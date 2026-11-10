@@ -10,20 +10,22 @@
  * offers both row models, and reaching for the wrong one is the single easiest way to ship an export that
  * silently contains page one.
  */
-import type { Row, Table } from "@tanstack/react-table";
+import type { RowData } from "@tanstack/react-table";
+
+import type { RowOf, TableOf } from "./tableFeatures";
 
 /**
- * Every row the user's current sort and filters select — deliberately NOT `getPaginationRowModel`.
+ * Every row the user's current sort and filters select — deliberately NOT `getPaginatedRowModel`.
  *
  * `getSortedRowModel` is post-filter and post-sort but pre-pagination, which is exactly "what you are
  * looking at, all of it".
  */
-export function rowsThatLeave<T>(table: Table<T>): Row<T>[] {
+export function rowsThatLeave<T extends RowData>(table: TableOf<T>): RowOf<T>[] {
   return table.getSortedRowModel().rows;
 }
 
 /** The columns a reader can currently see, in the order they see them. A hidden column does not leave. */
-export function columnsThatLeave<T>(table: Table<T>) {
+export function columnsThatLeave<T extends RowData>(table: TableOf<T>) {
   return table.getVisibleLeafColumns();
 }
 

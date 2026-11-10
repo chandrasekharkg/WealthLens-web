@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import { useMemo } from "react";
 
 import type { EntityTotal, NetWorth } from "../api/client";
@@ -29,7 +29,7 @@ export function Overview({ data, format }: OverviewProps) {
   // arrives as `stale_count`. This screen only renders them — it does not re-derive either.
   const staleCount = data.stale_count;
 
-  const columns = useMemo<ColumnDef<EntityTotal>[]>(
+  const columns = useMemo<TableColumn<EntityTotal>[]>(
     () => [
       { id: "label", accessorKey: "label", header: t("column.member") },
       {
