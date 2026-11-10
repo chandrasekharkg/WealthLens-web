@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "./tableFeatures";
 import { useCallback, useState } from "react";
 
 import type { Formatter } from "../i18n";
@@ -45,7 +45,7 @@ export const PROVENANCE_HIDDEN: Record<string, boolean> = Object.fromEntries(
 export function provenanceColumns<Row extends RowProvenanceShape>(
   t: Formatter["t"],
   onOpenSource: (row: Row) => void,
-): ColumnDef<Row>[] {
+): TableColumn<Row>[] {
   return [
     {
       id: "source",

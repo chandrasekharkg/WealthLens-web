@@ -19,17 +19,18 @@
     "types": "openapi-typescript src/api/openapi.json -o src/api/types.ts"
   },
   "dependencies": {
-    "@tanstack/react-table": "^8.21.3",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "@tanstack/react-table": "^9.3.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.0",
+    "@tanstack/table-core": "^9.3.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
-    "@types/react": "^18.3.5",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",

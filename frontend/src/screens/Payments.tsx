@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -71,7 +71,7 @@ export function Payments({ format }: PaymentsProps) {
     });
   };
 
-  const columns = useMemo<ColumnDef<CardBillPaymentRow>[]>(
+  const columns = useMemo<TableColumn<CardBillPaymentRow>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => date(row.original.date) },
       { id: "bank", accessorKey: "bank", header: t("column.from") },

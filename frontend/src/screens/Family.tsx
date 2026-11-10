@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type Family as FamilyData, type FamilyTransfers, type TransferRow } from "../api/client";
@@ -114,7 +114,7 @@ function TransferList({ focus, format }: { focus: Focus; format: Formatter }) {
     PROVENANCE_HIDDEN,
   );
 
-  const columns = useMemo<ColumnDef<TransferRow>[]>(
+  const columns = useMemo<TableColumn<TransferRow>[]>(
     () => [
       { id: "date", accessorKey: "date", header: t("column.date"), cell: ({ row }) => date(row.original.date) },
       { id: "bank", accessorKey: "bank", header: t("column.from") },

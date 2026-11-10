@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { TableColumn } from "../lib/tableFeatures";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -217,7 +217,7 @@ export function HoldingDiaryPanel({
     PROVENANCE_HIDDEN,
   );
 
-  const columns = useMemo<ColumnDef<DiaryRow>[]>(
+  const columns = useMemo<TableColumn<DiaryRow>[]>(
     () => [
       {
         id: "date",

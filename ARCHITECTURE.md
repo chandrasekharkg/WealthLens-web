@@ -78,7 +78,8 @@ follows from one sentence:
   [0017 fleet uniformity](openspec/decisions/0017-fleet-uniformity.md) ·
   [0018 backend-first testing](openspec/decisions/0018-backend-first-testing.md) ·
   [0019 secret exposure](openspec/decisions/0019-secret-exposure.md) ·
-  [0020 LAN serving & write surface](openspec/decisions/0020-lan-serving-and-write-surface.md)
+  [0020 LAN serving & write surface](openspec/decisions/0020-lan-serving-and-write-surface.md) ·
+  [0021 TanStack Table v9, one feature set](openspec/decisions/0021-tanstack-table-v9.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·

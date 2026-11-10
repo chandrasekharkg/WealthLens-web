@@ -1,48 +1,41 @@
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  createTable,
-} from "@tanstack/react-table";
-// v8 deliberately: v9 is a fresh major with a new features API and thin documentation, and a young API is
-// exactly the contribution cost ADR-0010 argues against. Both give the headless row model ADR-0003 chose
-// TanStack for, so the stable line is the cheaper one to build on.
+import { constructTable, tableFeatures } from "@tanstack/react-table";
+import { storeReactivityBindings } from "@tanstack/table-core/store-reactivity-bindings";
 import { describe, expect, it } from "vitest";
 
 import { columnsThatLeave, droppedColumnsNote, fitForPrint, rowsThatLeave } from "./table";
+import { features, type TableColumn } from "./tableFeatures";
 
 type Row = { name: string; value: number };
 
 const DATA: Row[] = Array.from({ length: 25 }, (_, i) => ({ name: `Item ${25 - i}`, value: 25 - i }));
 
-const COLUMNS: ColumnDef<Row>[] = [
+const COLUMNS: TableColumn<Row>[] = [
   { id: "name", accessorKey: "name" },
   { id: "value", accessorKey: "value" },
 ];
 
-/** A headless table — TanStack's core with no React and no DOM, which is the point (ADR-0010). */
+/**
+ * A headless table — TanStack's core with no React and no DOM, which is the point (ADR-0010) — built from the
+ * SAME feature set the shipped table uses (lib/tableFeatures, ADR-0021), so these assertions hold for it.
+ */
+// The shipped features plus a plain store: in React, useTable supplies the reactivity; with no framework the
+// table needs one of its own, and v9's store binding is the one TanStack ships for exactly that.
+const headless = tableFeatures({ ...features, coreReactivityFeature: storeReactivityBindings() });
+
 function makeTable(state: Record<string, unknown> = {}) {
-  const table = createTable<Row>({
+  return constructTable({
+    features: headless,
     data: DATA,
     columns: COLUMNS,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    state: { pagination: { pageIndex: 0, pageSize: 10 }, ...state },
-    onStateChange: () => {},
-    renderFallbackValue: null,
+    initialState: { pagination: { pageIndex: 0, pageSize: 10 }, ...state },
   });
-  return table;
 }
 
 describe("what leaves", () => {
   it("is the whole filtered set, not the page a reader can see", () => {
     // The single easiest way to ship a broken export is to reach for the pagination row model.
     const table = makeTable();
-    expect(table.getPaginationRowModel().rows).toHaveLength(10);
+    expect(table.getPaginatedRowModel().rows).toHaveLength(10);
     expect(rowsThatLeave(table)).toHaveLength(25);
   });
 
