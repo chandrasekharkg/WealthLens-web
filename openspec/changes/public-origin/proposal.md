@@ -1,6 +1,6 @@
 # public-origin — the bridge learns the address the browser sees, so it can sit behind a TLS front
 
-> **Status: proposed 2026-11-17.** Raised by the home lab's mTLS move (kgc_home_agents controller): KG chose
+> **Status: implemented 2026-11-17 (spec promoted); the cut-over waits for the controller's window.** Raised by the home lab's mTLS move (kgc_home_agents controller): KG chose
 > server-side TLS for dad's app, served by the existing Caddy front at `https://aipc.local:8444` and proxied to the
 > bridge on `127.0.0.1:8765`. That front is live; today it answers 403. Decision: [ADR-0022](../../decisions/0022-public-origin-behind-a-tls-front.md).
 

@@ -10,10 +10,12 @@ import pathlib
 import sys
 
 from wealthlens_web.api.app import DEFAULT_HOST, DEFAULT_PORT, create_app
+from wealthlens_web.api.security import parse_public_origin
 
 MANIFEST_ENV = "WLW_MANIFEST"
 HOST_ENV = "WLW_HOST"
 PORT_ENV = "WLW_PORT"
+PUBLIC_ORIGIN_ENV = "WLW_PUBLIC_ORIGIN"
 
 
 def manifest_path() -> pathlib.Path:
@@ -40,9 +42,26 @@ def bound_to() -> tuple[str, int]:
     return os.environ.get(HOST_ENV, DEFAULT_HOST), int(os.environ.get(PORT_ENV, DEFAULT_PORT))
 
 
+def public_origin(host: str, port: int) -> str:
+    """`WLW_PUBLIC_ORIGIN` — the address the BROWSER uses — else the bound `http://host:port` (ADR-0022).
+
+    Distinct from the bind: behind a TLS front the browser talks to https://aipc.local:8444 while uvicorn binds
+    127.0.0.1:8765. A malformed value refuses to start, naming what is wrong, rather than serving with a guess
+    that would refuse every request (or accept the wrong ones)."""
+    declared = os.environ.get(PUBLIC_ORIGIN_ENV)
+    if not declared:
+        return f"http://{host}:{port}"
+    try:
+        return parse_public_origin(declared)
+    except ValueError as e:
+        sys.exit(f"WealthLens web: {PUBLIC_ORIGIN_ENV} is not usable — {e}")
+
+
 _host, _port = bound_to()
-app = create_app(manifest_path(), host=_host, port=_port)
+_origin = public_origin(_host, _port)
+app = create_app(manifest_path(), host=_host, port=_port, origin=_origin)
 # Said once, on the server's own console: the exact address to open. Any other name or port gets the
 # wrong-address page (security.wrong_address_page) — this line is where the right one comes from.
-print(f"WealthLens web: open http://{_host}:{_port}/ — exactly this address "
-      f"(WLW_HOST / WLW_PORT change it; the wealthlens-serve launcher sets both)", file=sys.stderr)
+print(f"WealthLens web: open {_origin}/ — exactly this address "
+      f"(WLW_HOST / WLW_PORT change it, WLW_PUBLIC_ORIGIN when a TLS front serves it; the wealthlens-serve "
+      f"launcher sets them)", file=sys.stderr)
