@@ -53,6 +53,49 @@ def accepted_hosts(host: str) -> frozenset[str]:
     return frozenset({host})
 
 
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def parse_public_origin(value: str) -> str:
+    """The address a person types — `scheme://host[:port]` — normalised to exactly what a browser sends in its
+    Origin and Host headers (lower-case scheme and name; a default port dropped, since browsers omit it). Anything
+    else (a path, a query, credentials, a non-web scheme) is refused with the reason: a guessed origin would refuse
+    every request or, worse, accept the wrong ones (ADR-0022)."""
+    from urllib.parse import urlsplit
+    raw = (value or "").strip()
+    parts = urlsplit(raw)
+    scheme = parts.scheme.lower()
+    if scheme not in _DEFAULT_PORTS:
+        raise ValueError(f"{raw!r}: the scheme must be http or https (e.g. https://aipc.local:8444)")
+    if parts.username or parts.password:
+        raise ValueError(f"{raw!r}: an origin carries no credentials")
+    if parts.path not in ("", "/") or parts.query or parts.fragment:
+        raise ValueError(f"{raw!r}: an origin is scheme://host[:port] only — no path, query or fragment")
+    try:
+        port = parts.port
+    except ValueError:
+        raise ValueError(f"{raw!r}: the port must be a number from 1 to 65535") from None
+    name = (parts.hostname or "").lower()
+    if not name:
+        raise ValueError(f"{raw!r}: no host name")
+    if port in (None, _DEFAULT_PORTS[scheme]):
+        return f"{scheme}://{name}"
+    return f"{scheme}://{name}:{port}"
+
+
+def origin_is_loopback(origin: str) -> bool:
+    """Is this origin's host a loopback address — the app published on this machine only?"""
+    import ipaddress
+    from urllib.parse import urlsplit
+    name = urlsplit(origin).hostname or ""
+    if name in _LOOPBACK:
+        return True
+    try:
+        return ipaddress.ip_address(name).is_loopback
+    except ValueError:
+        return False
+
+
 def wrong_address_page(origin: str, got: str) -> HTMLResponse:
     """The ONE refusal that explains itself.
 
@@ -70,7 +113,7 @@ def wrong_address_page(origin: str, got: str) -> HTMLResponse:
         "started for, so other web pages on this network cannot talk to it.</p>"
         "<p>If that address is the wrong one, restart the server with <code>WLW_HOST</code> and "
         "<code>WLW_PORT</code> set to the name and port you want — the <code>wealthlens-serve</code> launcher "
-        "sets both.</p></main>",
+        "sets both (and <code>WLW_PUBLIC_ORIGIN</code> when a TLS front serves it).</p></main>",
         status_code=403)
 
 

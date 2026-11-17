@@ -92,7 +92,9 @@ install.
 - **Not a cloud service.** Local-first, zero telemetry, nothing leaves the machine. It binds `127.0.0.1` by
   default; **LAN serving** (a family member's phone on the home network) is a supported, **off-by-default**
   capability via `WLW_HOST` — but only under a **trusted-LAN** assumption, with **no per-user authentication**
-  yet ([ADR-0020](openspec/decisions/0020-lan-serving-and-write-surface.md)).
+  yet ([ADR-0020](openspec/decisions/0020-lan-serving-and-write-surface.md)). It can sit behind a TLS front on the
+  same machine: set `WLW_PUBLIC_ORIGIN` to the address the browser uses (e.g. `https://aipc.local:8444`) and bind
+  loopback ([ADR-0022](openspec/decisions/0022-public-origin-behind-a-tls-front.md)).
 
 ## Architecture (two thin layers)
 

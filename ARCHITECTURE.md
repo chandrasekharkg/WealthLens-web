@@ -36,8 +36,10 @@ follows from one sentence:
 4. **Keys never reach the browser; loopback-hardened; LAN serving is trusted-LAN** — Host/Origin checks +
    a per-session token on every state-changing endpoint; loopback by default. LAN serving via `WLW_HOST`
    **ships (off by default)** under a **trusted-home-LAN** assumption — there is **no per-user auth yet**, and
-   TLS / per-viewer authorization remain open.
+   per-viewer authorization remains open. TLS comes from a front on the same machine: the checks follow
+   `WLW_PUBLIC_ORIGIN`, the address the browser uses.
    → [ADR-0020](openspec/decisions/0020-lan-serving-and-write-surface.md) (supersedes ADR-0004 on LAN) ·
+   [ADR-0022](openspec/decisions/0022-public-origin-behind-a-tls-front.md) (public origin behind a TLS front) ·
    [ADR-0004](openspec/decisions/0004-bridge-and-security-posture.md) ·
    [bridge-api](openspec/specs/bridge-api/spec.md) ·
   [export-and-print](openspec/specs/export-and-print/spec.md) ·
@@ -79,7 +81,8 @@ follows from one sentence:
   [0018 backend-first testing](openspec/decisions/0018-backend-first-testing.md) ·
   [0019 secret exposure](openspec/decisions/0019-secret-exposure.md) ·
   [0020 LAN serving & write surface](openspec/decisions/0020-lan-serving-and-write-surface.md) ·
-  [0021 TanStack Table v9, one feature set](openspec/decisions/0021-tanstack-table-v9.md)
+  [0021 TanStack Table v9, one feature set](openspec/decisions/0021-tanstack-table-v9.md) ·
+  [0022 public origin behind a TLS front](openspec/decisions/0022-public-origin-behind-a-tls-front.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·

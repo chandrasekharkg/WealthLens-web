@@ -37,12 +37,16 @@ DEFAULT_PORT = 7788
 
 
 def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
-               token: str | None = None, runner: verbs.Runner | None = None) -> FastAPI:
+               origin: str | None = None, token: str | None = None,
+               runner: verbs.Runner | None = None) -> FastAPI:
+    """`origin` is the PUBLIC origin — the address the browser uses (ADR-0022). It defaults to the bound
+    `http://host:port`; behind a TLS front it is the front's (e.g. https://aipc.local:8444) while uvicorn
+    binds loopback. The Host/Origin checks and the document-open routing are measured against it."""
     app = FastAPI(title="WealthLens", docs_url=None, redoc_url=None)
     app.state.manifest_path = pathlib.Path(manifest_path)
     app.state.token = token or new_token()
     app.state.runner = runner or verbs.Runner()
-    origin = f"http://{host}:{port}"
+    app.state.public_origin = origin = origin or f"http://{host}:{port}"
     app.add_middleware(LocalOnly, origin=origin, token=app.state.token)
 
     def _manifest() -> manifest.Manifest:
@@ -602,18 +606,24 @@ def _events(job: verbs.Job):
 # ── delivering a collateral file ───────────────────────────────────────────────────────────────────────
 
 def _peer_is_local(request: Request) -> bool:
-    """True when the browser making this request is on the SAME machine as the bridge — a loopback peer.
-    Only then is asking the server's OS to open a file the right thing; a device across the LAN has a
-    non-loopback peer address and must be handed the bytes itself. This reads the socket's real peer
-    address, so it assumes a direct connection (no reverse proxy rewriting it) — which is how the bridge is
-    run. A peer that is not an IP at all (a test/proxy sentinel) is treated as remote, the safer default:
-    it delivers to the caller rather than opening a file on the server they cannot see."""
+    """True when the browser making this request is on the SAME machine as the bridge. Only then is asking the
+    server's OS to open a file the right thing; anywhere else the browser must be handed the bytes itself.
+
+    The socket peer must be loopback AND the app must be published at a loopback address. Behind a TLS front
+    (ADR-0022) every peer is the front on loopback, so a loopback peer of an app published under a network name
+    (https://aipc.local:8444) is a proxied browser — remote. No forwarded header is trusted for this: the bridge
+    needs only to know the browser is not local, not where it is. A peer that is not an IP at all (a test/proxy
+    sentinel) is treated as remote, the safer default: it delivers to the caller rather than opening a file on
+    the server they cannot see."""
     import ipaddress
+
+    from wealthlens_web.api.security import origin_is_loopback
     host = request.client.host if request.client else ""
     try:
-        return ipaddress.ip_address(host).is_loopback
+        peer_loopback = ipaddress.ip_address(host).is_loopback
     except ValueError:
         return False
+    return peer_loopback and origin_is_loopback(request.app.state.public_origin)
 
 
 def _media_type(path: pathlib.Path) -> str:
