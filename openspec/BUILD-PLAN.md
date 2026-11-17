@@ -167,6 +167,7 @@ Each has its ADR and its graduation trigger — none is an omission.
 | Retraction button | ADR-0012 — taught, not built | WLC gains the verb, or demand appears |
 | XLSX export | ADR-0013 | column types are actually needed |
 | Serving beyond loopback | ADR-0004 phase 2 | with authentication, never as a flag |
+| Login for the hosted install | ADR-0022 — the TLS front is server-TLS only; the LAN is still the trust boundary. The normal install is localhost, which needs no login; dad's served copy is the one hosted case | KG plans it: the **front** (Caddy `client_auth`, home-CA certificate on dad's Mac) refuses anyone without a certificate, so it is deployment configuration and the bridge stays unchanged. A per-viewer "what may each see" inside WLW waits for a real multi-viewer need |
 
 ## The cross-repo risk, and the mitigation
 
