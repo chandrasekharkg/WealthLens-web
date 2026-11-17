@@ -167,6 +167,7 @@ Each has its ADR and its graduation trigger — none is an omission.
 | Retraction button | ADR-0012 — taught, not built | WLC gains the verb, or demand appears |
 | XLSX export | ADR-0013 | column types are actually needed |
 | Serving beyond loopback | ADR-0004 phase 2 | with authentication, never as a flag |
+| Per-viewer login by client certificate | ADR-0022 — the TLS front is server-TLS only; the LAN is still the trust boundary | KG plans it: the front asks for a home-CA client certificate (dad's Mac/Safari), and a new ADR says how the bridge learns the verified identity and what it may see |
 
 ## The cross-repo risk, and the mitigation
 

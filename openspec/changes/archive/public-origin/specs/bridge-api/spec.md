@@ -9,8 +9,8 @@ host:port (the address the browser uses — `WLW_PUBLIC_ORIGIN`, which defaults 
 `http://<WLW_HOST>:<WLW_PORT>`); SHALL reject requests bearing an `Origin` other than the public origin; and
 state-changing endpoints SHALL require a per-session token issued with the page. LAN serving beyond loopback is a
 supported, **off-by-default** capability via the `WLW_HOST` configuration, permitted **only under a
-trusted-home-LAN assumption** ([ADR-0020](../../../../decisions/0020-lan-serving-and-write-surface.md),
-[ADR-0022](../../../../decisions/0022-public-origin-behind-a-tls-front.md)): there is **no per-user authentication**,
+trusted-home-LAN assumption** ([ADR-0020](../../../../../decisions/0020-lan-serving-and-write-surface.md),
+[ADR-0022](../../../../../decisions/0022-public-origin-behind-a-tls-front.md)): there is **no per-user authentication**,
 so any device on that LAN that can reach the host and load the page may view the presented workspaces. The bridge
 MAY sit behind a TLS front on the same machine (the front terminates TLS and proxies to a loopback bind); it SHALL
 then treat a loopback peer as remote unless the public origin is itself a loopback address. Serving beyond a trusted
