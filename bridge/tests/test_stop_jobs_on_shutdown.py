@@ -101,9 +101,9 @@ def _wait_for_state(job, state, seconds: float = 10) -> None:
 @pytest.fixture(autouse=True)
 def _no_leftover_engines(tmp_path):
     yield
-    # a failing test must not leave a looping stand-in behind
+    # a failing test must not leave a looping stand-in behind — SIGKILL, since one of them ignores SIGTERM
     import subprocess
-    subprocess.run(["pkill", "-f", str(tmp_path / "engine.sh")], check=False)
+    subprocess.run(["pkill", "-KILL", "-f", str(tmp_path / "engine.sh")], check=False)
 
 
 def test_the_stop_grace_is_read_from_the_environment_and_a_bad_one_refuses_to_start(monkeypatch):
