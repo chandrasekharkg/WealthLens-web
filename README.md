@@ -95,6 +95,10 @@ install.
   yet ([ADR-0020](openspec/decisions/0020-lan-serving-and-write-surface.md)). It can sit behind a TLS front on the
   same machine: set `WLW_PUBLIC_ORIGIN` to the address the browser uses (e.g. `https://aipc.local:8444`) and bind
   loopback ([ADR-0022](openspec/decisions/0022-public-origin-behind-a-tls-front.md)).
+- **Stops cleanly.** On SIGTERM the app stops the verbs it started: SIGTERM first, then a kill after
+  `WLW_STOP_GRACE` seconds (default 15). Under a supervisor, set its stop timeout above that, e.g.
+  `TimeoutStopSec=30` in a systemd unit. A verb stopped mid-write leaves no half-written backup or candidate
+  (WLC `shutdown-safe-writes`).
 
 ## Architecture (two thin layers)
 

@@ -11,11 +11,13 @@ import sys
 
 from wealthlens_web.api.app import DEFAULT_HOST, DEFAULT_PORT, create_app
 from wealthlens_web.api.security import parse_public_origin
+from wealthlens_web.core import verbs
 
 MANIFEST_ENV = "WLW_MANIFEST"
 HOST_ENV = "WLW_HOST"
 PORT_ENV = "WLW_PORT"
 PUBLIC_ORIGIN_ENV = "WLW_PUBLIC_ORIGIN"
+STOP_GRACE_ENV = "WLW_STOP_GRACE"
 
 
 def manifest_path() -> pathlib.Path:
@@ -57,9 +59,24 @@ def public_origin(host: str, port: int) -> str:
         sys.exit(f"WealthLens web: {PUBLIC_ORIGIN_ENV} is not usable — {e}")
 
 
+def stop_grace() -> float:
+    """`WLW_STOP_GRACE` — seconds a stopping app gives its running verbs after SIGTERM before killing them
+    (stop-jobs-on-shutdown). A supervisor's own stop timeout should sit above it."""
+    declared = os.environ.get(STOP_GRACE_ENV)
+    if not declared:
+        return verbs.STOP_GRACE
+    try:
+        grace = float(declared)
+    except ValueError:
+        grace = -1.0
+    if not 0 <= grace <= 600:
+        sys.exit(f"WealthLens web: {STOP_GRACE_ENV} must be a number of seconds from 0 to 600, not {declared!r}")
+    return grace
+
+
 _host, _port = bound_to()
 _origin = public_origin(_host, _port)
-app = create_app(manifest_path(), host=_host, port=_port, origin=_origin)
+app = create_app(manifest_path(), host=_host, port=_port, origin=_origin, stop_grace=stop_grace())
 # Said once, on the server's own console: the exact address to open. Any other name or port gets the
 # wrong-address page (security.wrong_address_page) — this line is where the right one comes from.
 print(f"WealthLens web: open {_origin}/ — exactly this address "

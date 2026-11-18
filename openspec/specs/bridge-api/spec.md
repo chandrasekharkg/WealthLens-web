@@ -147,6 +147,20 @@ alongside the live one and tallies the two — so an interrupted verb leaves the
 - **THEN** Activity states that earlier jobs are not recorded, rather than showing a blank log implying an
   idle history
 
+### Requirement: Stopping the app stops its verbs, within a bound
+
+When the bridge shuts down it SHALL stop accepting jobs, SHALL send SIGTERM to every verb subprocess it started,
+and SHALL wait up to a configured grace (`WLW_STOP_GRACE`, default 15 seconds) before killing any that remain. No
+verb the bridge started SHALL outlive it.
+
+#### Scenario: The host halts during a rebuild
+- **WHEN** the bridge receives SIGTERM while a rebuild it started is running
+- **THEN** the rebuild is signalled and given the grace to stop, and the bridge exits only after it has
+
+#### Scenario: A verb that will not stop
+- **WHEN** a verb is still running when the grace expires
+- **THEN** it is killed, and shutdown does not wait any longer
+
 ### Requirement: The truth about a store is re-established by asking it, not by remembering
 
 Where a verb's outcome was lost to a restart, the system SHALL offer `rebuild --check` — which asserts

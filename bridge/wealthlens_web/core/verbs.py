@@ -24,6 +24,7 @@ never at risk, because rebuild is non-destructive and promotion is atomic.
 """
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import enum
 import json
@@ -32,9 +33,13 @@ import pathlib
 import subprocess
 import sys
 import threading
+import time
 import uuid
 
 DEFAULT_TIMEOUT = 60 * 60          # a full rebuild over a real corpus runs for many minutes
+# How long shutdown waits for a SIGTERMed verb before killing it (stop-jobs-on-shutdown). A host halt gives the
+# whole machine a couple of minutes; a supervisor's own stop timeout should sit above this.
+STOP_GRACE = 15.0
 
 
 class JobState(enum.StrEnum):
@@ -137,6 +142,8 @@ class Runner:
         self._locks: dict[pathlib.Path, threading.Lock] = {}
         self._guard = threading.Lock()
         self._pids: set[int] = set()
+        self._procs: dict[int, subprocess.Popen] = {}
+        self._stopping = False
 
     # ── introspection the UI needs ───────────────────────────────────────────────────────────────────
 
@@ -214,9 +221,38 @@ class Runner:
         with self._guard:
             return self._locks.setdefault(workspace, threading.Lock())
 
+    def shutdown(self, grace: float = STOP_GRACE) -> None:
+        """Stop accepting work, SIGTERM every verb this runner started, wait up to `grace` seconds in all, then
+        kill what is left. No verb outlives the app. With the engine's shutdown-safe-writes a verb stopped this
+        way removes its partial files and reports `interrupted`; the live store is never in play."""
+        with self._guard:
+            self._stopping = True
+            running = list(self._procs.items())
+        for pid, proc in running:
+            print(f"WealthLens web: stopping job pid {pid} — the app is shutting down", file=sys.stderr, flush=True)
+            with contextlib.suppress(ProcessLookupError):     # it may have finished a moment ago
+                proc.terminate()
+        deadline = time.monotonic() + grace
+        for pid, proc in running:
+            try:
+                proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                print(f"WealthLens web: job pid {pid} did not stop within {grace:g}s — killing it",
+                      file=sys.stderr, flush=True)
+                proc.kill()
+                proc.wait()
+            with self._guard:
+                self._pids.discard(pid)
+                self._procs.pop(pid, None)
+
     def _run(self, job: Job, args: list[str]) -> None:
         lock = self._lock_for(job.workspace)
         with lock:                                   # queued until this workspace is free
+            if self._stopping:                       # queued behind a verb the shutdown just stopped
+                job.outcome = Outcome.FAILED
+                job.message = f"{job.verb} did not start: the app was stopping."
+                job.state = JobState.FINISHED
+                return
             job.state = JobState.RUNNING
             try:
                 self._invoke(job, args)
@@ -239,6 +275,7 @@ class Runner:
                                 stderr=subprocess.PIPE, text=True, bufsize=1, env=env)
         with self._guard:
             self._pids.add(proc.pid)
+            self._procs[proc.pid] = proc
 
         # stdout is drained on its own thread so a chatty verb cannot fill the pipe and deadlock while we
         # are reading stderr — the classic subprocess hang, and a rebuild narrates for minutes.
@@ -252,6 +289,7 @@ class Runner:
         finally:
             with self._guard:
                 self._pids.discard(proc.pid)
+                self._procs.pop(proc.pid, None)
         pump.join(timeout=10)
         out = collected[0] if collected else ""
 
