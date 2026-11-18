@@ -9,6 +9,8 @@ client that has to go looking for "is this partial?" is a client that will forge
 """
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import dataclasses
 import pathlib
 
@@ -38,11 +40,18 @@ DEFAULT_PORT = 7788
 
 def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT,
                origin: str | None = None, token: str | None = None,
-               runner: verbs.Runner | None = None) -> FastAPI:
+               runner: verbs.Runner | None = None, stop_grace: float = verbs.STOP_GRACE) -> FastAPI:
     """`origin` is the PUBLIC origin — the address the browser uses (ADR-0022). It defaults to the bound
     `http://host:port`; behind a TLS front it is the front's (e.g. https://aipc.local:8444) while uvicorn
     binds loopback. The Host/Origin checks and the document-open routing are measured against it."""
-    app = FastAPI(title="WealthLens", docs_url=None, redoc_url=None)
+    @contextlib.asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        # Stopping the app stops the verbs it started, within a bound (stop-jobs-on-shutdown). Off the event
+        # loop: the wait is a blocking one.
+        await asyncio.to_thread(app.state.runner.shutdown, stop_grace)
+
+    app = FastAPI(title="WealthLens", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.manifest_path = pathlib.Path(manifest_path)
     app.state.token = token or new_token()
     app.state.runner = runner or verbs.Runner()
