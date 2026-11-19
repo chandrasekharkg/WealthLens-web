@@ -5,10 +5,12 @@ while this module handles the one piece of environment reading: where the family
 """
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
 import sys
 
+from wealthlens_web import logs
 from wealthlens_web.api.app import DEFAULT_HOST, DEFAULT_PORT, create_app
 from wealthlens_web.api.security import parse_public_origin
 from wealthlens_web.core import verbs
@@ -18,6 +20,7 @@ HOST_ENV = "WLW_HOST"
 PORT_ENV = "WLW_PORT"
 PUBLIC_ORIGIN_ENV = "WLW_PUBLIC_ORIGIN"
 STOP_GRACE_ENV = "WLW_STOP_GRACE"
+LOG_FORMAT_ENV = "WLW_LOG_FORMAT"
 
 
 def manifest_path() -> pathlib.Path:
@@ -74,11 +77,24 @@ def stop_grace() -> float:
     return grace
 
 
+def log_format() -> str:
+    """`WLW_LOG_FORMAT` — `text` (the default, for a person at a terminal) or `json` (one object per line, for a
+    tool). Anything else refuses to start: a typo must not silently fall back to a format a collector can't
+    read (structured-logs)."""
+    declared = (os.environ.get(LOG_FORMAT_ENV) or "").strip()
+    if not declared:
+        return "text"
+    if declared not in logs.FORMATS:
+        sys.exit(f"WealthLens web: {LOG_FORMAT_ENV} must be one of {', '.join(logs.FORMATS)}, not {declared!r}")
+    return declared
+
+
+logs.configure(log_format())
 _host, _port = bound_to()
 _origin = public_origin(_host, _port)
 app = create_app(manifest_path(), host=_host, port=_port, origin=_origin, stop_grace=stop_grace())
 # Said once, on the server's own console: the exact address to open. Any other name or port gets the
 # wrong-address page (security.wrong_address_page) — this line is where the right one comes from.
-print(f"WealthLens web: open {_origin}/ — exactly this address "
-      f"(WLW_HOST / WLW_PORT change it, WLW_PUBLIC_ORIGIN when a TLS front serves it; the wealthlens-serve "
-      f"launcher sets them)", file=sys.stderr)
+logs.event(logging.INFO, f"WealthLens web: open {_origin}/ — exactly this address "
+           f"(WLW_HOST / WLW_PORT change it, WLW_PUBLIC_ORIGIN when a TLS front serves it; the wealthlens-serve "
+           f"launcher sets them)", event="serving", origin=_origin)

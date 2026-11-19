@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 
 from wealthlens_web import engine as _engine
+from wealthlens_web import logs
 from wealthlens_web.api import models
 from wealthlens_web.api.security import LocalOnly, new_token
 from wealthlens_web.core import (
@@ -57,6 +58,9 @@ def create_app(manifest_path: str | pathlib.Path, *, host: str = DEFAULT_HOST, p
     app.state.runner = runner or verbs.Runner()
     app.state.public_origin = origin = origin or f"http://{host}:{port}"
     app.add_middleware(LocalOnly, origin=origin, token=app.state.token)
+    # Outermost, so the guard's refusals are logged too; the bridge writes the only access line (ADR-0023).
+    app.add_middleware(logs.AccessLog)
+    logs.silence_uvicorn_access()
 
     def _manifest() -> manifest.Manifest:
         try:

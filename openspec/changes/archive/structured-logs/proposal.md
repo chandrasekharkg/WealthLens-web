@@ -1,6 +1,6 @@
 # structured-logs — a log that says what happened, in text or JSON, and never to whose money
 
-> **Status: proposed 2026-11-19, not implemented.** Decision: [ADR-0023](../../decisions/0023-logs-carry-shape-not-values.md).
+> **Status: implemented 2026-11-19 (spec promoted).** Decision: [ADR-0023](../../../decisions/0023-logs-carry-shape-not-values.md).
 > Raised by the kgc_home_agents proposal `2026-11-19-lightweight-apps-observability` (v2, after this repo's review),
 > which ships the home lab's two instances' logs to its own log store. The lab owns everything lab-specific (the
 > collector, its parsing, the dashboard, the alerts). This change is the app's whole part: useful on every install,

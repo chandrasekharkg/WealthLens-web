@@ -99,6 +99,12 @@ install.
   `WLW_STOP_GRACE` seconds (default 15). Under a supervisor, set its stop timeout above that, e.g.
   `TimeoutStopSec=30` in a systemd unit. A verb stopped mid-write leaves no half-written backup or candidate
   (WLC `shutdown-safe-writes`).
+- **Logs what happened, never whose money.** One line per request (route template, status, duration) and one per
+  finished job (verb, outcome, gate, exit code, duration), on standard error. Readable text by default;
+  `WLW_LOG_FORMAT=json` gives one JSON object per line for a log tool. No line ever holds a query string, a raw
+  path, an entity id, a verb's message or narration, or an error's text
+  ([ADR-0023](openspec/decisions/0023-logs-carry-shape-not-values.md)). The app opens no log file and sends
+  nothing anywhere: redirect the stream where you want it.
 
 ## Architecture (two thin layers)
 

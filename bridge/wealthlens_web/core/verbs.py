@@ -28,6 +28,7 @@ import contextlib
 import dataclasses
 import enum
 import json
+import logging
 import os
 import pathlib
 import subprocess
@@ -35,6 +36,8 @@ import sys
 import threading
 import time
 import uuid
+
+from wealthlens_web import logs
 
 DEFAULT_TIMEOUT = 60 * 60          # a full rebuild over a real corpus runs for many minutes
 # How long shutdown waits for a SIGTERMed verb before killing it (stop-jobs-on-shutdown). A host halt gives the
@@ -72,6 +75,10 @@ class Job:
     # The verb's narration, line by line as it arrives. A list rather than a string because a viewer
     # watching the stream needs to ask "what is new since line N?" without re-reading the whole thing.
     log_lines: list[str] = dataclasses.field(default_factory=list)
+    # Correlation and timing for the job's result line (structured-logs): the submitting request's trace id,
+    # and when it was submitted. Never logged with the job's message, narration or entity.
+    trace_id: str | None = None
+    submitted: float = dataclasses.field(default_factory=time.monotonic)
 
     @property
     def log(self) -> str:
@@ -213,7 +220,7 @@ class Runner:
             raise VerbNotAllowed(
                 f"{verb!r} is not a verb this app may run. Allowed: {', '.join(sorted(ALLOWED_VERBS))}.")
         job = Job(id=uuid.uuid4().hex[:12], verb=verb, entity_id=entity_id,
-                  workspace=pathlib.Path(workspace).resolve())
+                  workspace=pathlib.Path(workspace).resolve(), trace_id=logs.TRACE.get() or logs.new_trace_id())
         self._jobs[job.id] = job
         return job
 
@@ -229,7 +236,7 @@ class Runner:
             self._stopping = True
             running = list(self._procs.items())
         for pid, proc in running:
-            print(f"WealthLens web: stopping job pid {pid} — the app is shutting down", file=sys.stderr, flush=True)
+            logs.event(logging.WARNING, f"stopping job pid {pid}: the app is shutting down", event="job_stop", pid=pid)
             with contextlib.suppress(ProcessLookupError):     # it may have finished a moment ago
                 proc.terminate()
         deadline = time.monotonic() + grace
@@ -237,8 +244,8 @@ class Runner:
             try:
                 proc.wait(timeout=max(0.0, deadline - time.monotonic()))
             except subprocess.TimeoutExpired:
-                print(f"WealthLens web: job pid {pid} did not stop within {grace:g}s — killing it",
-                      file=sys.stderr, flush=True)
+                logs.event(logging.WARNING, f"job pid {pid} did not stop within {grace:g}s: killing it",
+                           event="job_kill", pid=pid)
                 proc.kill()
                 proc.wait()
             with self._guard:
@@ -252,6 +259,7 @@ class Runner:
                 job.outcome = Outcome.FAILED
                 job.message = f"{job.verb} did not start: the app was stopping."
                 job.state = JobState.FINISHED
+                _log_result(job)
                 return
             job.state = JobState.RUNNING
             try:
@@ -265,6 +273,7 @@ class Runner:
                 job.message = f"could not run {job.verb}: {e}"
             finally:
                 job.state = JobState.FINISHED
+                _log_result(job)
 
     def _invoke(self, job: Job, args: list[str]) -> None:
         cmd = [self._python, "-m", "wealthlens.cli", job.verb, *args, "--json"]
@@ -308,3 +317,9 @@ class Runner:
         job.message = envelope.get("message")
         job.result = {k: v for k, v in envelope.items()
                       if k not in {"verb", "outcome", "exit_code", "gate", "message"}}
+
+
+def _log_result(job: Job) -> None:
+    logs.job_result(verb=job.verb, job_id=job.id, outcome=job.outcome.value if job.outcome else None,
+                    gate=job.gate, exit_code=job.exit_code,
+                    duration_s=round(time.monotonic() - job.submitted, 3), trace_id=job.trace_id)
