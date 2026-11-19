@@ -33,6 +33,81 @@ curl -fsSL https://raw.githubusercontent.com/chandrasekharkg/WealthLens-core/mai
 Already have WealthLens-core? From that checkout: `python bootstrap.py --with-web` (clones this repo beside
 it, installs it into the same venv, builds the frontend, seeds a demo). Then `./wealthlens-serve` serves it.
 
+### Launching
+
+`./wealthlens-serve` (in your WealthLens folder, e.g. `~/WealthLens`) runs the app in the foreground and prints the
+one address to open. Ctrl-C stops it, and any verb it is running stops cleanly too. The launcher reads these
+settings from the environment; every one is optional:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `WLW_MANIFEST` | your `family.toml` | the family manifest: which stores, which entities |
+| `WLW_HOST` / `WLW_PORT` | `127.0.0.1` / `8765` | the address the app binds |
+| `WLW_PUBLIC_ORIGIN` | `http://<host>:<port>` | the address the browser uses, when a TLS front serves the app ([ADR-0022](openspec/decisions/0022-public-origin-behind-a-tls-front.md)) |
+| `WLW_STOP_GRACE` | `15` | seconds a stopping app gives a running verb before killing it |
+| `WLW_LOG_FORMAT` | `text` | `json` for one JSON object per line on stderr ([ADR-0023](openspec/decisions/0023-logs-carry-shape-not-values.md)) |
+
+A bad value refuses to start and says why, rather than serving with a guess.
+
+**Keeping it running.** To start the app at login and restart it after a crash, hand the launcher to your
+system's supervisor. It writes its log to stderr, and the supervisor decides where that goes.
+
+macOS, as a launchd agent at `~/Library/LaunchAgents/org.wealthlens.serve.plist` (replace `YOU` with your
+user name):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>org.wealthlens.serve</string>
+  <key>ProgramArguments</key><array><string>/Users/YOU/WealthLens/wealthlens-serve</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ExitTimeOut</key><integer>30</integer>
+  <key>StandardOutPath</key><string>/Users/YOU/Library/Logs/wealthlens-serve.log</string>
+  <key>StandardErrorPath</key><string>/Users/YOU/Library/Logs/wealthlens-serve.log</string>
+</dict></plist>
+```
+
+```bash
+launchctl bootstrap gui/$UID ~/Library/LaunchAgents/org.wealthlens.serve.plist   # load and start, once
+```
+
+```bash
+launchctl kickstart -k gui/$UID/org.wealthlens.serve                              # restart
+```
+
+Linux, as a systemd user unit at `~/.config/systemd/user/wealthlens.service`:
+
+```ini
+[Unit]
+Description=WealthLens web
+
+[Service]
+ExecStart=%h/WealthLens/wealthlens-serve
+Restart=on-failure
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+systemctl --user enable --now wealthlens        # start now and at login
+```
+
+```bash
+systemctl --user restart wealthlens             # restart; the log is in journalctl --user -u wealthlens
+```
+
+Keep the supervisor's stop timeout (`ExitTimeOut`, `TimeoutStopSec`) above `WLW_STOP_GRACE`. Under a
+supervisor, **restart through it, not by running `./wealthlens-serve` by hand**. A second copy either fails to
+bind the port, or, if your launcher frees the port first, stops the supervised copy. A supervisor doesn't
+restart a copy that exited cleanly.
+
+**After an update.** A change to the bridge (Python) needs a restart; a change to the frontend needs
+`npm run build` in `frontend/`, then a reload in the browser.
+
 **Contributing to the bridge or frontend?** The per-repo dev setup (its own venv; WLC gets installed into it
 by the unified installer, or `pip install -e ../WealthLens-core` yourself):
 
