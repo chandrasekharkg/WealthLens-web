@@ -83,7 +83,7 @@ follows from one sentence:
   [0020 LAN serving & write surface](openspec/decisions/0020-lan-serving-and-write-surface.md) ·
   [0021 TanStack Table v9, one feature set](openspec/decisions/0021-tanstack-table-v9.md) ·
   [0022 public origin behind a TLS front](openspec/decisions/0022-public-origin-behind-a-tls-front.md) ·
-  [0023 logs carry shape, not values](openspec/decisions/0023-logs-carry-shape-not-values.md) (proposed)
+  [0023 logs carry shape, not values](openspec/decisions/0023-logs-carry-shape-not-values.md)
 - Capability specs — [cold-start](openspec/specs/cold-start/spec.md) ·
   [family-aggregation](openspec/specs/family-aggregation/spec.md) ·
   [setup-and-config](openspec/specs/setup-and-config/spec.md) ·

@@ -1,6 +1,6 @@
 # ADR-0023 — The bridge's log says what happened, never to whose money
 
-**Status:** PROPOSED 2026-11-19, to be ACCEPTED when `structured-logs` is implemented · Extends ADR-0003
+**Status:** ACCEPTED 2026-11-19 (implemented by `structured-logs`) · Extends ADR-0003
 (no telemetry) and ADR-0019 (secret exposure); supersedes nothing.
 
 ## Context

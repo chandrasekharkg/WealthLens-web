@@ -10,7 +10,7 @@ the duration in milliseconds and a trace id. A path that matches no API route SH
 
 No line the bridge writes, in any format, SHALL contain a query string, a raw path, an entity id, a verb's
 message, narration or stderr, an exception's text or traceback, or any amount, name or file name
-([ADR-0023](../../../../decisions/0023-logs-carry-shape-not-values.md)).
+([ADR-0023](../../../../../decisions/0023-logs-carry-shape-not-values.md)).
 
 #### Scenario: Opening a statement page
 - **WHEN** the browser requests a document page with the file name, period and payload ref in its query string
